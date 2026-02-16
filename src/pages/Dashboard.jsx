@@ -37,28 +37,28 @@ export default function Dashboard() {
       title: 'לידים פעילים',
       value: leads.filter(l => !['closed_won', 'closed_lost'].includes(l.status)).length,
       icon: Users,
-      color: 'from-blue-500 to-cyan-500',
+      color: '#3B82F6',
       link: 'Leads'
     },
     {
-      title: 'פרויקטים פעילים',
+      title: 'פרויקטים פתוחים',
       value: projects.filter(p => p.status !== 'completed').length,
       icon: Briefcase,
-      color: 'from-purple-500 to-pink-500',
+      color: '#D4AF37',
       link: 'Projects'
     },
     {
       title: 'ממתינים לבחירה',
       value: projects.filter(p => p.status === 'awaiting_selection').length,
       icon: Camera,
-      color: 'from-orange-500 to-red-500',
+      color: '#A855F7',
       link: 'Projects'
     },
     {
       title: 'משימות ממתינות',
       value: tasks.length,
       icon: CheckCircle2,
-      color: 'from-green-500 to-emerald-500',
+      color: '#10B981',
       link: 'Tasks'
     },
   ];
@@ -78,14 +78,19 @@ export default function Dashboard() {
     return <span className={`px-2 py-1 rounded-full text-xs font-medium ${badge.color}`}>{badge.label}</span>;
   };
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
-          לוח ניהול 👋
+      <div className="bg-[#0D0D0D] rounded-2xl p-6 border border-[#D4AF37]/30">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-[#D4AF37] to-[#C5A028] bg-clip-text text-transparent mb-2">
+          ברוך הבא, {user?.full_name || 'צלם מקצועי'} 👋
         </h1>
-        <p className="text-slate-600">סקירה מהירה של העסק שלך ב-Klikly</p>
+        <p className="text-[#808080]">Klikly דואגת לעסק שלך בזמן שאתה מצלם</p>
       </div>
 
       {/* Stats Grid */}
@@ -94,14 +99,17 @@ export default function Dashboard() {
           const Icon = stat.icon;
           return (
             <Link key={index} to={createPageUrl(stat.link)}>
-              <Card className="bg-white/60 backdrop-blur-sm border-white/20 hover:shadow-xl transition-all duration-300 cursor-pointer group">
+              <Card className="bg-[#0D0D0D] border-2 border-[#D4AF37]/40 hover:border-[#D4AF37] transition-all duration-300 cursor-pointer group">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm text-slate-600 mb-1">{stat.title}</p>
-                      <p className="text-3xl font-bold text-slate-800">{stat.value}</p>
+                      <p className="text-sm text-[#808080] mb-1">{stat.title}</p>
+                      <p className="text-3xl font-bold text-white">{stat.value}</p>
                     </div>
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
+                    <div 
+                      className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform"
+                      style={{ backgroundColor: stat.color }}
+                    >
                       <Icon className="w-6 h-6 text-white" />
                     </div>
                   </div>
@@ -114,10 +122,10 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Leads */}
-        <Card className="bg-white/60 backdrop-blur-sm border-white/20 shadow-xl">
+        <Card className="bg-white border border-slate-200 shadow-xl">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-slate-800">
-              <Users className="w-5 h-5 text-indigo-500" />
+            <CardTitle className="flex items-center gap-2 text-slate-900">
+              <Users className="w-5 h-5 text-[#D4AF37]" />
               לידים אחרונים
             </CardTitle>
           </CardHeader>
@@ -128,7 +136,7 @@ export default function Dashboard() {
               <div className="space-y-3">
                 {recentLeads.map((lead) => (
                   <Link key={lead.id} to={createPageUrl(`LeadDetails?id=${lead.id}`)}>
-                    <div className="p-4 rounded-lg bg-white/80 hover:bg-white hover:shadow-md transition-all cursor-pointer">
+                    <div className="p-4 rounded-lg bg-slate-50 hover:bg-slate-100 hover:shadow-md transition-all cursor-pointer border border-slate-200">
                       <div className="flex items-start justify-between mb-2">
                         <div>
                           <h3 className="font-medium text-slate-800">{lead.name}</h3>
@@ -154,22 +162,22 @@ export default function Dashboard() {
         </Card>
 
         {/* Upcoming Tasks */}
-        <Card className="bg-white/60 backdrop-blur-sm border-white/20 shadow-xl">
+        <Card className="bg-[#0D0D0D]/80 backdrop-blur-xl border border-[#D4AF37]/30 shadow-xl">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-slate-800">
-              <CheckCircle2 className="w-5 h-5 text-green-500" />
-              משימות קרובות
+            <CardTitle className="flex items-center gap-2 text-white">
+              <CheckCircle2 className="w-5 h-5 text-[#D4AF37]" />
+              לוז אירועים קרובים
             </CardTitle>
           </CardHeader>
           <CardContent>
             {upcomingTasks.length === 0 ? (
-              <p className="text-slate-500 text-center py-8">אין משימות ממתינות</p>
+              <p className="text-[#808080] text-center py-8">אין משימות ממתינות</p>
             ) : (
               <div className="space-y-3">
                 {upcomingTasks.map((task) => (
-                  <div key={task.id} className="p-4 rounded-lg bg-white/80 hover:bg-white hover:shadow-md transition-all">
+                  <div key={task.id} className="p-4 rounded-lg bg-[#000000]/60 hover:bg-[#000000] transition-all border border-[#D4AF37]/20">
                     <div className="flex items-start justify-between mb-2">
-                      <h3 className="font-medium text-slate-800">{task.title}</h3>
+                      <h3 className="font-medium text-white">{task.title}</h3>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         task.priority === 'high' ? 'bg-red-100 text-red-700' :
                         task.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
@@ -178,7 +186,7 @@ export default function Dashboard() {
                         {task.priority === 'high' ? 'דחוף' : task.priority === 'medium' ? 'בינוני' : 'נמוך'}
                       </span>
                     </div>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-[#D4AF37]">
                       📅 {new Date(task.due_date).toLocaleDateString('he-IL')}
                     </p>
                   </div>

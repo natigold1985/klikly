@@ -18,25 +18,26 @@ export default function Layout({ children, currentPageName }) {
     { name: 'פרויקטים', icon: Briefcase, page: 'Projects' },
     { name: 'הצעות מחיר', icon: FileText, page: 'Quotes' },
     { name: 'משימות', icon: CheckSquare, page: 'Tasks' },
+    { name: 'External Cloud', icon: Camera, page: 'CloudStorage' },
     { name: 'הגדרות', icon: Settings, page: 'Settings' },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100" dir="rtl">
+    <div className="min-h-screen bg-[#000000]" dir="rtl">
       {/* Sidebar */}
-      <aside className="fixed right-0 top-0 h-screen w-64 bg-white/40 backdrop-blur-xl border-l border-white/20 shadow-2xl">
+      <aside className="fixed right-0 top-0 h-screen w-64 bg-[#000000] border-l border-[#D4AF37]/20 shadow-2xl">
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="p-6 border-b border-white/20">
+          <div className="p-6 border-b border-[#D4AF37]/20">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-                <Camera className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#D4AF37] to-[#C5A028] flex items-center justify-center shadow-lg shadow-[#D4AF37]/30">
+                <Camera className="w-6 h-6 text-black" />
               </div>
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                <h1 className="text-xl font-bold bg-gradient-to-r from-[#D4AF37] to-[#C5A028] bg-clip-text text-transparent">
                   Klikly
                 </h1>
-                <p className="text-xs text-slate-500">ניהול לצלמים בקליק</p>
+                <p className="text-xs text-[#808080]">ניהול לצלמים בקליק</p>
               </div>
             </div>
           </div>
@@ -53,12 +54,12 @@ export default function Layout({ children, currentPageName }) {
                   className={`
                     flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
                     ${isActive 
-                      ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30' 
-                      : 'text-slate-600 hover:bg-white/60 hover:shadow-md'
+                      ? 'bg-gradient-to-r from-[#D4AF37] to-[#C5A028] text-black shadow-lg shadow-[#D4AF37]/30' 
+                      : 'text-[#808080] hover:bg-[#0D0D0D] hover:text-white'
                     }
                   `}
                 >
-                  <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-500'}`} />
+                  <Icon className={`w-5 h-5 ${isActive ? 'text-black' : 'text-[#808080]'}`} />
                   <span className="font-medium">{item.name}</span>
                 </Link>
               );
@@ -66,14 +67,14 @@ export default function Layout({ children, currentPageName }) {
           </nav>
 
           {/* User Info */}
-          <div className="p-4 border-t border-white/20">
-            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/60">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+          <div className="p-4 border-t border-[#D4AF37]/20">
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#0D0D0D] border border-[#D4AF37]/30">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#D4AF37] to-[#C5A028] flex items-center justify-center text-black font-bold text-sm">
                 צ
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-slate-700">צלם מקצועי</p>
-                <p className="text-xs text-slate-500">תוכנית חודשית</p>
+                <p className="text-sm font-medium text-white">צלם מקצועי</p>
+                <p className="text-xs text-[#808080]">תוכנית חודשית</p>
               </div>
             </div>
           </div>
