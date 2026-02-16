@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
-import { Plus, Search, Filter, Phone, Mail, Calendar } from 'lucide-react';
+import { Plus, Search, Filter, Phone, Mail, Calendar, Bell, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -62,6 +62,25 @@ export default function Leads() {
     },
   });
 
+  const createReminderMutation = useMutation({
+    mutationFn: ({ leadId, days }) => {
+      const reminderDate = new Date();
+      reminderDate.setDate(reminderDate.getDate() + days);
+      return base44.entities.Reminder.create({
+        lead_id: leadId,
+        reminder_date: reminderDate.toISOString(),
+        notes: `תזכורת לחזור ללקוח אחרי ${days} ימים`,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+    },
+  });
+
+  const handleSetReminder = (leadId, days) => {
+    createReminderMutation.mutate({ leadId, days });
+  };
+
   const handleCreateLead = () => {
     if (!newLead.name || !newLead.phone) return;
     createLeadMutation.mutate({
@@ -103,14 +122,14 @@ export default function Leads() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold text-slate-900">
             ניהול לידים
           </h1>
           <p className="text-slate-600 mt-1">נהל את כל הלידים והפניות שלך במקום אחד</p>
         </div>
         <Dialog open={showNewLeadDialog} onOpenChange={setShowNewLeadDialog}>
           <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-lg">
+            <Button className="bg-gradient-to-r from-[#D4AF37] to-[#C5A028] hover:from-[#C5A028] hover:to-[#D4AF37] text-black shadow-lg">
               <Plus className="w-5 h-5 ml-2" />
               ליד חדש
             </Button>
@@ -196,7 +215,7 @@ export default function Leads() {
               </div>
               <Button
                 onClick={handleCreateLead}
-                className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
+                className="w-full bg-gradient-to-r from-[#D4AF37] to-[#C5A028] hover:from-[#C5A028] hover:to-[#D4AF37] text-black"
                 disabled={!newLead.name || !newLead.phone}
               >
                 צור ליד
@@ -207,7 +226,7 @@ export default function Leads() {
       </div>
 
       {/* Filters */}
-      <Card className="bg-white/60 backdrop-blur-sm border-white/20 shadow-lg">
+      <Card className="border shadow-lg">
         <CardContent className="p-4">
           <div className="flex gap-4">
             <div className="flex-1 relative">
@@ -242,7 +261,7 @@ export default function Leads() {
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
         </div>
       ) : filteredLeads.length === 0 ? (
-        <Card className="bg-white/60 backdrop-blur-sm border-white/20 shadow-lg">
+        <Card className="border shadow-lg">
           <CardContent className="p-12 text-center">
             <p className="text-slate-500">לא נמצאו לידים</p>
           </CardContent>
@@ -251,7 +270,7 @@ export default function Leads() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredLeads.map((lead) => (
             <Link key={lead.id} to={createPageUrl(`LeadDetails?id=${lead.id}`)}>
-              <Card className="bg-white/60 backdrop-blur-sm border-white/20 hover:shadow-xl transition-all duration-300 cursor-pointer group h-full">
+              <Card className="border hover:shadow-xl transition-all duration-300 cursor-pointer group h-full">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div>
@@ -284,11 +303,37 @@ export default function Leads() {
                     )}
                   </div>
 
-                  {lead.source && (
-                    <div className="mt-4 pt-4 border-t border-slate-200">
-                      <span className="text-xs text-slate-500">מקור: {lead.source}</span>
+                  <div className="mt-4 pt-4 border-t border-slate-200">
+                    {lead.source && (
+                      <span className="text-xs text-slate-500 block mb-2">מקור: {lead.source}</span>
+                    )}
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs flex-1"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleSetReminder(lead.id, 3);
+                        }}
+                      >
+                        <Bell className="w-3 h-3 ml-1" />
+                        תזכורת ל-3 ימים
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs flex-1"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          window.location.href = `tel:${lead.phone}`;
+                        }}
+                      >
+                        <Phone className="w-3 h-3 ml-1" />
+                        התקשר
+                      </Button>
                     </div>
-                  )}
+                  </div>
                 </CardContent>
               </Card>
             </Link>

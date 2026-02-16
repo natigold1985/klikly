@@ -86,11 +86,11 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="bg-[#0D0D0D] rounded-2xl p-6 border border-[#D4AF37]/30">
+      <div className="bg-slate-900 rounded-2xl p-6 border border-[#D4AF37]/30">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-[#D4AF37] to-[#C5A028] bg-clip-text text-transparent mb-2">
           ברוך הבא, {user?.full_name || 'צלם מקצועי'} 👋
         </h1>
-        <p className="text-[#808080]">Klikly דואגת לעסק שלך בזמן שאתה מצלם</p>
+        <p className="text-slate-300">Klikly דואגת לעסק שלך בזמן שאתה מצלם</p>
       </div>
 
       {/* Stats Grid */}
@@ -99,12 +99,12 @@ export default function Dashboard() {
           const Icon = stat.icon;
           return (
             <Link key={index} to={createPageUrl(stat.link)}>
-              <Card className="bg-[#0D0D0D] border-2 border-[#D4AF37]/40 hover:border-[#D4AF37] transition-all duration-300 cursor-pointer group">
+              <Card className="bg-white border-2 border-slate-200 hover:border-[#D4AF37] transition-all duration-300 cursor-pointer group">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm text-[#808080] mb-1">{stat.title}</p>
-                      <p className="text-3xl font-bold text-white">{stat.value}</p>
+                      <p className="text-sm text-slate-600 mb-1">{stat.title}</p>
+                      <p className="text-3xl font-bold text-slate-900">{stat.value}</p>
                     </div>
                     <div 
                       className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform"
@@ -162,7 +162,7 @@ export default function Dashboard() {
         </Card>
 
         {/* Upcoming Tasks */}
-        <Card className="bg-[#0D0D0D]/80 backdrop-blur-xl border border-[#D4AF37]/30 shadow-xl">
+        <Card className="bg-slate-900/95 backdrop-blur-xl border border-[#D4AF37]/30 shadow-xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <CheckCircle2 className="w-5 h-5 text-[#D4AF37]" />
@@ -175,7 +175,7 @@ export default function Dashboard() {
             ) : (
               <div className="space-y-3">
                 {upcomingTasks.map((task) => (
-                  <div key={task.id} className="p-4 rounded-lg bg-[#000000]/60 hover:bg-[#000000] transition-all border border-[#D4AF37]/20">
+                  <div key={task.id} className="p-4 rounded-lg bg-slate-800/60 hover:bg-slate-800 transition-all border border-[#D4AF37]/20">
                     <div className="flex items-start justify-between mb-2">
                       <h3 className="font-medium text-white">{task.title}</h3>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
