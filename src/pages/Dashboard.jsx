@@ -83,9 +83,9 @@ export default function Dashboard() {
       {/* Header */}
       <div>
         <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
-          ברוכים השבים 👋
+          לוח ניהול 👋
         </h1>
-        <p className="text-slate-600">סקירה מהירה של העסק שלך</p>
+        <p className="text-slate-600">סקירה מהירה של העסק שלך ב-Klikly</p>
       </div>
 
       {/* Stats Grid */}

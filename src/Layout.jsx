@@ -13,7 +13,7 @@ import {
 
 export default function Layout({ children, currentPageName }) {
   const navigation = [
-    { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
+    { name: 'לוח ניהול', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'לידים', icon: Users, page: 'Leads' },
     { name: 'פרויקטים', icon: Briefcase, page: 'Projects' },
     { name: 'הצעות מחיר', icon: FileText, page: 'Quotes' },
@@ -34,9 +34,9 @@ export default function Layout({ children, currentPageName }) {
               </div>
               <div>
                 <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  BASE 44
+                  Klikly
                 </h1>
-                <p className="text-xs text-slate-500">מערכת ניהול לצלמים</p>
+                <p className="text-xs text-slate-500">ניהול לצלמים בקליק</p>
               </div>
             </div>
           </div>
