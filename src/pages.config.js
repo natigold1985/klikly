@@ -50,6 +50,10 @@
 import Dashboard from './pages/Dashboard';
 import Leads from './pages/Leads';
 import Home from './pages/Home';
+import Projects from './pages/Projects';
+import Quotes from './pages/Quotes';
+import Tasks from './pages/Tasks';
+import Settings from './pages/Settings';
 import __Layout from './Layout.jsx';
 
 
@@ -57,6 +61,10 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "Leads": Leads,
     "Home": Home,
+    "Projects": Projects,
+    "Quotes": Quotes,
+    "Tasks": Tasks,
+    "Settings": Settings,
 }
 
 export const pagesConfig = {
