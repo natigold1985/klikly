@@ -20,9 +20,22 @@ export default function Projects() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const isClient = user?.role === 'client';
+
   const { data: projects = [], isLoading } = useQuery({
-    queryKey: ['projects'],
-    queryFn: () => base44.entities.Project.list('-created_date', 200),
+    queryKey: ['projects', searchTerm, statusFilter, user?.email],
+    queryFn: () => {
+      if (isClient) {
+        return base44.entities.Project.filter({ client_email: user.email }, '-created_date', 200);
+      }
+      return base44.entities.Project.list('-created_date', 200);
+    },
+    enabled: !!user,
   });
 
   const filteredProjects = projects.filter((project) => {
