@@ -16,14 +16,28 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function Dashboard() {
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const isClient = user?.role === 'client';
+
   const { data: leads = [] } = useQuery({
     queryKey: ['leads'],
     queryFn: () => base44.entities.Lead.list('-created_date', 100),
+    enabled: !isClient,
   });
 
   const { data: projects = [] } = useQuery({
     queryKey: ['projects'],
-    queryFn: () => base44.entities.Project.list('-created_date', 100),
+    queryFn: () => {
+      if (isClient) {
+        return base44.entities.Project.filter({ client_email: user.email }, '-created_date', 100);
+      }
+      return base44.entities.Project.list('-created_date', 100);
+    },
+    enabled: !!user,
   });
 
   const { data: tasks = [] } = useQuery({
@@ -31,8 +45,8 @@ export default function Dashboard() {
     queryFn: () => base44.entities.Task.filter({ status: 'pending' }, '-due_date', 50),
   });
 
-  // Statistics
-  const stats = [
+  // Photographer Statistics
+  const photographerStats = [
     {
       title: 'לידים פעילים',
       value: leads.filter(l => !['closed_won', 'closed_lost'].includes(l.status)).length,
@@ -63,6 +77,25 @@ export default function Dashboard() {
     },
   ];
 
+  // Client Statistics
+  const clientStats = [
+    {
+      title: 'הפרויקטים שלי',
+      value: projects.length,
+      icon: Briefcase,
+      color: 'from-purple-500 to-pink-500',
+      link: 'Projects'
+    },
+    {
+      title: 'ממתינים לבחירה',
+      value: projects.filter(p => p.status === 'awaiting_selection').length,
+      icon: Camera,
+      color: 'from-orange-500 to-red-500',
+      link: 'Projects'
+    },
+  ];
+
+  const stats = isClient ? clientStats : photographerStats;
   const recentLeads = leads.slice(0, 5);
   const upcomingTasks = tasks.slice(0, 5);
 
@@ -83,13 +116,15 @@ export default function Dashboard() {
       {/* Header */}
       <div>
         <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
-          לוח ניהול 
+          {isClient ? 'אזור אישי' : 'לוח ניהול'}
         </h1>
-        <p className="text-slate-600">סקירה מהירה של העסק שלך ב-Klikly</p>
+        <p className="text-slate-600">
+          {isClient ? `ברוך הבא, ${user?.full_name}` : 'סקירה מהירה של העסק שלך ב-Klikly'}
+        </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className={`grid grid-cols-1 md:grid-cols-2 ${isClient ? 'lg:grid-cols-2' : 'lg:grid-cols-4'} gap-6`}>
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
@@ -113,48 +148,50 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Leads */}
-        <Card className="bg-white/60 backdrop-blur-sm border-white/20 shadow-xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-slate-800">
-              <Users className="w-5 h-5 text-indigo-500" />
-              לידים אחרונים
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {recentLeads.length === 0 ? (
-              <p className="text-slate-500 text-center py-8">אין לידים עדיין</p>
-            ) : (
-              <div className="space-y-3">
-                {recentLeads.map((lead) => (
-                  <Link key={lead.id} to={createPageUrl(`LeadDetails?id=${lead.id}`)}>
-                    <div className="p-4 rounded-lg bg-white/80 hover:bg-white hover:shadow-md transition-all cursor-pointer">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h3 className="font-medium text-slate-800">{lead.name}</h3>
-                          <p className="text-sm text-slate-500">{lead.shooting_type}</p>
+        {/* Recent Leads - Only for Photographers */}
+        {!isClient && (
+          <Card className="bg-white/60 backdrop-blur-sm border-white/20 shadow-xl">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-slate-800">
+                <Users className="w-5 h-5 text-indigo-500" />
+                לידים אחרונים
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {recentLeads.length === 0 ? (
+                <p className="text-slate-500 text-center py-8">אין לידים עדיין</p>
+              ) : (
+                <div className="space-y-3">
+                  {recentLeads.map((lead) => (
+                    <Link key={lead.id} to={createPageUrl(`LeadDetails?id=${lead.id}`)}>
+                      <div className="p-4 rounded-lg bg-white/80 hover:bg-white hover:shadow-md transition-all cursor-pointer">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h3 className="font-medium text-slate-800">{lead.name}</h3>
+                            <p className="text-sm text-slate-500">{lead.shooting_type}</p>
+                          </div>
+                          {getStatusBadge(lead.status)}
                         </div>
-                        {getStatusBadge(lead.status)}
+                        <div className="flex items-center gap-4 text-xs text-slate-500">
+                          <span>{lead.phone}</span>
+                          {lead.event_date && <span>📅 {new Date(lead.event_date).toLocaleDateString('he-IL')}</span>}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-4 text-xs text-slate-500">
-                        <span>{lead.phone}</span>
-                        {lead.event_date && <span>📅 {new Date(lead.event_date).toLocaleDateString('he-IL')}</span>}
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-            <Link to={createPageUrl('Leads')}>
-              <button className="w-full mt-4 py-2 text-sm text-indigo-600 hover:text-indigo-700 font-medium">
-                צפה בכל הלידים ←
-              </button>
-            </Link>
-          </CardContent>
-        </Card>
+                    </Link>
+                  ))}
+                </div>
+              )}
+              <Link to={createPageUrl('Leads')}>
+                <button className="w-full mt-4 py-2 text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                  צפה בכל הלידים ←
+                </button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Upcoming Tasks */}
-        <Card className="bg-white/60 backdrop-blur-sm border-white/20 shadow-xl">
+        {/* Upcoming Tasks - For Both */}
+        <Card className={`bg-white/60 backdrop-blur-sm border-white/20 shadow-xl ${isClient ? 'lg:col-span-2' : ''}`}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-slate-800">
               <CheckCircle2 className="w-5 h-5 text-green-500" />

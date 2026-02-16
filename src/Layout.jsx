@@ -19,15 +19,24 @@ export default function Layout({ children, currentPageName }) {
     queryFn: () => base44.auth.me(),
   });
 
-  const navigation = [
-    { name: 'לוח ניהול', icon: LayoutDashboard, page: 'Dashboard' },
-    { name: 'לידים', icon: Users, page: 'Leads' },
-    { name: 'פרויקטים', icon: Briefcase, page: 'Projects' },
-    { name: 'הצעות מחיר', icon: FileText, page: 'Quotes' },
-    { name: 'משימות', icon: CheckSquare, page: 'Tasks' },
-    { name: 'אחסון קבצים', icon: HardDrive, page: 'FileStorage' },
-    { name: 'הגדרות', icon: Settings, page: 'Settings' },
-  ];
+  const isClient = user?.role === 'client';
+
+  const navigation = isClient 
+    ? [
+        { name: 'לוח ניהול', icon: LayoutDashboard, page: 'Dashboard' },
+        { name: 'הפרויקטים שלי', icon: Briefcase, page: 'Projects' },
+        { name: 'קבצים להורדה', icon: HardDrive, page: 'FileStorage' },
+        { name: 'משימות', icon: CheckSquare, page: 'Tasks' },
+      ]
+    : [
+        { name: 'לוח ניהול', icon: LayoutDashboard, page: 'Dashboard' },
+        { name: 'לידים', icon: Users, page: 'Leads' },
+        { name: 'פרויקטים', icon: Briefcase, page: 'Projects' },
+        { name: 'הצעות מחיר', icon: FileText, page: 'Quotes' },
+        { name: 'משימות', icon: CheckSquare, page: 'Tasks' },
+        { name: 'אחסון קבצים', icon: HardDrive, page: 'FileStorage' },
+        { name: 'הגדרות', icon: Settings, page: 'Settings' },
+      ];
 
   return (
     <div className="min-h-screen bg-white" dir="rtl">

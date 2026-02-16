@@ -8,6 +8,13 @@ import { Upload, Image, Video, FileImage, Film } from 'lucide-react';
 
 export default function FileStorage() {
   const [activeTab, setActiveTab] = useState('raw');
+  
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+  
+  const isClient = user?.role === 'client';
 
   const tabs = [
     { id: 'raw', label: 'חומר גלם', icon: FileImage },
@@ -58,9 +65,11 @@ export default function FileStorage() {
                 <div className="border-2 border-dashed border-slate-300 rounded-xl p-12 text-center hover:border-[#D4AF37] transition-colors">
                   <Upload className="w-12 h-12 text-slate-400 mx-auto mb-4" />
                   <p className="text-slate-600 mb-4">גרור קבצים לכאן או לחץ להעלאה</p>
-                  <Button className="bg-gradient-to-r from-[#D4AF37] to-[#C5A028] hover:from-[#C5A028] hover:to-[#D4AF37] text-black">
-                    בחר קבצים
-                  </Button>
+                  {!isClient && (
+                    <Button className="bg-gradient-to-r from-[#D4AF37] to-[#C5A028] hover:from-[#C5A028] hover:to-[#D4AF37] text-black">
+                      בחר קבצים
+                    </Button>
+                  )}
                 </div>
 
                 {/* Empty State */}
