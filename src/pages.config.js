@@ -49,26 +49,26 @@
  */
 import CloudStorage from './pages/CloudStorage';
 import Dashboard from './pages/Dashboard';
+import FileStorage from './pages/FileStorage';
 import Home from './pages/Home';
 import Leads from './pages/Leads';
 import Projects from './pages/Projects';
 import Quotes from './pages/Quotes';
 import Settings from './pages/Settings';
 import Tasks from './pages/Tasks';
-import FileStorage from './pages/FileStorage';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "CloudStorage": CloudStorage,
     "Dashboard": Dashboard,
+    "FileStorage": FileStorage,
     "Home": Home,
     "Leads": Leads,
     "Projects": Projects,
     "Quotes": Quotes,
     "Settings": Settings,
     "Tasks": Tasks,
-    "FileStorage": FileStorage,
 }
 
 export const pagesConfig = {

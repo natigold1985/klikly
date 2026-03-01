@@ -19,6 +19,15 @@ export default function Layout({ children, currentPageName }) {
     queryFn: () => base44.auth.me(),
   });
 
+  const { data: settings } = useQuery({
+    queryKey: ['layoutSettings'],
+    queryFn: async () => {
+      const allSettings = await base44.entities.PhotographerSettings.list();
+      return allSettings[0] || null;
+    },
+    staleTime: 1000 * 60 * 5, 
+  });
+
   const isClient = user?.role === 'client';
 
   const navigation = isClient 
@@ -45,11 +54,30 @@ export default function Layout({ children, currentPageName }) {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="p-6 border-b border-[#D4AF37]/20">
-            <div className="text-center">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-[#D4AF37] to-[#C5A028] bg-clip-text text-transparent mb-1">
-                Klikly
-              </h1>
-              <p className="text-xs text-[#808080]">ניהול לצלמים בקליק</p>
+            <div className="flex flex-col items-center justify-center gap-3 text-center">
+              {settings?.logo_url ? (
+                <div className="w-20 h-20 rounded-full border-2 border-[#D4AF37]/20 overflow-hidden bg-black flex items-center justify-center">
+                  <img 
+                    src={settings.logo_url} 
+                    alt={settings?.business_name || 'Logo'} 
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              ) : (
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-[#D4AF37] to-[#C5A028] bg-clip-text text-transparent mb-1">
+                  {settings?.business_name || 'Klikly'}
+                </h1>
+              )}
+              
+              {settings?.logo_url && settings?.business_name && (
+                <h1 className="text-lg font-bold bg-gradient-to-r from-[#D4AF37] to-[#C5A028] bg-clip-text text-transparent">
+                  {settings.business_name}
+                </h1>
+              )}
+
+              {!settings?.business_name && !settings?.logo_url && (
+                <p className="text-xs text-[#808080]">ניהול לצלמים בקליק</p>
+              )}
             </div>
           </div>
 
