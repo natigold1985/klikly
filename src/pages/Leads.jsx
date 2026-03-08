@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { motion, useAnimation, PanInfo } from 'framer-motion';
+import { motion, useAnimation } from 'framer-motion';
 import { toast } from 'sonner';
 
 // Swipeable Lead Card Component
