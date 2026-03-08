@@ -20,18 +20,27 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Link expired', expired: true }, { status: 410 });
     }
 
-    // Track view (without marking as downloaded)
+    // Track view
     await base44.asServiceRole.entities.DeliveryLink.update(link.id, {
       view_count: (link.view_count || 0) + 1,
     });
 
+    // Fetch some photos for preview (thumbnails)
+    // We'll fetch "edited" photos first, then "raw" if needed, limit to 8
+    const photos = await base44.asServiceRole.entities.Photo.filter({ 
+      project_id: link.project_id,
+      type: 'edited'
+    }, '-order_index', 8);
+
     return Response.json({
       success: true,
+      project_id: link.project_id, // Needed for uploads potentially
       project_title: link.project_title,
       client_name: link.client_name,
       cover_image_url: link.cover_image_url,
       file_size_label: link.file_size_label,
       is_downloaded: link.is_downloaded,
+      preview_photos: photos.map(p => p.file_url) // Return URLs
     });
 
   } catch (error) {
