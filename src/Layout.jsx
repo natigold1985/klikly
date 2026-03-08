@@ -124,7 +124,7 @@ export default function Layout({ children, currentPageName }) {
   );
 
   const MobileBottomNav = () => (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 h-[safe-area-inset-bottom+64px] pb-[safe-area-inset-bottom] bg-white border-t border-slate-100 z-50 flex items-center justify-around px-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 h-[80px] pb-[20px] bg-white border-t border-slate-200 z-50 flex items-center justify-around px-4 shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
       {mobileNavItems.map((item) => {
         const Icon = item.icon;
         const isActive = currentPageName === item.page;
@@ -132,12 +132,17 @@ export default function Layout({ children, currentPageName }) {
           <Link
             key={item.name}
             to={createPageUrl(item.page)}
-            className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all w-16 ${
-              isActive ? 'text-[#C5A028]' : 'text-slate-400'
-            }`}
+            className="flex flex-col items-center justify-center w-full h-full active:scale-90 transition-transform duration-200"
           >
-            <Icon className={`w-6 h-6 mb-1 ${isActive ? 'fill-current/20' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
-            <span className="text-[10px] font-medium truncate w-full text-center">{item.name}</span>
+            <div className={`p-1.5 rounded-xl mb-1 ${isActive ? 'bg-[#D4AF37]/10' : 'bg-transparent'}`}>
+              <Icon 
+                className={`w-6 h-6 ${isActive ? 'text-[#C5A028] fill-[#C5A028]/20' : 'text-slate-400'}`} 
+                strokeWidth={isActive ? 2.5 : 2} 
+              />
+            </div>
+            <span className={`text-[11px] font-medium truncate max-w-[60px] text-center ${isActive ? 'text-[#C5A028]' : 'text-slate-400'}`}>
+              {item.name}
+            </span>
           </Link>
         );
       })}

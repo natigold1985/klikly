@@ -149,13 +149,14 @@ export default function DownloadPage() {
           <div className="text-center space-y-6">
             
             {/* Download Button - Fixed on Mobile, Regular on Desktop */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 pb-8 bg-gradient-to-t from-black via-black to-transparent z-50 md:relative md:bg-none md:p-0 md:z-0 border-t border-white/5 md:border-none">
+            <div className="fixed bottom-0 left-0 right-0 p-6 pb-10 bg-[#0a0a0a] z-50 md:relative md:bg-none md:p-0 md:z-0 border-t border-white/10 md:border-none shadow-[0_-10px_40px_rgba(0,0,0,0.8)]">
                <button
                 onClick={handleDownload}
                 disabled={downloading}
-                className="w-full relative group overflow-hidden rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B38F24] p-[1px] shadow-2xl shadow-[#D4AF37]/20"
+                className="w-full relative group overflow-hidden rounded-2xl bg-gradient-to-r from-[#D4AF37] to-[#B38F24] shadow-2xl shadow-[#D4AF37]/20 active:scale-[0.98] transition-transform duration-200"
               >
-                <div className="relative bg-[#0a0a0a] group-hover:bg-opacity-0 transition-all duration-300 rounded-[11px] px-4 py-3 md:px-6 md:py-4 flex items-center justify-center gap-3">
+                <div className="relative bg-[#0a0a0a] group-hover:bg-opacity-0 transition-all duration-300 rounded-[15px] p-[1px]">
+                  <div className="bg-[#111] hover:bg-[#1a1a1a] rounded-[14px] px-6 py-4 flex items-center justify-center gap-4 h-[60px]">
                   {downloading ? (
                     <Loader2 className="w-6 h-6 text-[#D4AF37] group-hover:text-black animate-spin" />
                   ) : downloaded ? (
