@@ -56,6 +56,7 @@ import Projects from './pages/Projects';
 import Quotes from './pages/Quotes';
 import Settings from './pages/Settings';
 import Tasks from './pages/Tasks';
+import DownloadPage from './pages/DownloadPage';
 import __Layout from './Layout.jsx';
 
 
@@ -69,6 +70,7 @@ export const PAGES = {
     "Quotes": Quotes,
     "Settings": Settings,
     "Tasks": Tasks,
+    "DownloadPage": DownloadPage,
 }
 
 export const pagesConfig = {
