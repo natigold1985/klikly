@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Download, Star, Upload, Image as ImageIcon, CheckCircle2, Loader2, AlertCircle, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DownloadPage() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -81,8 +82,15 @@ export default function DownloadPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 className="w-10 h-10 text-[#D4AF37] animate-spin" />
+      <div className="min-h-screen bg-[#0a0a0a] text-white" dir="rtl">
+        <div className="h-[50vh] relative">
+           <Skeleton className="w-full h-full bg-white/5" />
+        </div>
+        <div className="max-w-md mx-auto px-6 -mt-8 relative z-20 space-y-12 pb-20">
+           <Skeleton className="h-48 w-full rounded-2xl bg-white/10" />
+           <Skeleton className="h-24 w-full rounded-xl bg-white/5" />
+           <Skeleton className="h-40 w-full rounded-2xl bg-white/5" />
+        </div>
       </div>
     );
   }
@@ -140,32 +148,36 @@ export default function DownloadPage() {
         <div className="bg-[#111] border border-white/5 rounded-2xl p-6 shadow-2xl shadow-black/50">
           <div className="text-center space-y-6">
             
-            {/* Download Button */}
-            <button
-              onClick={handleDownload}
-              disabled={downloading}
-              className="w-full relative group overflow-hidden rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B38F24] p-[1px]"
-            >
-              <div className="relative bg-[#0a0a0a] group-hover:bg-opacity-0 transition-all duration-300 rounded-[11px] px-6 py-4 flex items-center justify-center gap-3">
-                {downloading ? (
-                  <Loader2 className="w-6 h-6 text-[#D4AF37] group-hover:text-black animate-spin" />
-                ) : downloaded ? (
-                  <CheckCircle2 className="w-6 h-6 text-green-500 group-hover:text-black" />
-                ) : (
-                  <Download className="w-6 h-6 text-[#D4AF37] group-hover:text-black" />
-                )}
-                <div className="text-right">
-                  <div className={`font-bold text-lg ${downloaded ? 'text-green-500' : 'text-[#D4AF37]'} group-hover:text-black transition-colors`}>
-                    {downloaded ? 'הורדה הושלמה' : 'הורדת כל הרגעים'}
-                  </div>
-                  {linkData?.file_size_label && !downloaded && (
-                    <div className="text-xs text-white/50 group-hover:text-black/60 font-medium">
-                      {linkData.file_size_label} • איכות מקורית
-                    </div>
+            {/* Download Button - Fixed on Mobile, Regular on Desktop */}
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/90 to-transparent z-50 md:relative md:bg-none md:p-0 md:z-0">
+               <button
+                onClick={handleDownload}
+                disabled={downloading}
+                className="w-full relative group overflow-hidden rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B38F24] p-[1px] shadow-2xl shadow-[#D4AF37]/20"
+              >
+                <div className="relative bg-[#0a0a0a] group-hover:bg-opacity-0 transition-all duration-300 rounded-[11px] px-6 py-4 flex items-center justify-center gap-3">
+                  {downloading ? (
+                    <Loader2 className="w-6 h-6 text-[#D4AF37] group-hover:text-black animate-spin" />
+                  ) : downloaded ? (
+                    <CheckCircle2 className="w-6 h-6 text-green-500 group-hover:text-black" />
+                  ) : (
+                    <Download className="w-6 h-6 text-[#D4AF37] group-hover:text-black" />
                   )}
+                  <div className="text-right">
+                    <div className={`font-bold text-lg ${downloaded ? 'text-green-500' : 'text-[#D4AF37]'} group-hover:text-black transition-colors`}>
+                      {downloaded ? 'הורדה הושלמה' : 'הורדת כל הרגעים'}
+                    </div>
+                    {linkData?.file_size_label && !downloaded && (
+                      <div className="text-xs text-white/50 group-hover:text-black/60 font-medium">
+                        {linkData.file_size_label} • איכות מקורית
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </button>
+              </button>
+            </div>
+            {/* Spacer for fixed button on mobile */}
+            <div className="h-24 md:hidden"></div>
 
             {/* Thumbnails Preview */}
             {linkData?.preview_photos?.length > 0 && (

@@ -124,21 +124,21 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className={`grid grid-cols-1 md:grid-cols-2 ${isClient ? 'lg:grid-cols-2' : 'lg:grid-cols-4'} gap-6`}>
+      <div className={`grid grid-cols-2 md:grid-cols-2 ${isClient ? 'lg:grid-cols-2' : 'lg:grid-cols-4'} gap-3 md:gap-6`}>
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <Link key={index} to={createPageUrl(stat.link)}>
-              <Card className="bg-white/60 backdrop-blur-sm border-white/20 hover:shadow-xl transition-all duration-300 cursor-pointer group">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm text-slate-600 mb-1">{stat.title}</p>
-                      <p className="text-3xl font-bold text-slate-800">{stat.value}</p>
+              <Card className="bg-white/80 backdrop-blur-sm border-white/20 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer group h-full">
+                <CardContent className="p-4 md:p-6 flex flex-col justify-between h-full">
+                  <div className="flex items-center justify-between mb-3">
+                     <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform`}>
+                      <Icon className="w-5 h-5 md:w-6 md:h-6 text-white" />
                     </div>
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
-                      <Icon className="w-6 h-6 text-white" />
-                    </div>
+                  </div>
+                  <div>
+                    <p className="text-2xl md:text-3xl font-bold text-slate-800 mb-1">{stat.value}</p>
+                    <p className="text-xs md:text-sm font-medium text-slate-500 line-clamp-1">{stat.title}</p>
                   </div>
                 </CardContent>
               </Card>
