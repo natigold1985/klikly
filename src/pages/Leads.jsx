@@ -69,7 +69,7 @@ const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
         dragElastic={0.2}
         onDragEnd={handleDragEnd}
         animate={controls}
-        className="bg-white relative h-full z-10"
+        className="bg-card relative h-full z-10"
       >
         <Card className="border hover:shadow-xl transition-all duration-300 h-full border-none shadow-none rounded-none">
           <CardContent className="p-5">
