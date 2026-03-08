@@ -114,11 +114,11 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+      <div className="mb-2">
+        <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-1 md:mb-2">
           {isClient ? 'אזור אישי' : 'לוח ניהול'}
         </h1>
-        <p className="text-slate-600">
+        <p className="text-sm md:text-base text-slate-600">
           {isClient ? `ברוך הבא, ${user?.full_name}` : 'סקירה מהירה של העסק שלך ב-Klikly'}
         </p>
       </div>
@@ -137,8 +137,8 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div>
-                    <p className="text-2xl md:text-3xl font-bold text-slate-800 mb-1">{stat.value}</p>
-                    <p className="text-xs md:text-sm font-medium text-slate-500 line-clamp-1">{stat.title}</p>
+                    <p className="text-xl md:text-3xl font-bold text-slate-800 mb-0 md:mb-1">{stat.value}</p>
+                    <p className="text-[10px] md:text-sm font-medium text-slate-500 line-clamp-1">{stat.title}</p>
                   </div>
                 </CardContent>
               </Card>

@@ -217,8 +217,8 @@ export default function Layout({ children, currentPageName }) {
       </aside>
 
       {/* Main Content */}
-      <main className="md:mr-64 min-h-screen pt-20 pb-24 md:pt-0 md:pb-0 transition-all duration-300">
-        <div className="p-4 md:p-8 max-w-7xl mx-auto">
+      <main className="md:mr-64 min-h-screen pt-16 pb-20 md:pt-0 md:pb-0 transition-all duration-300 bg-slate-50">
+        <div className="p-3 md:p-8 max-w-7xl mx-auto">
           {children}
         </div>
       </main>

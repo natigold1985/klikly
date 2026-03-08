@@ -133,11 +133,11 @@ export default function DownloadPage() {
             <span className="text-xs font-medium tracking-wide uppercase">הגלריה מוכנה</span>
           </div>
           
-          <h1 className="text-4xl md:text-5xl font-bold mb-3 tracking-tight">
+          <h1 className="text-3xl md:text-5xl font-bold mb-2 tracking-tight">
             {linkData?.client_name}
           </h1>
-          <p className="text-lg text-white/70 max-w-md mx-auto">
-            הזיכרונות שלכם מהפרויקט <span className="text-[#D4AF37]">"{linkData?.project_title}"</span>
+          <p className="text-base md:text-lg text-white/70 max-w-md mx-auto">
+            הזיכרונות שלכם מהפרויקט <br className="md:hidden" /><span className="text-[#D4AF37]">"{linkData?.project_title}"</span>
           </p>
         </div>
       </div>
@@ -149,13 +149,13 @@ export default function DownloadPage() {
           <div className="text-center space-y-6">
             
             {/* Download Button - Fixed on Mobile, Regular on Desktop */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/90 to-transparent z-50 md:relative md:bg-none md:p-0 md:z-0">
+            <div className="fixed bottom-0 left-0 right-0 p-4 pb-8 bg-gradient-to-t from-black via-black to-transparent z-50 md:relative md:bg-none md:p-0 md:z-0 border-t border-white/5 md:border-none">
                <button
                 onClick={handleDownload}
                 disabled={downloading}
                 className="w-full relative group overflow-hidden rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B38F24] p-[1px] shadow-2xl shadow-[#D4AF37]/20"
               >
-                <div className="relative bg-[#0a0a0a] group-hover:bg-opacity-0 transition-all duration-300 rounded-[11px] px-6 py-4 flex items-center justify-center gap-3">
+                <div className="relative bg-[#0a0a0a] group-hover:bg-opacity-0 transition-all duration-300 rounded-[11px] px-4 py-3 md:px-6 md:py-4 flex items-center justify-center gap-3">
                   {downloading ? (
                     <Loader2 className="w-6 h-6 text-[#D4AF37] group-hover:text-black animate-spin" />
                   ) : downloaded ? (
