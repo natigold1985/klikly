@@ -68,12 +68,31 @@ export default function Layout({ children, currentPageName }) {
 
   // Pages that should render without any nav
   const noLayoutPages = ['DownloadPage', 'QuoteView'];
+  // Handle System Dark Mode
+  React.useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e) => {
+      if (e.matches) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    };
+    
+    // Initial check
+    handleChange(mediaQuery);
+    
+    // Listener
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
   if (noLayoutPages.includes(pageName)) {
     return children;
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden" dir="rtl">
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden text-slate-900 dark:text-slate-50 transition-colors duration-300" dir="rtl">
       
       {/* ── Mobile Header (Central Logo) ── */}
       <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-100 z-40 flex items-center justify-center px-4 shadow-sm">
