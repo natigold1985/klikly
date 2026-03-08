@@ -185,6 +185,12 @@ export default function Projects() {
                     )}
                   </div>
                 )}
+
+                {!isClient && (
+                  <div className="pt-3 mt-1 border-t border-slate-200">
+                    <DeliveryLinkButton project={project} />
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
