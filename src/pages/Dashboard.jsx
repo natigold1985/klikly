@@ -112,13 +112,13 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       {/* Header */}
       <div className="mb-2">
-        <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-1 md:mb-2">
+        <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-1 md:mb-2 truncate leading-normal py-1">
           {isClient ? 'אזור אישי' : 'לוח ניהול'}
         </h1>
-        <p className="text-sm md:text-base text-slate-600">
+        <p className="text-sm md:text-base text-slate-600 truncate">
           {isClient ? `ברוך הבא, ${user?.full_name}` : 'סקירה מהירה של העסק שלך ב-Klikly'}
         </p>
       </div>
@@ -131,9 +131,9 @@ export default function Dashboard() {
             <Link key={index} to={createPageUrl(stat.link)}>
               <Card className="bg-white/90 backdrop-blur-sm border-white/40 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group h-full overflow-hidden">
                 <CardContent className="p-5 md:p-6 flex items-center justify-between h-full">
-                  <div className="flex flex-col gap-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-500 truncate w-full">{stat.title}</p>
-                    <p className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">{stat.value}</p>
+                  <div className="flex flex-col gap-1 min-w-0 flex-1">
+                    <p className="text-sm font-medium text-slate-500 truncate w-full pr-2">{stat.title}</p>
+                    <p className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight truncate">{stat.value}</p>
                   </div>
                   <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-md group-hover:scale-105 transition-transform flex-shrink-0`}>
                     <Icon className="w-6 h-6 text-white" />
