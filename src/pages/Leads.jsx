@@ -3,7 +3,10 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
-import { Plus, Search, Filter, Phone, Mail, Calendar, Bell, Clock } from 'lucide-react';
+import { 
+  Plus, Search, Filter, Phone, Mail, Calendar, Bell, Clock, 
+  MessageCircle, FileText, Trash2, CheckSquare, MoreVertical 
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -21,11 +24,115 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { motion, useAnimation, PanInfo } from 'framer-motion';
+import { toast } from 'sonner';
+
+// Swipeable Lead Card Component
+const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
+  const controls = useAnimation();
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleDragEnd = (event, info) => {
+    const threshold = 100;
+    if (info.offset.x < -threshold) {
+      // Swipe Left -> Follow-up
+      onAction('followup', lead);
+      controls.start({ x: 0 });
+    } else if (info.offset.x > threshold) {
+      // Swipe Right -> Delete (or other action, maybe Call)
+      // Per user request: Swipe Actions for Follow-up or Delete
+      onAction('delete', lead);
+      controls.start({ x: 0 });
+    } else {
+      controls.start({ x: 0 });
+    }
+  };
+
+  const whatsappLink = `https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`היי ${lead.name}, ראיתי שהתעניינת ב-${lead.shooting_type || 'צילום'}. רציתי לבדוק אם קיבלת את הפרטים?`)}`;
+
+  return (
+    <div className="relative overflow-hidden rounded-xl h-full">
+      {/* Background Actions */}
+      <div className="absolute inset-0 flex items-center justify-between pointer-events-none">
+        <div className="h-full w-1/2 bg-red-500 flex items-center justify-start pl-6 text-white">
+          <Trash2 className="w-6 h-6" />
+        </div>
+        <div className="h-full w-1/2 bg-blue-500 flex items-center justify-end pr-6 text-white">
+          <Clock className="w-6 h-6" />
+        </div>
+      </div>
+
+      {/* Foreground Card */}
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.2}
+        onDragEnd={handleDragEnd}
+        animate={controls}
+        className="bg-white relative h-full z-10"
+      >
+        <Card className="border hover:shadow-xl transition-all duration-300 h-full border-none shadow-none rounded-none">
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">
+                  {lead.name}
+                </h3>
+                {lead.shooting_type && (
+                  <p className="text-xs text-slate-500">{lead.shooting_type}</p>
+                )}
+              </div>
+              {getStatusBadge(lead.status)}
+            </div>
+
+            <div className="space-y-2 mb-4">
+              <div className="flex items-center gap-2 text-sm text-slate-600">
+                <Phone className="w-3.5 h-3.5 text-slate-400" />
+                {lead.phone}
+              </div>
+              {lead.next_follow_up_date && (
+                <div className="flex items-center gap-2 text-sm text-amber-600 font-medium bg-amber-50 p-1 rounded">
+                  <Clock className="w-3.5 h-3.5" />
+                  פולו-אפ: {new Date(lead.next_follow_up_date).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' })}
+                </div>
+              )}
+            </div>
+
+            {/* Quick Actions Row */}
+            <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
+              <a href={`tel:${lead.phone}`} onClick={(e) => { e.stopPropagation(); onAction('log_call', lead); }}>
+                <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full bg-green-50 text-green-600 hover:bg-green-100">
+                  <Phone className="w-5 h-5" />
+                </Button>
+              </a>
+              <a href={whatsappLink} target="_blank" rel="noopener noreferrer" onClick={(e) => { e.stopPropagation(); onAction('log_whatsapp', lead); }}>
+                <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100">
+                  <MessageCircle className="w-5 h-5" />
+                </Button>
+              </a>
+              <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100" onClick={(e) => { e.stopPropagation(); onAction('log_manual', lead); }}>
+                <FileText className="w-5 h-5" />
+              </Button>
+              <Button variant="ghost" className="mr-auto text-xs text-slate-500 hover:text-slate-800" onClick={(e) => { e.stopPropagation(); onAction('followup', lead); }}>
+                <Clock className="w-4 h-4 mr-1" />
+                תזמון
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </div>
+  );
+};
 
 export default function Leads() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
+  const [showFollowUpDialog, setShowFollowUpDialog] = useState(false);
+  const [selectedLead, setSelectedLead] = useState(null);
+  const [followUpDate, setFollowUpDate] = useState('');
+  
   const [newLead, setNewLead] = useState({
     name: '',
     phone: '',
@@ -59,26 +166,73 @@ export default function Leads() {
         budget: '',
         notes: '',
       });
+      toast.success("הליד נוצר בהצלחה");
     },
   });
 
-  const createReminderMutation = useMutation({
-    mutationFn: ({ leadId, days }) => {
-      const reminderDate = new Date();
-      reminderDate.setDate(reminderDate.getDate() + days);
-      return base44.entities.Reminder.create({
-        lead_id: leadId,
-        reminder_date: reminderDate.toISOString(),
-        notes: `תזכורת לחזור ללקוח אחרי ${days} ימים`,
-      });
-    },
+  const updateLeadMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Lead.update(id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leads'] })
+  });
+
+  const deleteLeadMutation = useMutation({
+    mutationFn: (id) => base44.entities.Lead.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
-    },
+      toast.success("הליד נמחק");
+    }
   });
 
-  const handleSetReminder = (leadId, days) => {
-    createReminderMutation.mutate({ leadId, days });
+  const logActivityMutation = useMutation({
+    mutationFn: (activity) => base44.entities.Activity.create(activity),
+    onSuccess: () => toast.success("הפעילות תועדה ביומן")
+  });
+
+  const handleAction = (action, lead) => {
+    if (action === 'followup') {
+      setSelectedLead(lead);
+      setShowFollowUpDialog(true);
+    } else if (action === 'delete') {
+      if (confirm('למחוק את הליד?')) {
+        deleteLeadMutation.mutate(lead.id);
+      }
+    } else if (action === 'log_call' || action === 'log_whatsapp' || action === 'log_manual') {
+      // Update last contact date
+      updateLeadMutation.mutate({ id: lead.id, data: { last_contact_date: new Date().toISOString() } });
+      
+      // Log activity
+      const typeMap = {
+        'log_call': 'call_made',
+        'log_whatsapp': 'email_sent', // closest mapping
+        'log_manual': 'note_added'
+      };
+      
+      logActivityMutation.mutate({
+        related_to_type: 'lead',
+        related_to_id: lead.id,
+        activity_type: typeMap[action] || 'note_added',
+        title: action === 'log_call' ? 'בוצעה שיחה' : action === 'log_whatsapp' ? 'נשלחה הודעת WhatsApp' : 'תועד ידנית',
+        description: `פעילות תועדה בתאריך ${new Date().toLocaleString()}`,
+        metadata: {}
+      });
+    }
+  };
+
+  const handleSaveFollowUp = () => {
+    if (!selectedLead || !followUpDate) return;
+    
+    updateLeadMutation.mutate({ 
+      id: selectedLead.id, 
+      data: { 
+        next_follow_up_date: new Date(followUpDate).toISOString(),
+        status: 'follow_up'
+      } 
+    });
+    
+    setShowFollowUpDialog(false);
+    setFollowUpDate('');
+    setSelectedLead(null);
+    toast.success("פולו-אפ תוזמן בהצלחה");
   };
 
   const handleCreateLead = () => {
@@ -111,14 +265,14 @@ export default function Leads() {
     };
     const badge = statusMap[status] || { label: status, color: 'bg-gray-500' };
     return (
-      <span className={`px-3 py-1 rounded-full text-xs font-medium text-white ${badge.color} shadow-lg`}>
+      <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium text-white ${badge.color} shadow-sm`}>
         {badge.label}
       </span>
     );
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -225,6 +379,31 @@ export default function Leads() {
         </Dialog>
       </div>
 
+      {/* Follow Up Dialog */}
+      <Dialog open={showFollowUpDialog} onOpenChange={setShowFollowUpDialog}>
+        <DialogContent className="sm:max-w-[400px]" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>תזמון פולו-אפ</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <p className="text-sm text-slate-600">בחר מועד לחזרה ל{selectedLead?.name}:</p>
+            <Input
+              type="datetime-local"
+              value={followUpDate}
+              onChange={(e) => setFollowUpDate(e.target.value)}
+              className="w-full"
+            />
+            <Button 
+              onClick={handleSaveFollowUp} 
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+              disabled={!followUpDate}
+            >
+              שמור תזכורת
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Filters */}
       <Card className="border shadow-lg">
         <CardContent className="p-4">
@@ -234,21 +413,20 @@ export default function Leads() {
               <Input
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="חיפוש לפי שם, טלפון או אימייל..."
+                placeholder="חיפוש..."
                 className="pr-10"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="כל הסטטוסים" />
+              <SelectTrigger className="w-32 md:w-48">
+                <SelectValue placeholder="סטטוס" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">כל הסטטוסים</SelectItem>
+                <SelectItem value="all">הכל</SelectItem>
                 <SelectItem value="new">חדש</SelectItem>
                 <SelectItem value="follow_up">מעקב</SelectItem>
-                <SelectItem value="quote_sent">הצעה נשלחה</SelectItem>
-                <SelectItem value="closed_won">נסגר בהצלחה</SelectItem>
-                <SelectItem value="closed_lost">נכשל</SelectItem>
+                <SelectItem value="quote_sent">הצעה</SelectItem>
+                <SelectItem value="closed_won">סגור</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -269,74 +447,12 @@ export default function Leads() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredLeads.map((lead) => (
-            <Link key={lead.id} to={createPageUrl(`LeadDetails?id=${lead.id}`)}>
-              <Card className="border hover:shadow-xl transition-all duration-300 cursor-pointer group h-full">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="text-lg font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
-                        {lead.name}
-                      </h3>
-                      {lead.shooting_type && (
-                        <p className="text-sm text-slate-600">{lead.shooting_type}</p>
-                      )}
-                    </div>
-                    {getStatusBadge(lead.status)}
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <Phone className="w-4 h-4 text-indigo-500" />
-                      {lead.phone}
-                    </div>
-                    {lead.email && (
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <Mail className="w-4 h-4 text-purple-500" />
-                        {lead.email}
-                      </div>
-                    )}
-                    {lead.event_date && (
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <Calendar className="w-4 h-4 text-green-500" />
-                        {new Date(lead.event_date).toLocaleDateString('he-IL')}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-4 pt-4 border-t border-slate-200">
-                    {lead.source && (
-                      <span className="text-xs text-slate-500 block mb-2">מקור: {lead.source}</span>
-                    )}
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-xs flex-1"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleSetReminder(lead.id, 3);
-                        }}
-                      >
-                        <Bell className="w-3 h-3 ml-1" />
-                        תזכורת ל-3 ימים
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-xs flex-1"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          window.location.href = `tel:${lead.phone}`;
-                        }}
-                      >
-                        <Phone className="w-3 h-3 ml-1" />
-                        התקשר
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+            <SwipeableLeadCard 
+              key={lead.id} 
+              lead={lead} 
+              onAction={handleAction} 
+              getStatusBadge={getStatusBadge} 
+            />
           ))}
         </div>
       )}

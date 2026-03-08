@@ -11,8 +11,10 @@ import {
   TrendingUp,
   Calendar,
   DollarSign,
-  Camera
+  Camera,
+  AlertCircle
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function Dashboard() {
@@ -111,8 +113,31 @@ export default function Dashboard() {
     return <span className={`px-2 py-1 rounded-full text-xs font-medium ${badge.color}`}>{badge.label}</span>;
   };
 
+  const urgentLeads = leads.filter(l => {
+    const isNew = l.status === 'new';
+    const isOld = new Date(l.created_date) < new Date(Date.now() - 24 * 60 * 60 * 1000);
+    return isNew && isOld;
+  });
+
   return (
     <div className="space-y-6 md:space-y-8">
+      {/* Urgent Attention Alert */}
+      {urgentLeads.length > 0 && !isClient && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between animate-pulse">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="font-bold text-red-800">דורש טיפול דחוף</h3>
+              <p className="text-sm text-red-600">{urgentLeads.length} לידים חדשים ממתינים מעל 24 שעות</p>
+            </div>
+          </div>
+          <Link to={createPageUrl('Leads')}>
+            <Button variant="destructive" size="sm">טפל עכשיו</Button>
+          </Link>
+        </div>
+      )}
       {/* Header */}
       <div className="mb-2">
         <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-1 md:mb-2 truncate leading-normal py-1">

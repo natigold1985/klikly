@@ -3,8 +3,12 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
-import { Plus, Search, Briefcase, Upload, Download, Eye, CheckCircle2 } from 'lucide-react';
+import { 
+  Plus, Search, Briefcase, Upload, Download, Eye, CheckCircle2, 
+  Smartphone, ExternalLink, RefreshCw 
+} from 'lucide-react';
 import DeliveryLinkButton from '../components/DeliveryLinkButton';
+import FileUploader from '../components/FileUploader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,10 +20,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 export default function Projects() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [uploadProject, setUploadProject] = useState(null);
+  const [showMagicLinkPrompt, setShowMagicLinkPrompt] = useState(null);
+
+  const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -38,6 +55,17 @@ export default function Projects() {
     },
     enabled: !!user,
   });
+
+  const handleUploadComplete = () => {
+    toast.success("הקבצים הועלו בהצלחה והתווספו לפרויקט");
+    // Show magic link prompt after slight delay
+    if (uploadProject) {
+      setTimeout(() => {
+        setUploadProject(null);
+        setShowMagicLinkPrompt(uploadProject);
+      }, 1000);
+    }
+  };
 
   const filteredProjects = projects.filter((project) => {
     const matchesSearch = 
@@ -72,7 +100,7 @@ export default function Projects() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -187,8 +215,20 @@ export default function Projects() {
                 )}
 
                 {!isClient && (
-                  <div className="pt-3 mt-1 border-t border-slate-200">
+                  <div className="pt-3 mt-1 border-t border-slate-200 flex items-center justify-between gap-2">
                     <DeliveryLinkButton project={project} />
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="text-xs gap-1 border-dashed"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setUploadProject(project);
+                      }}
+                    >
+                      <Smartphone className="w-3 h-3" />
+                      העלאה מהנייד
+                    </Button>
                   </div>
                 )}
               </CardContent>
@@ -196,6 +236,40 @@ export default function Projects() {
           ))}
         </div>
       )}
+
+      {/* Mobile Upload Dialog */}
+      <Dialog open={!!uploadProject} onOpenChange={(open) => !open && setUploadProject(null)}>
+        <DialogContent className="sm:max-w-[500px]" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>העלאת חומרים מהנייד</DialogTitle>
+            <DialogDescription>
+              בחר קבצים מהגלריה להעלאה לפרויקט של {uploadProject?.client_name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            <FileUploader 
+              onUploadComplete={handleUploadComplete} 
+              projectId={uploadProject?.id}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Magic Link Prompt Dialog */}
+      <Dialog open={!!showMagicLinkPrompt} onOpenChange={(open) => !open && setShowMagicLinkPrompt(null)}>
+        <DialogContent className="sm:max-w-[400px]" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>הקבצים הועלו בהצלחה!</DialogTitle>
+            <DialogDescription>
+              האם ברצונך לייצר לינק הורדה (Magic Link) ללקוח עכשיו?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="outline" onClick={() => setShowMagicLinkPrompt(null)}>לא כרגע</Button>
+            <DeliveryLinkButton project={showMagicLinkPrompt} label="כן, צור לינק" />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
