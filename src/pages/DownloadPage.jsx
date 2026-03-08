@@ -175,7 +175,8 @@ export default function DownloadPage() {
                     )}
                   </div>
                 </div>
-              </button>
+              </div>
+            </button>
             </div>
             {/* Spacer for fixed button on mobile */}
             <div className="h-24 md:hidden"></div>
