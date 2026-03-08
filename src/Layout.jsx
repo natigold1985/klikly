@@ -1,26 +1,21 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { createPageUrl } from './utils';
+import { createPageUrl } from '@/utils';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Briefcase, 
-  FileText, 
-  CheckSquare, 
+import {
+  LayoutDashboard,
+  Users,
+  Briefcase,
+  FileText,
+  CheckSquare,
   Settings,
   HardDrive,
-  Menu,
-  X,
-  Bell
 } from 'lucide-react';
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
+
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
@@ -32,12 +27,12 @@ export default function Layout({ children, currentPageName }) {
       const allSettings = await base44.entities.PhotographerSettings.list();
       return allSettings[0] || null;
     },
-    staleTime: 1000 * 60 * 5, 
+    staleTime: 1000 * 60 * 5,
   });
 
   const isClient = user?.role === 'client';
 
-  const allNavigation = isClient 
+  const sidebarNavigation = isClient
     ? [
         { name: 'לוח ניהול', icon: LayoutDashboard, page: 'Dashboard' },
         { name: 'הפרויקטים שלי', icon: Briefcase, page: 'Projects' },
@@ -54,179 +49,122 @@ export default function Layout({ children, currentPageName }) {
         { name: 'הגדרות', icon: Settings, page: 'Settings' },
       ];
 
-  // Mobile Bottom Navigation Items (Limited to 4 + Menu)
   const mobileNavItems = isClient
-    ? allNavigation.slice(0, 4)
+    ? [
+        { name: 'לוח', icon: LayoutDashboard, page: 'Dashboard' },
+        { name: 'פרויקטים', icon: Briefcase, page: 'Projects' },
+        { name: 'קבצים', icon: HardDrive, page: 'FileStorage' },
+        { name: 'משימות', icon: CheckSquare, page: 'Tasks' },
+      ]
     : [
-        { name: 'לוח ניהול', icon: LayoutDashboard, page: 'Dashboard' },
+        { name: 'לוח', icon: LayoutDashboard, page: 'Dashboard' },
         { name: 'לידים', icon: Users, page: 'Leads' },
         { name: 'פרויקטים', icon: Briefcase, page: 'Projects' },
         { name: 'הגדרות', icon: Settings, page: 'Settings' },
       ];
 
-  const MobileHeader = () => (
-    <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white/90 backdrop-blur-md border-b border-slate-100 z-50 flex items-center justify-between px-4 shadow-sm">
-      {/* Profile / Notifications Left */}
-      <div className="flex items-center gap-3">
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="text-slate-800">
-              <Menu className="w-6 h-6" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="w-[80vw] sm:w-[350px] p-0" dir="rtl">
-             <div className="flex flex-col h-full bg-[#0a0a0a] text-white">
-                <div className="p-6 border-b border-white/10">
-                  <h2 className="text-xl font-bold text-[#D4AF37]">תפריט</h2>
-                  <p className="text-sm text-white/50 mt-1">{user?.full_name}</p>
-                </div>
-                <nav className="flex-1 p-4 space-y-2">
-                  {allNavigation.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = currentPageName === item.page;
-                    return (
-                      <Link
-                        key={item.name}
-                        to={createPageUrl(item.page)}
-                        className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${
-                          isActive 
-                            ? 'bg-[#D4AF37] text-black font-bold' 
-                            : 'text-white/70 hover:bg-white/10'
-                        }`}
-                      >
-                        <Icon className="w-5 h-5" />
-                        <span>{item.name}</span>
-                      </Link>
-                    );
-                  })}
-                </nav>
-             </div>
-          </SheetContent>
-        </Sheet>
-        
-        <div className="relative">
-           <Bell className="w-6 h-6 text-slate-800" />
-           <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-        </div>
-      </div>
-
-      {/* Logo Right */}
-      <div className="flex items-center gap-2">
-        {settings?.logo_url ? (
-          <img src={settings.logo_url} alt="Logo" className="h-8 w-auto object-contain" />
-        ) : (
-          <span className="text-lg font-bold bg-gradient-to-r from-[#D4AF37] to-[#C5A028] bg-clip-text text-transparent">
-            {settings?.business_name || 'Klikly'}
-          </span>
-        )}
-      </div>
-    </header>
-  );
-
-  const MobileBottomNav = () => (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 h-[80px] pb-[20px] bg-white border-t border-slate-200 z-50 flex items-center justify-around px-4 shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
-      {mobileNavItems.map((item) => {
-        const Icon = item.icon;
-        const isActive = currentPageName === item.page;
-        return (
-          <Link
-            key={item.name}
-            to={createPageUrl(item.page)}
-            className="flex flex-col items-center justify-center w-full h-full active:scale-90 transition-transform duration-200"
-          >
-            <div className={`p-1.5 rounded-xl mb-1 ${isActive ? 'bg-[#D4AF37]/10' : 'bg-transparent'}`}>
-              <Icon 
-                className={`w-6 h-6 ${isActive ? 'text-[#C5A028] fill-[#C5A028]/20' : 'text-slate-400'}`} 
-                strokeWidth={isActive ? 2.5 : 2} 
-              />
-            </div>
-            <span className={`text-[11px] font-medium truncate max-w-[60px] text-center ${isActive ? 'text-[#C5A028]' : 'text-slate-400'}`}>
-              {item.name}
-            </span>
-          </Link>
-        );
-      })}
-    </nav>
-  );
+  // Pages that should render without any nav (e.g. public client pages)
+  const noLayoutPages = ['DownloadPage', 'QuoteView'];
+  if (noLayoutPages.includes(currentPageName)) {
+    return <>{children}</>;
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50/50" dir="rtl">
-      
-      {/* Mobile Elements */}
-      <MobileHeader />
-      <MobileBottomNav />
-
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:flex fixed right-0 top-0 h-screen w-64 bg-[#000000] border-l border-[#D4AF37]/20 shadow-2xl z-40 flex-col">
+    <div className="flex h-screen bg-slate-50 overflow-hidden" dir="rtl">
+      {/* ── Desktop Sidebar ── */}
+      <aside className="hidden md:flex flex-col w-64 bg-[#0a0a0a] text-white flex-shrink-0 h-full">
         {/* Logo */}
-        <div className="p-6 border-b border-[#D4AF37]/20">
-          <div className="flex flex-col items-center justify-center gap-3 text-center">
-            {settings?.logo_url ? (
-              <div className="w-20 h-20 rounded-full border-2 border-[#D4AF37]/20 overflow-hidden bg-black flex items-center justify-center">
-                <img 
-                  src={settings.logo_url} 
-                  alt={settings?.business_name || 'Logo'} 
-                  className="w-full h-full object-contain"
-                />
-              </div>
-            ) : (
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-[#D4AF37] to-[#C5A028] bg-clip-text text-transparent mb-1">
-                {settings?.business_name || 'Klikly'}
-              </h1>
-            )}
-            
-            {settings?.logo_url && settings?.business_name && (
-              <h1 className="text-lg font-bold bg-gradient-to-r from-[#D4AF37] to-[#C5A028] bg-clip-text text-transparent">
-                {settings.business_name}
-              </h1>
-            )}
-
-            {!settings?.business_name && !settings?.logo_url && (
-              <p className="text-xs text-[#808080]">ניהול לצלמים בקליק</p>
-            )}
-          </div>
+        <div className="h-16 flex items-center px-6 border-b border-white/10">
+          <span className="text-xl font-bold tracking-wider text-[#D4AF37]">
+            {settings?.business_name || 'Klikly'}
+          </span>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {allNavigation.map((item) => {
+        {/* Nav Links */}
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          {sidebarNavigation.map((item) => {
             const Icon = item.icon;
             const isActive = currentPageName === item.page;
             return (
               <Link
                 key={item.name}
                 to={createPageUrl(item.page)}
-                className={`
-                  flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
-                  ${isActive 
-                    ? 'bg-gradient-to-r from-[#D4AF37] to-[#C5A028] text-black shadow-lg shadow-[#D4AF37]/30' 
-                    : 'text-[#808080] hover:bg-[#0D0D0D] hover:text-white'
-                  }
-                `}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-medium ${
+                  isActive
+                    ? 'bg-[#D4AF37] text-black'
+                    : 'text-white/60 hover:bg-white/10 hover:text-white'
+                }`}
               >
-                <Icon className={`w-5 h-5 ${isActive ? 'text-black' : 'text-[#808080]'}`} />
-                <span className="font-medium">{item.name}</span>
+                <Icon className="w-5 h-5 flex-shrink-0" />
+                <span>{item.name}</span>
               </Link>
             );
           })}
         </nav>
 
-        {/* User Info */}
-        <div className="p-4 border-t border-[#D4AF37]/20">
-          <div className="px-4 py-3 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#C5A028] text-center">
-            <p className="text-sm font-bold text-black">
-              {user?.full_name || 'משתמש'}
-            </p>
+        {/* User Footer */}
+        {user && (
+          <div className="p-4 border-t border-white/10">
+            <div className="flex items-center gap-3 px-2 py-2">
+              <div className="w-8 h-8 rounded-full bg-[#D4AF37]/20 flex items-center justify-center text-[#D4AF37] font-bold text-sm flex-shrink-0">
+                {user.full_name?.[0] || '?'}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-white truncate">{user.full_name}</p>
+                <p className="text-xs text-white/40 truncate">{user.email}</p>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </aside>
 
-      {/* Main Content */}
-      <main className="md:mr-64 min-h-screen pt-16 pb-20 md:pt-0 md:pb-0 transition-all duration-300 bg-slate-50">
-        <div className="p-3 md:p-8 max-w-7xl mx-auto">
+      {/* ── Main Content ── */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Mobile Top Bar */}
+        <header className="md:hidden flex items-center justify-between px-5 h-14 bg-white border-b border-slate-100 flex-shrink-0">
+          <span className="text-lg font-bold tracking-wide text-[#D4AF37]">
+            {settings?.business_name || 'Klikly'}
+          </span>
+          {user && (
+            <div className="w-8 h-8 rounded-full bg-[#D4AF37]/20 flex items-center justify-center text-[#D4AF37] font-bold text-sm">
+              {user.full_name?.[0] || '?'}
+            </div>
+          )}
+        </header>
+
+        {/* Page Content — scrollable, padded for bottom nav on mobile */}
+        <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
           {children}
-        </div>
-      </main>
+        </main>
+      </div>
+
+      {/* ── Mobile Bottom Navigation Bar ── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 flex items-stretch" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        {mobileNavItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = currentPageName === item.page;
+          return (
+            <Link
+              key={item.name}
+              to={createPageUrl(item.page)}
+              className={`flex flex-col items-center justify-center flex-1 py-2 gap-1 transition-colors active:scale-95 ${
+                isActive ? 'text-[#C5A028]' : 'text-slate-400'
+              }`}
+              style={{ minHeight: '56px' }}
+            >
+              <div className={`p-1 rounded-lg ${isActive ? 'bg-[#D4AF37]/12' : ''}`}>
+                <Icon
+                  className="w-6 h-6"
+                  strokeWidth={isActive ? 2.5 : 1.8}
+                />
+              </div>
+              <span className={`text-[10px] font-medium ${isActive ? 'text-[#C5A028]' : 'text-slate-400'}`}>
+                {item.name}
+              </span>
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }
