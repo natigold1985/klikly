@@ -26,11 +26,10 @@ Deno.serve(async (req) => {
     });
 
     // Fetch some photos for preview (thumbnails)
-    // We'll fetch "edited" photos first, then "raw" if needed, limit to 8
     const photos = await base44.asServiceRole.entities.Photo.filter({ 
       project_id: link.project_id,
       type: 'edited'
-    }, '-order_index', 8);
+    }, '-order_index', 50);
 
     return Response.json({
       success: true,
