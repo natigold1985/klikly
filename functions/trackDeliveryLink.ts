@@ -36,11 +36,12 @@ Deno.serve(async (req) => {
     if (!link.is_downloaded && link.photographer_email) {
       await base44.asServiceRole.integrations.Core.SendEmail({
         to: link.photographer_email,
-        subject: `✅ הלקוח ${link.client_name} הוריד את הקבצים!`,
+        subject: `הקבצים של משפחת ${link.client_name} הורדו בהצלחה`,
         body: `
           <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <h2 style="color: #D4AF37;">✅ הורדה בוצעה!</h2>
-            <p>הלקוח <strong>${link.client_name}</strong> מהפרויקט "<strong>${link.project_title}</strong>" הוריד את הקבצים עכשיו.</p>
+            <p>הקבצים של משפחת <strong>${link.client_name}</strong> הורדו בהצלחה.</p>
+            <p>פרויקט: "<strong>${link.project_title}</strong>"</p>
             <p style="color: #666;">מספר כניסות לקישור: ${newViewCount}</p>
             <hr style="border: 1px solid #eee;" />
             <p style="color: #999; font-size: 12px;">נשלח מ-Klikly - ניהול לצלמים בקליק</p>
