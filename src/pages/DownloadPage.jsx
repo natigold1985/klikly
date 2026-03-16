@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Download, Star, Upload, Image as ImageIcon, CheckCircle2, Loader2, AlertCircle, Share2 } from 'lucide-react';
+import { Download, Upload, CheckCircle2, Loader2, AlertCircle, Share2, X, Camera } from 'lucide-react';
 import { toast } from 'sonner';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 
 export default function DownloadPage() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -14,6 +14,10 @@ export default function DownloadPage() {
   const [downloaded, setDownloaded] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
+  
+  // Lightbox state
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
     if (!token) {
@@ -59,211 +63,192 @@ export default function DownloadPage() {
 
     setUploading(true);
     try {
-      // 1. Upload file to storage
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      
-      // 2. Link file to project via token
       await base44.functions.invoke('uploadWithToken', {
         token,
         file_url,
         file_name: file.name,
         file_size: file.size
       });
-
       toast.success('הקובץ הועלה בהצלחה!');
     } catch (err) {
       console.error(err);
       toast.error('שגיאה בהעלאת הקובץ');
     } finally {
       setUploading(false);
-      e.target.value = ''; // Reset input
+      e.target.value = '';
     }
+  };
+
+  const openLightbox = (index) => {
+    setCurrentImageIndex(index);
+    setLightboxOpen(true);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white" dir="rtl">
-        <div className="h-[50vh] relative">
-           <Skeleton className="w-full h-full bg-white/5" />
-        </div>
-        <div className="max-w-md mx-auto px-6 -mt-8 relative z-20 space-y-12 pb-20">
-           <Skeleton className="h-48 w-full rounded-2xl bg-white/10" />
-           <Skeleton className="h-24 w-full rounded-xl bg-white/5" />
-           <Skeleton className="h-40 w-full rounded-2xl bg-white/5" />
-        </div>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-slate-400" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 text-center">
         <div>
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-white text-xl font-bold mb-2">שגיאה</h2>
-          <p className="text-white/60">{error}</p>
+          <h2 className="text-xl font-bold mb-2">שגיאה</h2>
+          <p className="text-slate-600">{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white font-sans selection:bg-[#D4AF37] selection:text-black" dir="rtl">
+    <div className="min-h-screen bg-white text-slate-900 font-sans" dir="rtl">
       
-      {/* Hero Section */}
-      <div className="relative h-[50vh] min-h-[400px]">
-        {/* Background Image */}
-        <div className="absolute inset-0">
-          {linkData?.cover_image_url ? (
-            <img 
-              src={linkData.cover_image_url} 
-              alt="Cover" 
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-gray-900 to-black" />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/60 to-[#0a0a0a]" />
+      {/* Header */}
+      <header className="fixed top-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 z-40 px-4 md:px-6 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Camera className="w-6 h-6 text-slate-800" />
+          <span className="font-bold text-lg tracking-tight uppercase hidden md:inline">Photography</span>
         </div>
-
-        {/* Hero Content */}
-        <div className="relative h-full flex flex-col items-center justify-end pb-12 px-6 text-center z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 mb-6 animate-fade-in-up">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-xs font-medium tracking-wide uppercase">הגלריה מוכנה</span>
-          </div>
-          
-          <h1 className="text-3xl md:text-5xl font-bold mb-2 tracking-tight">
-            {linkData?.client_name}
-          </h1>
-          <p className="text-base md:text-lg text-white/70 max-w-md mx-auto">
-            הזיכרונות שלכם מהפרויקט <br className="md:hidden" /><span className="text-[#D4AF37]">"{linkData?.project_title}"</span>
-          </p>
-        </div>
-      </div>
-
-      <div className="max-w-md mx-auto px-6 -mt-8 relative z-20 space-y-12 pb-20">
         
-        {/* Main Action Card */}
-        <div className="bg-[#111] border border-white/5 rounded-2xl p-6 shadow-2xl shadow-black/50">
-          <div className="text-center space-y-6">
-            
-            {/* Download Button - Fixed on Mobile, Regular on Desktop */}
-            <div className="fixed bottom-0 left-0 right-0 p-6 pb-10 bg-[#0a0a0a] z-50 md:relative md:bg-none md:p-0 md:z-0 border-t border-white/10 md:border-none shadow-[0_-10px_40px_rgba(0,0,0,0.8)]">
-               <button
-                onClick={handleDownload}
-                disabled={downloading}
-                className="w-full relative group overflow-hidden rounded-2xl bg-gradient-to-r from-[#D4AF37] to-[#B38F24] shadow-2xl shadow-[#D4AF37]/20 active:scale-[0.98] transition-transform duration-200"
-              >
-                <div className="relative bg-[#0a0a0a] group-hover:bg-opacity-0 transition-all duration-300 rounded-[15px] p-[1px]">
-                  <div className="bg-[#111] hover:bg-[#1a1a1a] rounded-[14px] px-6 py-4 flex items-center justify-center gap-4 h-[60px]">
-                  {downloading ? (
-                    <Loader2 className="w-6 h-6 text-[#D4AF37] group-hover:text-black animate-spin" />
-                  ) : downloaded ? (
-                    <CheckCircle2 className="w-6 h-6 text-green-500 group-hover:text-black" />
-                  ) : (
-                    <Download className="w-6 h-6 text-[#D4AF37] group-hover:text-black" />
-                  )}
-                  <div className="text-right">
-                    <div className={`font-bold text-lg ${downloaded ? 'text-green-500' : 'text-[#D4AF37]'} group-hover:text-black transition-colors`}>
-                      {downloaded ? 'הורדה הושלמה' : 'הורדת כל הרגעים'}
-                    </div>
-                    {linkData?.file_size_label && !downloaded && (
-                      <div className="text-xs text-white/50 group-hover:text-black/60 font-medium">
-                        {linkData.file_size_label} • איכות מקורית
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </button>
-            </div>
-            {/* Spacer for fixed button on mobile */}
-            <div className="h-24 md:hidden"></div>
-
-            {/* Thumbnails Preview */}
-            {linkData?.preview_photos?.length > 0 && (
-              <div className="grid grid-cols-4 gap-2 mt-4">
-                {linkData.preview_photos.slice(0, 4).map((url, i) => (
-                  <div key={i} className="aspect-square rounded-lg overflow-hidden bg-white/5">
-                    <img src={url} alt="" className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity" />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+        <div className="flex items-center gap-4">
+          <Button 
+            onClick={handleDownload}
+            disabled={downloading}
+            className="bg-black hover:bg-slate-800 text-white rounded-full px-4 md:px-6 py-5 shadow-lg shadow-black/10 transition-all font-medium text-sm gap-2"
+          >
+            {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : downloaded ? <CheckCircle2 className="w-4 h-4 text-green-400" /> : <Download className="w-4 h-4" />}
+            {downloaded ? 'ההורדה הושלמה' : 'שמירת כל הזיכרונות'}
+          </Button>
         </div>
+      </header>
 
-        {/* Client Upload Section */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
-              <Upload className="w-4 h-4 text-white/70" />
-            </div>
-            <h3 className="text-lg font-semibold">העלאת רפרנסים</h3>
+      {/* Hero Section */}
+      <div className="pt-32 pb-16 px-6 max-w-6xl mx-auto text-center">
+        {linkData?.cover_image_url && (
+          <div className="max-w-4xl mx-auto h-[300px] md:h-[400px] rounded-3xl overflow-hidden mb-12 shadow-2xl">
+            <img src={linkData.cover_image_url} alt="Cover" className="w-full h-full object-cover" />
           </div>
-          <p className="text-sm text-white/50 mb-4">
-            יש לכם תמונות השראה או קבצים שתרצו לשתף איתי? ניתן להעלות אותם כאן ישירות לפרויקט.
-          </p>
-          
-          <label className="block w-full cursor-pointer group">
-            <div className="border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:border-[#D4AF37]/50 hover:bg-[#D4AF37]/5 transition-all">
-              {uploading ? (
-                <div className="flex flex-col items-center gap-2">
-                  <Loader2 className="w-6 h-6 text-[#D4AF37] animate-spin" />
-                  <span className="text-sm text-white/60">מעלה קובץ...</span>
-                </div>
-              ) : (
-                <>
-                  <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
-                    <Upload className="w-5 h-5 text-white/60 group-hover:text-[#D4AF37]" />
-                  </div>
-                  <span className="text-sm font-medium text-white/80 group-hover:text-white">לחצו לבחירת קבצים</span>
-                </>
-              )}
-            </div>
-            <input 
-              type="file" 
-              className="hidden" 
-              onChange={handleFileUpload}
-              disabled={uploading}
-            />
-          </label>
+        )}
+        <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-slate-900 mb-4">
+          הרגעים שלכם, עכשיו אצלכם.
+        </h1>
+        <p className="text-lg text-slate-500 max-w-xl mx-auto mb-10">
+          הגלריה המלאה מהפרויקט "{linkData?.project_title}" מוכנה. תוכלו להוריד הכל בקליק אחד, ללא הגבלת זמן או מקום.
+        </p>
+        
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Button 
+            onClick={handleDownload}
+            disabled={downloading}
+            size="lg"
+            className="w-full sm:w-auto bg-black hover:bg-slate-800 text-white rounded-xl px-8 h-14 text-base font-medium shadow-xl shadow-black/10 gap-2"
+          >
+             {downloading ? <Loader2 className="w-5 h-5 animate-spin" /> : downloaded ? <CheckCircle2 className="w-5 h-5 text-green-400" /> : <Download className="w-5 h-5" />}
+             {downloaded ? 'הורדה הושלמה' : 'שמירת כל הזיכרונות'}
+             {linkData?.file_size_label && !downloaded && <span className="text-white/60 text-sm mr-1">({linkData.file_size_label})</span>}
+          </Button>
+
+          <Button 
+            variant="outline"
+            size="lg"
+            className="w-full sm:w-auto border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl px-8 h-14 text-base font-medium gap-2 group"
+          >
+            <Share2 className="w-5 h-5 group-hover:text-[#D4AF37] transition-colors" />
+            הזמנת אלבום מודפס
+          </Button>
         </div>
-
-        {/* Upsell Section */}
-        <div className="bg-gradient-to-br from-[#1a1a1a] to-[#111] rounded-2xl p-6 border border-white/5 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-[#D4AF37]/10 blur-3xl rounded-full" />
-          
-          <div className="relative z-10">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-bold text-white mb-1">אלבום פרימיום</h3>
-                <p className="text-xs text-[#D4AF37] font-medium tracking-wide uppercase">הצעה מיוחדת</p>
-              </div>
-              <Star className="w-5 h-5 text-[#D4AF37] fill-[#D4AF37]" />
-            </div>
-            
-            <p className="text-sm text-white/60 mb-6 leading-relaxed">
-              הפכו את הרגעים הדיגיטליים לאלבום פיזי יוקרתי בכריכה קשה. עיצוב אישי ומקצועי שישאר איתכם לתמיד.
-            </p>
-
-            <button className="w-full py-3 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-medium transition-colors flex items-center justify-center gap-2 group-hover:border-[#D4AF37]/30">
-              לפרטים והזמנה
-              <Share2 className="w-3 h-3" />
-            </button>
-          </div>
-        </div>
-
-        {/* Footer Branding (PLG) */}
-        <div className="text-center pt-8 border-t border-white/5">
-          <p className="text-xs text-white/30 mb-2">Powered by</p>
-          <div className="inline-flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
-            <span className="text-lg font-bold tracking-wider text-white">BASE 44</span>
-          </div>
-        </div>
-
       </div>
+
+      {/* Masonry Grid */}
+      {linkData?.preview_photos?.length > 0 && (
+        <div className="max-w-6xl mx-auto px-6 pb-20">
+          <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
+            {linkData.preview_photos.map((url, i) => (
+              <div 
+                key={i} 
+                className="break-inside-avoid relative group rounded-xl overflow-hidden cursor-pointer"
+                onClick={() => openLightbox(i)}
+              >
+                <img src={url} alt={`Preview ${i}`} className="w-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <footer className="bg-slate-50 border-t border-slate-100 py-16 px-6">
+        <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
+          
+          <div className="text-center md:text-right">
+            <h3 className="font-bold text-lg mb-1">יש לכם שאלות?</h3>
+            <p className="text-slate-500 text-sm">הפרויקט לא נגמר פה. צרו איתי קשר בכל עת.</p>
+          </div>
+
+          {/* Client Upload Section */}
+          <div className="w-full md:w-auto">
+            <label className="cursor-pointer">
+              <div className="flex items-center justify-center gap-3 bg-white border border-slate-200 hover:border-slate-300 shadow-sm rounded-xl px-6 py-4 transition-all active:scale-95">
+                {uploading ? (
+                  <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />
+                ) : (
+                  <Upload className="w-5 h-5 text-slate-600" />
+                )}
+                <span className="font-medium text-slate-700">
+                  {uploading ? 'מעלה...' : 'העלאת קבצים חזרה (רפרנס/ריטוש)'}
+                </span>
+              </div>
+              <input 
+                type="file" 
+                className="hidden" 
+                onChange={handleFileUpload}
+                disabled={uploading}
+              />
+            </label>
+          </div>
+
+        </div>
+      </footer>
+
+      {/* Lightbox */}
+      {lightboxOpen && linkData?.preview_photos && (
+        <div className="fixed inset-0 z-50 bg-black/95 flex flex-col backdrop-blur-sm">
+          <div className="flex justify-end p-6">
+            <button 
+              onClick={() => setLightboxOpen(false)}
+              className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+          <div className="flex-1 flex items-center justify-center p-6 min-h-0">
+             <img 
+               src={linkData.preview_photos[currentImageIndex]} 
+               className="max-w-full max-h-full object-contain rounded-md" 
+               alt="Fullscreen Preview"
+             />
+          </div>
+          {/* Thumbnails in Lightbox */}
+          <div className="h-24 px-6 pb-6 flex items-center justify-center gap-2 overflow-x-auto">
+             {linkData.preview_photos.map((url, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentImageIndex(i)}
+                  className={`flex-shrink-0 h-16 w-16 rounded-md overflow-hidden transition-all ${currentImageIndex === i ? 'ring-2 ring-white scale-110 opacity-100' : 'opacity-50 hover:opacity-100'}`}
+                >
+                  <img src={url} className="w-full h-full object-cover" />
+                </button>
+             ))}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
