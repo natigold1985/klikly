@@ -54,6 +54,7 @@ import FileStorage from './pages/FileStorage';
 import Home from './pages/Home';
 import Leads from './pages/Leads';
 import Projects from './pages/Projects';
+import ProjectTasks from './pages/ProjectTasks';
 import Quotes from './pages/Quotes';
 import Settings from './pages/Settings';
 import Tasks from './pages/Tasks';
@@ -68,6 +69,7 @@ export const PAGES = {
     "Home": Home,
     "Leads": Leads,
     "Projects": Projects,
+    "ProjectTasks": ProjectTasks,
     "Quotes": Quotes,
     "Settings": Settings,
     "Tasks": Tasks,
