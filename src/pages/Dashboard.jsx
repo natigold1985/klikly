@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -16,6 +16,13 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 
 export default function Dashboard() {
   const { data: user } = useQuery({
@@ -24,6 +31,22 @@ export default function Dashboard() {
   });
 
   const isClient = user?.role === 'client';
+
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  useEffect(() => {
+    if (user && !isClient) {
+      const hasSeenWelcome = localStorage.getItem('hasSeenWelcome_base44');
+      if (!hasSeenWelcome) {
+        setShowWelcome(true);
+      }
+    }
+  }, [user, isClient]);
+
+  const closeWelcome = () => {
+    setShowWelcome(false);
+    localStorage.setItem('hasSeenWelcome_base44', 'true');
+  };
 
   const { data: leads = [] } = useQuery({
     queryKey: ['leads'],
@@ -120,8 +143,42 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="space-y-6 md:space-y-8">
-      {/* Urgent Attention Alert */}
+    <>
+      <Dialog open={showWelcome} onOpenChange={(open) => {
+        if (!open) closeWelcome();
+      }}>
+        <DialogContent className="sm:max-w-[550px]" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-xl md:text-2xl text-[#D4AF37] font-bold">
+              ברוך הבא לעידן ה-Zero Friction. 🚀
+            </DialogTitle>
+            <DialogDescription asChild>
+              <div className="text-slate-700 text-sm md:text-base mt-4 space-y-4 pt-4">
+                <div className="font-semibold text-slate-900 text-lg">היי {user?.full_name || 'צלם'}, כאן הצוות של BASE 44.</div>
+                <p>החלטת להפסיק לבזבז זמן על אדמיניסטרציה ולהתחיל להתמקד במה שאתה עושה הכי טוב: ליצור.</p>
+                <p className="font-medium text-slate-900">המערכת שלך מוכנה. מעכשיו, הכל קורה במקום אחד:</p>
+                <ul className="list-none space-y-3">
+                  <li className="flex gap-2 items-start"><span className="text-[#D4AF37] font-bold">•</span> <span><strong>ניהול לידים חכם:</strong> קליטה אוטומטית וסגירת חוזים בקליק.</span></li>
+                  <li className="flex gap-2 items-start"><span className="text-[#D4AF37] font-bold">•</span> <span><strong>העברת קבצים Magic Link:</strong> שלח גלריות כבדות וקבל התראה לנייד ברגע שהלקוח הוריד אותן (סוף לוויכוחים!).</span></li>
+                  <li className="flex gap-2 items-start"><span className="text-[#D4AF37] font-bold">•</span> <span><strong>מינימליזם טכנולוגי:</strong> אפס קליקים מיותרים, מקסימום תוצאות.</span></li>
+                </ul>
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 mt-4 text-slate-800">
+                  <strong>הצעד הראשון שלך:</strong><br/>היכנס ל-Dashboard, העלה את הלוגו שלך ב'הגדרות', ותראה איך הלינק הראשון שאתה שולח ללקוח הופך אותך למותג פרימיום.
+                </div>
+                <p className="pt-2 text-slate-600 font-medium">אנחנו כאן כדי לוודא שהעסק שלך רץ על אוטומט.<br/>Team BASE 44</p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end mt-4 pt-2">
+            <Button onClick={closeWelcome} className="bg-gradient-to-r from-[#D4AF37] to-[#C5A028] text-black hover:from-[#C5A028] hover:to-[#D4AF37] font-bold shadow-md w-full sm:w-auto">
+              כניסה למערכת שלי
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <div className="space-y-6 md:space-y-8">
+        {/* Urgent Attention Alert */}
       {urgentLeads.length > 0 && !isClient && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between animate-pulse">
           <div className="flex items-center gap-3">
@@ -254,5 +311,6 @@ export default function Dashboard() {
         </Card>
       </div>
     </div>
+    </>
   );
 }
