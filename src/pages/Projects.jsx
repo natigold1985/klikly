@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { 
   Plus, Search, Briefcase, Upload, Download, Eye, CheckCircle2, 
-  Smartphone, ExternalLink, RefreshCw 
+  Smartphone, ExternalLink, RefreshCw, ListTodo
 } from 'lucide-react';
 import DeliveryLinkButton from '../components/DeliveryLinkButton';
 import FileUploader from '../components/FileUploader';
@@ -215,19 +215,25 @@ export default function Projects() {
                 )}
 
                 {!isClient && (
-                  <div className="pt-3 mt-1 border-t border-slate-200 flex items-center justify-between gap-2">
+                  <div className="pt-3 mt-2 border-t border-slate-200 flex items-center gap-2 flex-wrap">
                     <DeliveryLinkButton project={project} />
+                    <Link to={createPageUrl(`ProjectTasks?projectId=${project.id}`)} onClick={(e) => e.stopPropagation()}>
+                      <Button variant="secondary" size="sm" className="text-xs gap-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100">
+                        <ListTodo className="w-3 h-3" />
+                        משימות
+                      </Button>
+                    </Link>
                     <Button 
                       variant="outline" 
                       size="sm"
-                      className="text-xs gap-1 border-dashed"
+                      className="text-xs gap-1 border-dashed mr-auto"
                       onClick={(e) => {
                         e.stopPropagation();
                         setUploadProject(project);
                       }}
                     >
                       <Smartphone className="w-3 h-3" />
-                      העלאה מהנייד
+                      מהנייד
                     </Button>
                   </div>
                 )}
