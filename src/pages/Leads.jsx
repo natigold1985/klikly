@@ -73,30 +73,32 @@ const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
       >
         <Card className="border hover:shadow-xl transition-all duration-300 h-full border-none shadow-none rounded-none">
           <CardContent className="p-5">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h3 className="text-lg font-bold text-slate-800">
-                  {lead.name}
-                </h3>
-                {lead.shooting_type && (
-                  <p className="text-xs text-slate-500">{lead.shooting_type}</p>
+            <Link to={createPageUrl(`LeadDetails?id=${lead.id}`)} className="block hover:opacity-80">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800 hover:underline">
+                    {lead.name}
+                  </h3>
+                  {lead.shooting_type && (
+                    <p className="text-xs text-slate-500">{lead.shooting_type}</p>
+                  )}
+                </div>
+                {getStatusBadge(lead.status)}
+              </div>
+
+              <div className="space-y-2 mb-4">
+                <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <Phone className="w-3.5 h-3.5 text-slate-400" />
+                  {lead.phone}
+                </div>
+                {lead.next_follow_up_date && (
+                  <div className="flex items-center gap-2 text-sm text-amber-600 font-medium bg-amber-50 p-1 rounded">
+                    <Clock className="w-3.5 h-3.5" />
+                    פולו-אפ: {new Date(lead.next_follow_up_date).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' })}
+                  </div>
                 )}
               </div>
-              {getStatusBadge(lead.status)}
-            </div>
-
-            <div className="space-y-2 mb-4">
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <Phone className="w-3.5 h-3.5 text-slate-400" />
-                {lead.phone}
-              </div>
-              {lead.next_follow_up_date && (
-                <div className="flex items-center gap-2 text-sm text-amber-600 font-medium bg-amber-50 p-1 rounded">
-                  <Clock className="w-3.5 h-3.5" />
-                  פולו-אפ: {new Date(lead.next_follow_up_date).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' })}
-                </div>
-              )}
-            </div>
+            </Link>
 
             {/* Quick Actions Row */}
             <div className="flex items-center gap-3 pt-3 border-t border-slate-100">

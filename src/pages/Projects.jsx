@@ -161,35 +161,37 @@ export default function Projects() {
           {filteredProjects.map((project) => (
             <Card key={project.id} className="bg-white/60 backdrop-blur-sm border-white/20 hover:shadow-xl transition-all duration-300 cursor-pointer group">
               <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                      {getStatusIcon(project.status)}
+                <Link to={createPageUrl(`ProjectDetails?id=${project.id}`)} className="block hover:opacity-80">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                        {getStatusIcon(project.status)}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
+                          {project.client_name}
+                        </h3>
+                        {project.shooting_type && (
+                          <p className="text-sm text-slate-600">{project.shooting_type}</p>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
-                        {project.client_name}
-                      </h3>
-                      {project.shooting_type && (
-                        <p className="text-sm text-slate-600">{project.shooting_type}</p>
-                      )}
-                    </div>
+                    {getStatusBadge(project.status)}
                   </div>
-                  {getStatusBadge(project.status)}
-                </div>
 
-                <div className="space-y-2 mb-4">
-                  {project.shooting_date && (
-                    <div className="text-sm text-slate-600">
-                      📅 {new Date(project.shooting_date).toLocaleDateString('he-IL')}
-                    </div>
-                  )}
-                  {project.total_price && (
-                    <div className="text-sm font-medium text-indigo-600">
-                      ₪{project.total_price.toLocaleString()}
-                    </div>
-                  )}
-                </div>
+                  <div className="space-y-2 mb-4">
+                    {project.shooting_date && (
+                      <div className="text-sm text-slate-600">
+                        📅 {new Date(project.shooting_date).toLocaleDateString('he-IL')}
+                      </div>
+                    )}
+                    {project.total_price && (
+                      <div className="text-sm font-medium text-indigo-600">
+                        ₪{project.total_price.toLocaleString()}
+                      </div>
+                    )}
+                  </div>
+                </Link>
 
                 {(project.raw_photos_count > 0 || project.selected_photos_count > 0 || project.final_photos_count > 0) && (
                   <div className="flex items-center gap-3 pt-4 border-t border-slate-200 text-xs text-slate-600">
