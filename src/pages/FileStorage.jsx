@@ -119,21 +119,74 @@ export default function FileStorage() {
                   {tab.label}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="border-2 border-dashed border-slate-300 rounded-xl p-12 text-center hover:border-[#D4AF37] transition-colors">
-                  <Upload className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                  <p className="text-slate-600 mb-4">גרור קבצים לכאן או לחץ להעלאה</p>
-                  {!isClient && (
-                    <Button className="bg-gradient-to-r from-[#D4AF37] to-[#C5A028] hover:from-[#C5A028] hover:to-[#D4AF37] text-black">
-                      בחר קבצים
-                    </Button>
-                  )}
-                </div>
+              <CardContent className="p-6">
+                {!isClient && (
+                  <div className="mb-8">
+                    <FileUploader 
+                      projectId={projectId} 
+                      onUploadComplete={handleUploadComplete} 
+                      acceptedTypes={tab.id.includes('video') ? 'video/*' : 'image/*'}
+                    />
+                  </div>
+                )}
 
-                {/* Empty State */}
-                <div className="text-center py-8 text-slate-500">
-                  <p>אין קבצים ב{tab.label}</p>
-                </div>
+                {isLoadingPhotos ? (
+                  <div className="flex justify-center py-12">
+                    <div className="w-8 h-8 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                  </div>
+                ) : photos.length === 0 ? (
+                  <div className="text-center py-16 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    <tab.icon className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                    <p className="text-slate-500 font-medium">אין קבצים ב{tab.label}</p>
+                    <p className="text-sm text-slate-400 mt-1">העלה קבצים כדי לראות אותם כאן</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {photos.map((photo) => (
+                      <div key={photo.id} className="group relative aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm hover:shadow-md transition-all">
+                        {photo.file_url.match(/\.(mp4|webm|mov|avi)$/i) ? (
+                          <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800 text-white">
+                            <Video className="w-8 h-8 mb-2 opacity-70" />
+                            <span className="text-xs max-w-[90%] truncate px-2">{photo.file_name}</span>
+                          </div>
+                        ) : (
+                          <img 
+                            src={photo.file_url} 
+                            alt={photo.file_name} 
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            loading="lazy"
+                          />
+                        )}
+                        
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100 gap-2">
+                          <a 
+                            href={photo.file_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="w-8 h-8 rounded-full bg-white/20 hover:bg-white text-white hover:text-slate-900 flex items-center justify-center backdrop-blur-sm transition-all"
+                          >
+                            <Download className="w-4 h-4" />
+                          </a>
+                          {!isClient && (
+                            <button 
+                              onClick={() => deletePhoto(photo.id)}
+                              className="w-8 h-8 rounded-full bg-red-500/80 hover:bg-red-500 text-white flex items-center justify-center backdrop-blur-sm transition-all"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                        
+                        {/* File Name overlay */}
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 pt-6 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                          <p className="text-xs text-white truncate drop-shadow-md">
+                            {photo.file_name}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
