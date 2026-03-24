@@ -1,20 +1,78 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, Image, Video, FileImage, Film } from 'lucide-react';
+import { Upload, Image, Video, FileImage, Film, Trash2, Download } from 'lucide-react';
+import FileUploader from '../components/FileUploader';
+import { toast } from 'sonner';
 
 export default function FileStorage() {
   const [activeTab, setActiveTab] = useState('raw');
   
+  const urlParams = new URLSearchParams(window.location.search);
+  const projectId = urlParams.get('projectId');
+  const queryClient = useQueryClient();
+
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
   });
   
   const isClient = user?.role === 'client';
+
+  const { data: photos = [], isLoading: isLoadingPhotos } = useQuery({
+    queryKey: ['photos', projectId, activeTab],
+    queryFn: async () => {
+      let query = {};
+      if (projectId) query.project_id = projectId;
+      
+      if (activeTab.includes('raw')) query.type = 'raw';
+      else if (activeTab.includes('edited') || activeTab.includes('final')) query.type = 'edited';
+      else query.type = 'raw';
+
+      return base44.entities.Photo.filter(query, '-created_date', 100);
+    }
+  });
+
+  const handleUploadComplete = async (uploadedFiles) => {
+    if (uploadedFiles && uploadedFiles.length > 0) {
+      try {
+        let type = 'raw';
+        if (activeTab.includes('edited') || activeTab.includes('final')) type = 'edited';
+        
+        const photoPromises = uploadedFiles.map(file => 
+          base44.entities.Photo.create({
+            project_id: projectId || 'general',
+            type: type,
+            file_url: file.file_url,
+            file_name: file.file_name,
+            file_size: file.file_size
+          })
+        );
+        await Promise.all(photoPromises);
+        
+        queryClient.invalidateQueries({ queryKey: ['photos'] });
+        toast.success("הקבצים הועלו ונשמרו בהצלחה");
+      } catch (err) {
+        console.error("Error creating photo records", err);
+        toast.error("שגיאה בשמירת פרטי הקבצים");
+      }
+    }
+  };
+
+  const deletePhoto = async (id) => {
+    if(confirm('למחוק את הקובץ?')) {
+      try {
+        await base44.entities.Photo.delete(id);
+        queryClient.invalidateQueries({ queryKey: ['photos'] });
+        toast.success("הקובץ נמחק");
+      } catch(e) {
+        toast.error("שגיאה במחיקת הקובץ");
+      }
+    }
+  };
 
   const tabs = [
     { id: 'raw', label: 'חומר גלם', icon: FileImage },
