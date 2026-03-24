@@ -145,20 +145,29 @@ export default function FileStorage() {
                     {photos.map((photo) => (
                       <div key={photo.id} className="group relative aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm hover:shadow-md transition-all">
                         {photo.file_url.match(/\.(mp4|webm|mov|avi)$/i) ? (
-                          <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800 text-white">
+                          <div className="relative z-10 w-full h-full flex flex-col items-center justify-center bg-slate-800 text-white">
                             <Video className="w-8 h-8 mb-2 opacity-70" />
                             <span className="text-xs max-w-[90%] truncate px-2">{photo.file_name}</span>
                           </div>
                         ) : (
-                          <img 
-                            src={photo.file_url} 
-                            alt={photo.file_name} 
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                            loading="lazy"
-                          />
+                          <>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 bg-slate-100 z-0">
+                              <FileImage className="w-8 h-8 mb-2 opacity-50" />
+                              <span className="text-xs max-w-[90%] truncate px-2" title={photo.file_name}>{photo.file_name}</span>
+                            </div>
+                            <img 
+                              src={photo.file_url} 
+                              alt={photo.file_name} 
+                              className="relative z-10 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 text-transparent"
+                              loading="lazy"
+                              onError={(e) => {
+                                e.target.style.opacity = 0;
+                              }}
+                            />
+                          </>
                         )}
                         
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100 gap-2">
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100 gap-2 z-20">
                           <a 
                             href={photo.file_url} 
                             target="_blank" 
@@ -178,7 +187,7 @@ export default function FileStorage() {
                         </div>
                         
                         {/* File Name overlay */}
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 pt-6 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 pt-6 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-20">
                           <p className="text-xs text-white truncate drop-shadow-md">
                             {photo.file_name}
                           </p>
