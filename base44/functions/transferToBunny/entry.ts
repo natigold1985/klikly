@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 const STORAGE_ZONE_NAME = 'natiklikly';
-const BUNNY_ACCESS_KEY = Deno.env.get('BUNNY_ACCESS_KEY'); // This is actually the password for the storage zone
+const BUNNY_ACCESS_KEY = Deno.env.get('BUNNY_SECRET_KEY'); // Use the Secret Key as the Password (standard S3 mapping)
 const BUNNY_ENDPOINT = 'https://storage.bunnycdn.com'; // Main storage endpoint (Falkenstein)
 
 Deno.serve(async (req) => {
