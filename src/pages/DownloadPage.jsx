@@ -63,7 +63,31 @@ export default function DownloadPage() {
 
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      // Step 1: Get presigned URL
+      const response = await base44.functions.invoke('generatePresignedUrl', {
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        token: token
+      });
+      
+      const { uploadUrl, fileKey } = response.data;
+
+      // Step 2: Upload directly to S3 (Bunny.net)
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type,
+        },
+        body: file
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error('Upload to storage failed');
+      }
+
+      const file_url = `https://de.s3.bunnycdn.com/natiklikly/${fileKey}`;
+
       await base44.functions.invoke('uploadWithToken', {
         token,
         file_url,

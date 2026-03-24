@@ -56,7 +56,29 @@ export default function Projects() {
     enabled: !!user,
   });
 
-  const handleUploadComplete = () => {
+  const handleUploadComplete = async (uploadedFiles) => {
+    if (uploadProject && uploadedFiles && uploadedFiles.length > 0) {
+      try {
+        const photoPromises = uploadedFiles.map(file => 
+          base44.entities.Photo.create({
+            project_id: uploadProject.id,
+            type: 'raw',
+            file_url: file.file_url,
+            file_name: file.file_name,
+            file_size: file.file_size
+          })
+        );
+        await Promise.all(photoPromises);
+        
+        await base44.entities.Project.update(uploadProject.id, {
+          raw_photos_count: (uploadProject.raw_photos_count || 0) + uploadedFiles.length
+        });
+        queryClient.invalidateQueries({ queryKey: ['projects'] });
+      } catch (err) {
+        console.error("Error creating photo records", err);
+      }
+    }
+
     toast.success("הקבצים הועלו בהצלחה והתווספו לפרויקט");
     // Show magic link prompt after slight delay
     if (uploadProject) {

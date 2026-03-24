@@ -1,41 +1,63 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { S3Client, PutObjectCommand } from 'npm:@aws-sdk/client-s3';
+import { getSignedUrl } from 'npm:@aws-sdk/s3-request-presigner';
+
+const s3Client = new S3Client({
+    region: 'de',
+    endpoint: 'https://de.s3.bunnycdn.com',
+    forcePathStyle: true,
+    credentials: {
+        accessKeyId: Deno.env.get('BUNNY_ACCESS_KEY'),
+        secretAccessKey: Deno.env.get('BUNNY_SECRET_KEY'),
+    },
+});
 
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
-        const user = await base44.auth.me();
-
-        if (!user) {
-            return Response.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-
-        const { fileName, fileType, fileSize, projectId } = await req.json();
+        
+        const payload = await req.json().catch(() => ({}));
+        const { fileName, fileType, fileSize, projectId, token } = payload;
 
         if (!fileName || !fileType) {
             return Response.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
-        // Validate file type (images and videos only)
-        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'video/mp4', 'video/quicktime', 'video/avi'];
-        if (!allowedTypes.includes(fileType)) {
-            return Response.json({ error: 'Invalid file type. Only images and videos are allowed.' }, { status: 400 });
+        const user = await base44.auth.me();
+        
+        if (!user && !token) {
+            return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Generate a unique file path with user ID to ensure isolation
+        let finalProjectId = projectId || 'general';
+
+        if (token && !user) {
+            const links = await base44.asServiceRole.entities.DeliveryLink.filter({ token: token });
+            if (links.length === 0) {
+                 return Response.json({ error: 'Invalid token' }, { status: 401 });
+            }
+            finalProjectId = links[0].project_id;
+        }
+
         const timestamp = Date.now();
         const randomString = Math.random().toString(36).substring(7);
         const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const filePath = `uploads/${user.id}/${projectId || 'general'}/${timestamp}_${randomString}_${safeFileName}`;
+        const prefix = user ? user.id : 'client_upload';
+        const filePath = `uploads/${prefix}/${finalProjectId}/${timestamp}_${randomString}_${safeFileName}`;
 
-        // In a real implementation, you would generate a presigned URL here
-        // For now, we'll use the Core.UploadFile integration as a placeholder
-        // This would be replaced with actual R2/S3 presigned URL generation
+        const command = new PutObjectCommand({
+            Bucket: 'natiklikly',
+            Key: filePath,
+            ContentType: fileType
+        });
+
+        const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
 
         return Response.json({
-            uploadUrl: filePath, // This would be the presigned URL
+            uploadUrl: uploadUrl,
             fileKey: filePath,
-            expiresIn: 3600, // 1 hour
-            maxFileSize: 500 * 1024 * 1024, // 500MB
+            expiresIn: 3600,
+            maxFileSize: 500 * 1024 * 1024,
         });
 
     } catch (error) {

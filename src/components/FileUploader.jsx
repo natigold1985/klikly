@@ -34,20 +34,45 @@ export default function FileUploader({ projectId, onUploadComplete, acceptedType
         f.id === fileItem.id ? { ...f, status: 'uploading', progress: 10 } : f
       ));
 
-      // Step 1: Get presigned URL (or prepare upload)
-      // In production, this would get a presigned URL from your backend
+      // Step 1: Get presigned URL
+      const response = await base44.functions.invoke('generatePresignedUrl', {
+        fileName: fileItem.file.name,
+        fileType: fileItem.file.type,
+        fileSize: fileItem.file.size,
+        projectId: projectId
+      });
+      
+      const { uploadUrl, fileKey } = response.data;
+
       setFiles(prev => prev.map(f => 
         f.id === fileItem.id ? { ...f, progress: 30 } : f
       ));
 
-      // Step 2: Upload to Base44 storage
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: fileItem.file });
+      // Step 2: Upload directly to S3 (Bunny.net)
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': fileItem.file.type,
+        },
+        body: fileItem.file
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error('Upload to storage failed');
+      }
+
+      const file_url = `https://de.s3.bunnycdn.com/natiklikly/${fileKey}`;
 
       setFiles(prev => prev.map(f => 
         f.id === fileItem.id ? { ...f, progress: 100, status: 'success', uploadedUrl: file_url } : f
       ));
 
-      return file_url;
+      return {
+        file_url,
+        file_name: fileItem.file.name,
+        file_size: fileItem.file.size,
+        type: fileItem.file.type
+      };
     } catch (error) {
       console.error('Upload error:', error);
       setFiles(prev => prev.map(f => 
