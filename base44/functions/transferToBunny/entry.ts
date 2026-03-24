@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
         await upload.done();
 
         return Response.json({
-            finalUrl: `https://de.s3.bunnycdn.com/natiklikly/${fileKey}`,
+            finalUrl: `https://natiklikly.b-cdn.net/${fileKey}`,
             fileKey: fileKey,
         });
 
