@@ -3,8 +3,8 @@ import { S3Client } from 'npm:@aws-sdk/client-s3';
 import { Upload } from 'npm:@aws-sdk/lib-storage';
 
 const s3Client = new S3Client({
-    region: 'de',
-    endpoint: 'https://de.s3.bunnycdn.com',
+    region: 'fsn1',
+    endpoint: 'https://storage.bunnycdn.com',
     forcePathStyle: true,
     credentials: {
         accessKeyId: Deno.env.get('BUNNY_ACCESS_KEY'),
