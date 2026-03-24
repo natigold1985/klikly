@@ -1,16 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
-import { S3Client } from 'npm:@aws-sdk/client-s3';
-import { Upload } from 'npm:@aws-sdk/lib-storage';
 
-const s3Client = new S3Client({
-    region: 'fsn1',
-    endpoint: 'https://storage.bunnycdn.com',
-    forcePathStyle: true,
-    credentials: {
-        accessKeyId: Deno.env.get('BUNNY_ACCESS_KEY'),
-        secretAccessKey: Deno.env.get('BUNNY_SECRET_KEY'),
-    },
-});
+const STORAGE_ZONE_NAME = 'natiklikly';
+const BUNNY_ACCESS_KEY = Deno.env.get('BUNNY_ACCESS_KEY'); // This is actually the password for the storage zone
+const BUNNY_ENDPOINT = 'https://storage.bunnycdn.com'; // Main storage endpoint (Falkenstein)
 
 Deno.serve(async (req) => {
     try {
@@ -49,24 +41,29 @@ Deno.serve(async (req) => {
         const randomString = Math.random().toString(36).substring(7);
         const safeFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
         const prefix = user ? user.id : 'client_upload';
-        const fileKey = `uploads/${prefix}/${finalProjectId}/${timestamp}_${randomString}_${safeFileName}`;
+        
+        // Construct the file path in Bunny Storage
+        const filePath = `uploads/${prefix}/${finalProjectId}/${timestamp}_${randomString}_${safeFileName}`;
+        const uploadUrl = `${BUNNY_ENDPOINT}/${STORAGE_ZONE_NAME}/${filePath}`;
 
-        // Stream the file directly to BunnyCDN S3 to bypass browser CORS
-        const upload = new Upload({
-            client: s3Client,
-            params: {
-                Bucket: 'natiklikly',
-                Key: fileKey,
-                Body: fileResponse.body,
-                ContentType: fileType || 'application/octet-stream',
+        // Upload to Bunny Storage using API
+        const uploadResponse = await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: {
+                'AccessKey': BUNNY_ACCESS_KEY, // The API Key for the storage zone
+                'Content-Type': fileType || 'application/octet-stream',
             },
+            body: fileResponse.body // Stream the body directly
         });
 
-        await upload.done();
+        if (!uploadResponse.ok) {
+            const errorText = await uploadResponse.text();
+            throw new Error(`Bunny Storage upload failed: ${uploadResponse.status} ${uploadResponse.statusText} - ${errorText}`);
+        }
 
         return Response.json({
-            finalUrl: `https://natiklikly.b-cdn.net/${fileKey}`,
-            fileKey: fileKey,
+            finalUrl: `https://${STORAGE_ZONE_NAME}.b-cdn.net/${filePath}`,
+            fileKey: filePath,
         });
 
     } catch (error) {
