@@ -10,7 +10,8 @@ import {
   Settings as SettingsIcon,
   Folder,
   CheckCircle2,
-  Menu
+  Menu,
+  Shield
 } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
@@ -32,7 +33,8 @@ export default function Layout({ children, currentPageName }) {
     staleTime: 1000 * 60 * 5,
   });
 
-  const isClient = user?.role === 'client';
+  const isAdmin = user?.role === 'admin' || user?.email === 'natigold04@gmail.com';
+  const isClient = user?.role === 'client' && !isAdmin;
 
   // Desktop Sidebar Items
   const sidebarNavigation = isClient
@@ -48,6 +50,7 @@ export default function Layout({ children, currentPageName }) {
         { name: 'פרויקטים', icon: Briefcase, page: 'Projects' },
         { name: 'אחסון קבצים', icon: Folder, page: 'FileStorage' },
         { name: 'משימות', icon: CheckCircle2, page: 'Tasks' },
+        ...(isAdmin ? [{ name: 'משתמשים', icon: Shield, page: 'AdminUsers' }] : []),
         { name: 'הגדרות', icon: SettingsIcon, page: 'Settings' },
       ];
 
@@ -156,7 +159,7 @@ export default function Layout({ children, currentPageName }) {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-white truncate">{user.full_name}</p>
-                <p className="text-xs text-white/40 truncate">{user.role === 'admin' ? 'צלם (Admin)' : 'לקוח'}</p>
+                <p className="text-xs text-white/40 truncate">{isAdmin ? 'מנהל מערכת' : 'לקוח'}</p>
               </div>
             </div>
           </div>
