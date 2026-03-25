@@ -23,17 +23,35 @@ export default function FileStorage() {
   const isClient = user?.role === 'client';
 
   const { data: photos = [], isLoading: isLoadingPhotos } = useQuery({
-    queryKey: ['photos', projectId, activeTab],
+    queryKey: ['photos', projectId, activeTab, isClient, user?.email],
     queryFn: async () => {
       let query = {};
-      if (projectId) query.project_id = projectId;
+      
+      if (isClient) {
+        // If client, fetch only photos from projects associated with their email
+        const clientProjects = await base44.entities.Project.filter({ client_email: user.email });
+        const projectIds = clientProjects.map(p => p.id);
+        
+        if (projectIds.length === 0) return [];
+        
+        // If they requested a specific project, ensure it's one of theirs
+        if (projectId) {
+          if (!projectIds.includes(projectId)) return [];
+          query.project_id = projectId;
+        } else {
+          query.project_id = { $in: projectIds };
+        }
+      } else {
+        if (projectId) query.project_id = projectId;
+      }
       
       if (activeTab.includes('raw')) query.type = 'raw';
       else if (activeTab.includes('edited') || activeTab.includes('final')) query.type = 'edited';
       else query.type = 'raw';
 
       return base44.entities.Photo.filter(query, '-created_date', 100);
-    }
+    },
+    enabled: !!user
   });
 
   const handleUploadComplete = async (uploadedFiles) => {
