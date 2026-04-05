@@ -51,7 +51,7 @@ export default function Projects() {
       if (isClient) {
         return base44.entities.Project.filter({ client_email: user.email }, '-created_date', 200);
       }
-      return base44.entities.Project.list('-created_date', 200);
+      return base44.entities.Project.filter({ created_by: user.email }, '-created_date', 200);
     },
     enabled: !!user,
   });

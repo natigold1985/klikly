@@ -26,6 +26,17 @@ import {
 } from '@/components/ui/select';
 import { motion, useAnimation } from 'framer-motion';
 import { toast } from 'sonner';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Fix leaflet icon
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 // Swipeable Lead Card Component
 const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
@@ -129,6 +140,7 @@ const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
 
 export default function Leads() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState('grid');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
   const [showFollowUpDialog, setShowFollowUpDialog] = useState(false);
@@ -144,13 +156,20 @@ export default function Leads() {
     event_date: '',
     budget: '',
     notes: '',
+    address: '',
   });
 
   const queryClient = useQueryClient();
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
   const { data: leads = [], isLoading } = useQuery({
-    queryKey: ['leads'],
-    queryFn: () => base44.entities.Lead.list('-created_date', 200),
+    queryKey: ['leads', user?.email],
+    queryFn: () => base44.entities.Lead.filter({ created_by: user.email }, '-created_date', 200),
+    enabled: !!user,
   });
 
   const createLeadMutation = useMutation({
@@ -167,6 +186,7 @@ export default function Leads() {
         event_date: '',
         budget: '',
         notes: '',
+        address: '',
       });
       toast.success("הליד נוצר בהצלחה");
     },
@@ -322,6 +342,14 @@ export default function Leads() {
                   />
                 </div>
               </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-1 block">כתובת הליד</label>
+                <Input
+                  value={newLead.address}
+                  onChange={(e) => setNewLead({ ...newLead, address: e.target.value })}
+                  placeholder="תל אביב, רמת גן..."
+                />
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-1 block">סוג צילום</label>
@@ -409,8 +437,24 @@ export default function Leads() {
       {/* Filters */}
       <Card className="border shadow-lg">
         <CardContent className="p-4">
-          <div className="flex gap-4">
-            <div className="flex-1 relative">
+          <div className="flex gap-4 flex-wrap">
+            <div className="flex bg-slate-100 p-1 rounded-lg">
+              <Button 
+                variant={viewMode === 'grid' ? 'default' : 'ghost'} 
+                size="sm" 
+                onClick={() => setViewMode('grid')}
+              >
+                רשימה
+              </Button>
+              <Button 
+                variant={viewMode === 'map' ? 'default' : 'ghost'} 
+                size="sm" 
+                onClick={() => setViewMode('map')}
+              >
+                מפה
+              </Button>
+            </div>
+            <div className="flex-1 relative min-w-[200px]">
               <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
               <Input
                 value={searchTerm}
@@ -445,6 +489,25 @@ export default function Leads() {
           <CardContent className="p-12 text-center">
             <p className="text-slate-500">לא נמצאו לידים</p>
           </CardContent>
+        </Card>
+      ) : viewMode === 'map' ? (
+        <Card className="border shadow-lg overflow-hidden h-[600px] relative z-0">
+          <MapContainer center={[31.0461, 34.8516]} zoom={7} style={{ height: '100%', width: '100%', zIndex: 1 }}>
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            {filteredLeads.map((lead, i) => (
+              lead.address ? (
+                <Marker key={lead.id} position={[31.0461 + (Math.random() - 0.5) * 2, 34.8516 + (Math.random() - 0.5) * 2]}>
+                  <Popup>
+                    <div className="text-right" dir="rtl">
+                      <strong>{lead.name}</strong><br/>
+                      {lead.address}<br/>
+                      <a href={`tel:${lead.phone}`} className="text-blue-600">{lead.phone}</a>
+                    </div>
+                  </Popup>
+                </Marker>
+              ) : null
+            ))}
+          </MapContainer>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

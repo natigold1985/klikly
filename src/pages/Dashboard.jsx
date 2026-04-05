@@ -12,7 +12,9 @@ import {
   Calendar,
   DollarSign,
   Camera,
-  AlertCircle
+  AlertCircle,
+  MessageCircle,
+  CheckSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,54 +51,59 @@ export default function Dashboard() {
   };
 
   const { data: leads = [] } = useQuery({
-    queryKey: ['leads'],
-    queryFn: () => base44.entities.Lead.list('-created_date', 100),
-    enabled: !isClient,
+    queryKey: ['leads', user?.email],
+    queryFn: () => base44.entities.Lead.filter({ created_by: user.email }, '-created_date', 100),
+    enabled: !!user && !isClient,
   });
 
   const { data: projects = [] } = useQuery({
-    queryKey: ['projects'],
+    queryKey: ['projects', user?.email],
     queryFn: () => {
       if (isClient) {
         return base44.entities.Project.filter({ client_email: user.email }, '-created_date', 100);
       }
-      return base44.entities.Project.list('-created_date', 100);
+      return base44.entities.Project.filter({ created_by: user.email }, '-created_date', 100);
     },
     enabled: !!user,
   });
 
   const { data: tasks = [] } = useQuery({
-    queryKey: ['tasks'],
-    queryFn: () => base44.entities.Task.filter({ status: 'pending' }, '-due_date', 50),
+    queryKey: ['tasks', user?.email],
+    queryFn: () => base44.entities.Task.filter({ status: 'pending', created_by: user.email }, '-due_date', 50),
+    enabled: !!user,
   });
 
-  // Photographer Statistics
+  const today = new Date().toISOString().split('T')[0];
+  const leadsToday = leads.filter(l => l.created_date && l.created_date.startsWith(today)).length;
+  const conversionRate = leads.length ? Math.round((projects.length / leads.length) * 100) : 0;
+  
+  // Photographer Statistics (SaaS UI/UX adapted)
   const photographerStats = [
     {
-      title: 'לידים פעילים',
-      value: leads.filter(l => !['closed_won', 'closed_lost'].includes(l.status)).length,
-      icon: Users,
+      title: 'לידים היום',
+      value: leadsToday,
+      icon: TrendingUp,
       color: 'from-blue-500 to-cyan-500',
       link: 'Leads'
     },
     {
-      title: 'פרויקטים פעילים',
-      value: projects.filter(p => p.status !== 'completed').length,
-      icon: Briefcase,
+      title: 'אחוז המרה',
+      value: `${conversionRate}%`,
+      icon: DollarSign,
       color: 'from-purple-500 to-pink-500',
       link: 'Projects'
     },
     {
-      title: 'ממתינים לבחירה',
-      value: projects.filter(p => p.status === 'awaiting_selection').length,
-      icon: Camera,
+      title: 'הודעות ממתינות',
+      value: leads.filter(l => l.status === 'new').length,
+      icon: MessageCircle,
       color: 'from-orange-500 to-red-500',
-      link: 'Projects'
+      link: 'Leads'
     },
     {
-      title: 'משימות ממתינות',
+      title: 'משימות פעילות',
       value: tasks.length,
-      icon: CheckCircle2,
+      icon: CheckSquare,
       color: 'from-green-500 to-emerald-500',
       link: 'Tasks'
     },

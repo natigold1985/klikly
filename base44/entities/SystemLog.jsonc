@@ -1,0 +1,38 @@
+{
+  "name": "SystemLog",
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "description": "\u05d4\u05e4\u05e2\u05d5\u05dc\u05d4 \u05e9\u05d1\u05d5\u05e6\u05e2\u05d4 (\u05dc\u05d3\u05d5\u05d2\u05de\u05d4: \u05d9\u05e6\u05d9\u05e8\u05ea \u05dc\u05d9\u05d3, \u05e9\u05dc\u05d9\u05d7\u05ea \u05d5\u05d5\u05d0\u05d8\u05e1\u05d0\u05e4, \u05d0\u05d9\u05e0\u05d8\u05d2\u05e8\u05e6\u05d9\u05d4)"
+    },
+    "details": {
+      "type": "string",
+      "description": "\u05e4\u05d9\u05e8\u05d5\u05d8 \u05d4\u05e4\u05e2\u05d5\u05dc\u05d4"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "error",
+        "pending"
+      ],
+      "default": "success"
+    },
+    "related_entity_type": {
+      "type": "string",
+      "description": "\u05e1\u05d5\u05d2 \u05d4\u05d9\u05e9\u05d5\u05ea \u05d4\u05e7\u05e9\u05d5\u05e8\u05d4 (Lead, Project \u05d5\u05db\u05d5')"
+    },
+    "related_entity_id": {
+      "type": "string",
+      "description": "\u05de\u05d6\u05d4\u05d4 \u05d4\u05d9\u05e9\u05d5\u05ea \u05d4\u05e7\u05e9\u05d5\u05e8\u05d4"
+    },
+    "owner_id": {
+      "type": "string",
+      "description": "\u05de\u05d6\u05d4\u05d4 \u05d1\u05e2\u05dc \u05d4\u05e8\u05e9\u05d5\u05de\u05d4 (\u05dc\u05e6\u05d5\u05e8\u05da Multi-Tenancy)"
+    }
+  },
+  "required": [
+    "action"
+  ]
+}
