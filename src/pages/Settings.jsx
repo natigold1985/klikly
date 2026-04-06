@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Upload, Save, Camera, Building2 } from 'lucide-react';
+import { Upload, Save, Camera, Building2, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +12,65 @@ export default function Settings() {
   const logoInputRef = useRef(null);
   const profileInputRef = useRef(null);
   const queryClient = useQueryClient();
+  const [calConnected, setCalConnected] = useState(false);
+  const [checkingCal, setCheckingCal] = useState(true);
+  const [syncingCal, setSyncingCal] = useState(false);
+
+  const checkCalConnection = async () => {
+    try {
+      await base44.functions.invoke("checkCalendarConnection", {});
+      setCalConnected(true);
+    } catch {
+      setCalConnected(false);
+    }
+  };
+
+  useEffect(() => {
+    base44.auth.isAuthenticated().then(async (authed) => {
+      if (authed) {
+        await checkCalConnection();
+      }
+      setCheckingCal(false);
+    });
+  }, []);
+
+  const handleConnectCal = async () => {
+    try {
+      const url = await base44.connectors.connectAppUser("69d3c4ec1ea49d48ce3fec2e");
+      const popup = window.open(url, "_blank");
+      const timer = setInterval(() => {
+        if (!popup || popup.closed) {
+          clearInterval(timer);
+          checkCalConnection();
+        }
+      }, 500);
+    } catch (err) {
+      toast.error("שגיאה בחיבור ליומן");
+    }
+  };
+
+  const handleDisconnectCal = async () => {
+    try {
+      await base44.connectors.disconnectAppUser("69d3c4ec1ea49d48ce3fec2e");
+      setCalConnected(false);
+      toast.success("נותק מיומן גוגל");
+    } catch (err) {
+      toast.error("שגיאה בניתוק היומן");
+    }
+  };
+
+  const handleSyncCal = async () => {
+    setSyncingCal(true);
+    toast.loading("מסנכרן יומן...", { id: "cal-sync" });
+    try {
+      const res = await base44.functions.invoke("syncGoogleCalendar", {});
+      toast.success(`הסנכרון הושלם בהצלחה (${res.data.syncedToCalendar} אירועים נוספו)`, { id: "cal-sync" });
+    } catch (err) {
+      toast.error("שגיאה בסנכרון יומן גוגל", { id: "cal-sync" });
+    } finally {
+      setSyncingCal(false);
+    }
+  };
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ['settings'],
@@ -169,6 +228,50 @@ export default function Settings() {
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Google Calendar Integrations */}
+      <Card className="bg-white/60 backdrop-blur-sm border-white/20 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-blue-500" />
+            חיבור יומן גוגל (Google Calendar)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-slate-600">
+            חבר את יומן גוגל שלך כדי לסנכרן אירועים, ימי צילום ופגישות באופן אוטומטי למערכת Klikly.
+          </p>
+          
+          {checkingCal ? (
+            <div className="text-sm text-slate-500">בודק חיבור ליומן...</div>
+          ) : calConnected ? (
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button 
+                variant="destructive" 
+                onClick={handleDisconnectCal}
+                className="bg-red-500/10 text-red-600 hover:bg-red-500/20 border-none shadow-none"
+              >
+                נתק יומן גוגל
+              </Button>
+              <Button 
+                onClick={handleSyncCal}
+                disabled={syncingCal}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {syncingCal ? 'מסנכרן...' : 'סנכרן נתונים עכשיו'}
+              </Button>
+            </div>
+          ) : (
+            <Button 
+              onClick={handleConnectCal}
+              className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm"
+            >
+              <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg" alt="Google Calendar" className="w-4 h-4 ml-2" />
+              התחבר עם Google
+            </Button>
+          )}
         </CardContent>
       </Card>
 
