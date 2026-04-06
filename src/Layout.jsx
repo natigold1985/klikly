@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useQuery } from '@tanstack/react-query';
@@ -12,7 +12,8 @@ import {
   CheckCircle2,
   Menu,
   Shield,
-  FileText
+  FileText,
+  Camera
 } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
@@ -74,7 +75,7 @@ export default function Layout({ children, currentPageName }) {
   // Pages that should render without any nav
   const noLayoutPages = ['DownloadPage', 'QuoteView'];
   // Force Deep Dark Mode Theme
-  React.useEffect(() => {
+  useEffect(() => {
     document.documentElement.classList.add('dark');
   }, []);
 
@@ -86,20 +87,20 @@ export default function Layout({ children, currentPageName }) {
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden text-slate-900 dark:text-slate-50 transition-colors duration-300" dir="rtl">
       
       {/* ── Mobile Header (Central Logo) ── */}
-      <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-100 z-40 flex items-center justify-center px-4 shadow-sm">
+      <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-black/90 backdrop-blur-lg border-b border-white/10 z-40 flex items-center justify-center px-4 shadow-lg">
         {/* User Avatar (Left aligned in RTL) */}
         {user && (
           <div className="absolute left-4 top-1/2 -translate-y-1/2">
-             <div className="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 font-bold text-sm">
+             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FFD700] to-[#b38f2d] flex items-center justify-center text-black font-bold text-sm shadow-[0_0_10px_rgba(255,215,0,0.3)]">
               {user.full_name?.[0] || '?'}
             </div>
           </div>
         )}
         
         {/* Central Logo / Title */}
-        <div className="flex flex-col items-center">
-           <span className="text-lg font-extrabold tracking-tight text-[#D4AF37]">
-            {settings?.business_name || 'Klikly'}
+        <div className="flex items-center gap-2">
+           <span className="text-xl font-extrabold tracking-wider text-[#FFD700]">
+            {settings?.business_name || 'KLIKLY'}
           </span>
         </div>
 
@@ -164,27 +165,46 @@ export default function Layout({ children, currentPageName }) {
         </main>
       </div>
 
-      {/* ── Mobile Bottom Navigation Bar (Fixed) ── */}
+      {/* ── Mobile Bottom Navigation Bar (Blurred & Luxury) ── */}
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-200 z-50 flex items-stretch shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.1)]"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)', height: 'calc(64px + env(safe-area-inset-bottom))' }}
+        className="md:hidden fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-2xl border-t border-white/10 z-50 flex items-stretch shadow-[0_-10px_30px_rgba(0,0,0,0.8)] px-2"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)', height: 'calc(72px + env(safe-area-inset-bottom))' }}
       >
-        {mobileNavItems.map((item) => {
+        {mobileNavItems.map((item, index) => {
           const Icon = item.icon;
           const isActive = pageName === item.page;
+          const isCenter = index === Math.floor(mobileNavItems.length / 2);
+          
+          if (isCenter) {
+            return (
+              <Link
+                key={item.name}
+                to={createPageUrl(item.page)}
+                className="flex-1 flex flex-col items-center justify-center -mt-6 active:scale-95 transition-transform duration-200"
+              >
+                <div className="relative w-14 h-14 rounded-full bg-gradient-to-tr from-[#FFD700] to-[#C5A028] flex items-center justify-center shadow-[0_0_20px_rgba(255,215,0,0.4)] border-4 border-black">
+                  <Camera className="w-6 h-6 text-black" strokeWidth={2.5} />
+                </div>
+                <span className="text-[10px] font-bold tracking-wide text-[#FFD700] mt-1.5">
+                  {item.name}
+                </span>
+              </Link>
+            );
+          }
+
           return (
             <Link
               key={item.name}
               to={createPageUrl(item.page)}
-              className="flex-1 flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-transform duration-100"
+              className="flex-1 flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-transform duration-200"
             >
-              <div className={`relative p-1.5 rounded-2xl transition-colors ${isActive ? 'bg-[#FFF9E5]' : 'bg-transparent'}`}>
+              <div className={`relative p-2 rounded-2xl transition-colors ${isActive ? 'bg-white/10' : 'bg-transparent'}`}>
                 <Icon 
-                  className={`w-6 h-6 transition-colors duration-200 ${isActive ? 'text-[#C5A028] fill-[#C5A028]/20' : 'text-slate-400'}`} 
+                  className={`w-6 h-6 transition-colors duration-200 ${isActive ? 'text-[#FFD700]' : 'text-white/50'}`} 
                   strokeWidth={isActive ? 2.5 : 2} 
                 />
               </div>
-              <span className={`text-[10px] font-bold tracking-wide transition-colors ${isActive ? 'text-[#C5A028]' : 'text-slate-400'}`}>
+              <span className={`text-[10px] font-bold tracking-wide transition-colors ${isActive ? 'text-[#FFD700]' : 'text-white/50'}`}>
                 {item.name}
               </span>
             </Link>

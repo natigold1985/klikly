@@ -84,7 +84,23 @@ module.exports = {
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
+  			'accordion-up': 'accordion-up 0.2s ease-out',
+  			'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+  			'glow': 'glow 2s ease-in-out infinite alternate',
+  		},
+  		keyframes: {
+  			'accordion-down': {
+  				from: { height: '0' },
+  				to: { height: 'var(--radix-accordion-content-height)' }
+  			},
+  			'accordion-up': {
+  				from: { height: 'var(--radix-accordion-content-height)' },
+  				to: { height: '0' }
+  			},
+  			'glow': {
+  			    '0%': { textShadow: '0 0 10px rgba(255,215,0,0.2)' },
+  			    '100%': { textShadow: '0 0 20px rgba(255,215,0,0.6), 0 0 30px rgba(255,215,0,0.4)' }
+  			}
   		}
   	}
   },

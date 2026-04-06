@@ -203,11 +203,11 @@ export default function Dashboard() {
         </div>
       )}
       {/* Header */}
-      <div className="mb-2">
-        <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-1 md:mb-2 truncate leading-normal py-1">
+      <div className="mb-6 mt-4">
+        <h1 className="text-3xl md:text-5xl font-extrabold text-[#FFD700] mb-2 truncate leading-normal py-1 animate-glow">
           {isClient ? 'אזור אישי' : 'לוח ניהול'}
         </h1>
-        <p className="text-sm md:text-base text-slate-600 truncate">
+        <p className="text-sm md:text-lg text-white/60 truncate font-light tracking-wide">
           {isClient ? `ברוך הבא, ${user?.full_name}` : 'סקירה מהירה של העסק שלך ב-Klikly'}
         </p>
       </div>
@@ -218,14 +218,14 @@ export default function Dashboard() {
           const Icon = stat.icon;
           return (
             <Link key={index} to={createPageUrl(stat.link)}>
-              <Card className="bg-white/90 backdrop-blur-sm border-white/40 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group h-full overflow-hidden">
+              <Card className="bg-[#0a0a0a] backdrop-blur-xl border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.5)] hover:shadow-[0_8px_30px_rgba(255,215,0,0.15)] hover:border-[#FFD700]/30 transition-all duration-300 cursor-pointer group h-full overflow-hidden rounded-2xl active:scale-[0.98]">
                 <CardContent className="p-5 md:p-6 flex items-center justify-between h-full">
                   <div className="flex flex-col gap-1 min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-500 truncate w-full pr-2">{stat.title}</p>
-                    <p className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight truncate">{stat.value}</p>
+                    <p className="text-sm font-medium text-white/50 truncate w-full pr-2">{stat.title}</p>
+                    <p className="text-3xl md:text-4xl font-bold text-white tracking-tight truncate">{stat.value}</p>
                   </div>
-                  <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-md group-hover:scale-105 transition-transform flex-shrink-0`}>
-                    <Icon className="w-6 h-6 text-white" />
+                  <div className={`w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shadow-inner group-hover:scale-110 group-hover:bg-[#FFD700]/10 group-hover:border-[#FFD700]/30 transition-all flex-shrink-0`}>
+                    <Icon className="w-7 h-7 text-[#FFD700]" />
                   </div>
                 </CardContent>
               </Card>
@@ -234,34 +234,36 @@ export default function Dashboard() {
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
         {/* Recent Leads - Only for Photographers */}
         {!isClient && (
-          <Card className="bg-white/60 backdrop-blur-sm border-white/20 shadow-xl">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-slate-800">
-                <Users className="w-5 h-5 text-indigo-500" />
+          <Card className="bg-[#0a0a0a] backdrop-blur-xl border-white/10 shadow-2xl rounded-2xl overflow-hidden">
+            <CardHeader className="border-b border-white/5 pb-4">
+              <CardTitle className="flex items-center gap-3 text-white text-xl">
+                <div className="p-2 rounded-lg bg-white/5 border border-white/10 text-[#FFD700]">
+                  <Users className="w-5 h-5" />
+                </div>
                 לידים אחרונים
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {recentLeads.length === 0 ? (
-                <p className="text-slate-500 text-center py-8">אין לידים עדיין</p>
+                <p className="text-white/40 text-center py-8">אין לידים עדיין</p>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {recentLeads.map((lead) => (
                     <Link key={lead.id} to={createPageUrl(`LeadDetails?id=${lead.id}`)}>
-                      <div className="p-4 rounded-lg bg-white/80 hover:bg-white hover:shadow-md transition-all cursor-pointer">
-                        <div className="flex items-start justify-between mb-2">
+                      <div className="p-4 rounded-xl bg-white/5 border border-white/5 hover:border-[#FFD700]/30 hover:bg-white/10 transition-all cursor-pointer active:scale-[0.98]">
+                        <div className="flex items-start justify-between mb-3">
                           <div>
-                            <h3 className="font-medium text-slate-800">{lead.name}</h3>
-                            <p className="text-sm text-slate-500">{lead.shooting_type}</p>
+                            <h3 className="font-bold text-white text-lg">{lead.name}</h3>
+                            <p className="text-sm text-[#FFD700]/80">{lead.shooting_type}</p>
                           </div>
                           {getStatusBadge(lead.status)}
                         </div>
-                        <div className="flex items-center gap-4 text-xs text-slate-500">
-                          <span>{lead.phone}</span>
-                          {lead.event_date && <span>📅 {new Date(lead.event_date).toLocaleDateString('he-IL')}</span>}
+                        <div className="flex items-center gap-4 text-xs text-white/50">
+                          <span className="flex items-center gap-1.5"><DollarSign className="w-3.5 h-3.5"/>{lead.phone}</span>
+                          {lead.event_date && <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5"/> {new Date(lead.event_date).toLocaleDateString('he-IL')}</span>}
                         </div>
                       </div>
                     </Link>
@@ -269,50 +271,52 @@ export default function Dashboard() {
                 </div>
               )}
               <Link to={createPageUrl('Leads')}>
-                <button className="w-full mt-4 py-2 text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                <Button variant="ghost" className="w-full mt-6 py-6 text-sm text-[#FFD700] hover:bg-[#FFD700]/10 hover:text-[#FFD700] font-bold rounded-xl border border-dashed border-[#FFD700]/30">
                   צפה בכל הלידים ←
-                </button>
+                </Button>
               </Link>
             </CardContent>
           </Card>
         )}
 
         {/* Upcoming Tasks - For Both */}
-        <Card className={`bg-white/60 backdrop-blur-sm border-white/20 shadow-xl ${isClient ? 'lg:col-span-2' : ''}`}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-slate-800">
-              <CheckCircle2 className="w-5 h-5 text-green-500" />
+        <Card className={`bg-[#0a0a0a] backdrop-blur-xl border-white/10 shadow-2xl rounded-2xl overflow-hidden ${isClient ? 'lg:col-span-2' : ''}`}>
+          <CardHeader className="border-b border-white/5 pb-4">
+            <CardTitle className="flex items-center gap-3 text-white text-xl">
+              <div className="p-2 rounded-lg bg-white/5 border border-white/10 text-[#FFD700]">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
               משימות קרובות
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {upcomingTasks.length === 0 ? (
-              <p className="text-slate-500 text-center py-8">אין משימות ממתינות</p>
+              <p className="text-white/40 text-center py-8">אין משימות ממתינות</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {upcomingTasks.map((task) => (
-                  <div key={task.id} className="p-4 rounded-lg bg-white/80 hover:bg-white hover:shadow-md transition-all">
-                    <div className="flex items-start justify-between mb-2">
-                      <h3 className="font-medium text-slate-800">{task.title}</h3>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        task.priority === 'high' ? 'bg-red-100 text-red-700' :
-                        task.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-blue-100 text-blue-700'
+                  <div key={task.id} className="p-4 rounded-xl bg-white/5 border border-white/5 hover:border-[#FFD700]/30 hover:bg-white/10 transition-all active:scale-[0.98]">
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className="font-bold text-white text-lg">{task.title}</h3>
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                        task.priority === 'high' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+                        task.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
+                        'bg-blue-500/20 text-blue-400 border border-blue-500/30'
                       }`}>
                         {task.priority === 'high' ? 'דחוף' : task.priority === 'medium' ? 'בינוני' : 'נמוך'}
                       </span>
                     </div>
-                    <p className="text-sm text-slate-500">
-                      📅 {new Date(task.due_date).toLocaleDateString('he-IL')}
+                    <p className="flex items-center gap-1.5 text-sm text-white/50">
+                      <Calendar className="w-4 h-4" /> {new Date(task.due_date).toLocaleDateString('he-IL')}
                     </p>
                   </div>
                 ))}
               </div>
             )}
             <Link to={createPageUrl('Tasks')}>
-              <button className="w-full mt-4 py-2 text-sm text-green-600 hover:text-green-700 font-medium">
+              <Button variant="ghost" className="w-full mt-6 py-6 text-sm text-[#FFD700] hover:bg-[#FFD700]/10 hover:text-[#FFD700] font-bold rounded-xl border border-dashed border-[#FFD700]/30">
                 צפה בכל המשימות ←
-              </button>
+              </Button>
             </Link>
           </CardContent>
         </Card>

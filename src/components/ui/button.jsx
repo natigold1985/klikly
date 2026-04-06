@@ -5,26 +5,26 @@ import { cva } from "class-variance-authority";
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-3 whitespace-nowrap rounded-xl text-sm font-bold transition-all duration-300 hover:scale-[1.02] active:scale-95 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-5 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         default:
-          "bg-[#FFD700] text-black shadow-md hover:bg-[#e6c200]",
+          "bg-[#FFD700] text-black shadow-[0_4px_14px_rgba(255,215,0,0.25)] hover:shadow-[0_6px_20px_rgba(255,215,0,0.4)] hover:brightness-105",
         destructive:
-          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+          "bg-red-600 text-white shadow-sm hover:bg-red-700",
         outline:
-          "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+          "border border-white/20 bg-transparent text-white shadow-sm hover:bg-white/10",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+          "bg-white/10 text-white shadow-sm hover:bg-white/20",
+        ghost: "hover:bg-white/10 text-white",
+        link: "text-[#FFD700] underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-11 px-6 py-2 rounded-xl",
-        sm: "h-8 rounded-md px-3 text-xs",
-        lg: "h-10 rounded-md px-8",
-        icon: "h-9 w-9",
+        default: "h-12 px-6 py-2 min-h-[48px]", // Touch optimization
+        sm: "h-9 rounded-lg px-4 text-xs",
+        lg: "h-14 rounded-xl px-8 min-h-[56px]",
+        icon: "h-12 w-12 min-h-[48px] min-w-[48px]",
       },
     },
     defaultVariants: {
