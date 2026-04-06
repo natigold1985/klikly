@@ -11,7 +11,8 @@ import {
   Folder,
   CheckCircle2,
   Menu,
-  Shield
+  Shield,
+  FileText
 } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
@@ -47,6 +48,7 @@ export default function Layout({ children, currentPageName }) {
     : [
         { name: 'לוח ניהול', icon: LayoutDashboard, page: 'Dashboard' },
         { name: 'לידים', icon: Users, page: 'Leads' },
+        { name: 'הצעות מחיר', icon: FileText, page: 'Quotes' },
         { name: 'פרויקטים', icon: Briefcase, page: 'Projects' },
         { name: 'אחסון קבצים', icon: Folder, page: 'FileStorage' },
         { name: 'משימות', icon: CheckCircle2, page: 'Tasks' },
@@ -71,23 +73,9 @@ export default function Layout({ children, currentPageName }) {
 
   // Pages that should render without any nav
   const noLayoutPages = ['DownloadPage', 'QuoteView'];
-  // Handle System Dark Mode
+  // Force Deep Dark Mode Theme
   React.useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (e) => {
-      if (e.matches) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    };
-    
-    // Initial check
-    handleChange(mediaQuery);
-    
-    // Listener
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    document.documentElement.classList.add('dark');
   }, []);
 
   if (noLayoutPages.includes(pageName)) {
@@ -120,9 +108,9 @@ export default function Layout({ children, currentPageName }) {
       </header>
 
       {/* ── Desktop Sidebar (Hidden on Mobile) ── */}
-      <aside className="hidden md:flex flex-col w-72 bg-[#0a0a0a] text-white flex-shrink-0 h-full border-l border-white/5 transition-all duration-300">
+      <aside className="hidden md:flex flex-col w-72 bg-black text-white flex-shrink-0 h-full border-l border-white/5 transition-all duration-300">
         {/* Logo */}
-        <div className="h-20 flex items-center px-8 border-b border-white/10 bg-[#0a0a0a]">
+        <div className="h-20 flex items-center px-8 border-b border-white/10 bg-black">
           <span className="text-2xl font-bold tracking-wider text-[#D4AF37]">
             {settings?.business_name || 'Klikly'}
           </span>
@@ -167,9 +155,9 @@ export default function Layout({ children, currentPageName }) {
       </aside>
 
       {/* ── Main Content ── */}
-      <div className="flex-1 flex flex-col min-w-0 h-full relative">
+      <div className="flex-1 flex flex-col min-w-0 h-full relative bg-black">
         {/* Scrollable Content Area */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden pt-20 md:pt-0 pb-24 md:pb-0 px-4 md:px-8 bg-slate-50">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden pt-20 md:pt-0 pb-24 md:pb-0 px-4 md:px-8 bg-black">
           <div className="max-w-6xl mx-auto w-full py-6">
             {children}
           </div>

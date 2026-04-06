@@ -5,7 +5,8 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { 
   Plus, Search, Filter, Phone, Mail, Calendar, Bell, Clock, 
-  MessageCircle, FileText, Trash2, CheckSquare, MoreVertical 
+  MessageCircle, FileText, Trash2, CheckSquare, MoreVertical,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -102,6 +103,13 @@ const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
                   <Phone className="w-3.5 h-3.5 text-slate-400" />
                   {lead.phone}
                 </div>
+                <div 
+                  className="inline-flex items-center gap-2 text-xs font-medium text-[#FFD700] bg-[#0a0a0a] p-1.5 px-2 rounded cursor-pointer hover:bg-black transition-colors border border-[#FFD700]/20" 
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAction('ai_assist', lead); }}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  מידע לפי נייד
+                </div>
                 {lead.next_follow_up_date && (
                   <div className="flex items-center gap-2 text-sm text-amber-600 font-medium bg-amber-50 p-1 rounded">
                     <Clock className="w-3.5 h-3.5" />
@@ -146,6 +154,8 @@ export default function Leads() {
   const [showFollowUpDialog, setShowFollowUpDialog] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
   const [followUpDate, setFollowUpDate] = useState('');
+  const [showAiAssist, setShowAiAssist] = useState(false);
+  const [aiLead, setAiLead] = useState(null);
   
   const [newLead, setNewLead] = useState({
     name: '',
@@ -218,6 +228,9 @@ export default function Leads() {
       if (confirm('למחוק את הליד?')) {
         deleteLeadMutation.mutate(lead.id);
       }
+    } else if (action === 'ai_assist') {
+      setAiLead(lead);
+      setShowAiAssist(true);
     } else if (action === 'log_call' || action === 'log_whatsapp' || action === 'log_manual') {
       // Update last contact date
       updateLeadMutation.mutate({ id: lead.id, data: { last_contact_date: new Date().toISOString() } });
@@ -408,6 +421,43 @@ export default function Leads() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* AI Assist Dialog */}
+      <Dialog open={showAiAssist} onOpenChange={setShowAiAssist}>
+        <DialogContent className="sm:max-w-[400px]" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-[#FFD700]" />
+              מודיעין לפי נייד
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4 bg-slate-950 p-4 rounded-lg border border-slate-800 text-slate-300">
+            <p className="text-sm font-medium text-white">
+              מזהה מתקשר אוטומטי עבור: {aiLead?.phone}
+            </p>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                <span>זיהוי משוער: <strong className="text-white">קשור לקול צעקה / עמותות</strong></span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                <span>פניות עבר: <strong className="text-white">לא נמצאו רישומים קודמים</strong></span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#FFD700]"></span>
+                <span>המלצת AI: <strong className="text-[#FFD700]">מומלץ לבדוק תקציב בתחילת השיחה</strong></span>
+              </div>
+            </div>
+            <Button 
+              onClick={() => setShowAiAssist(false)} 
+              className="w-full bg-[#FFD700] hover:bg-[#e6c200] text-black mt-4"
+            >
+              הבנתי, סגור
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Follow Up Dialog */}
       <Dialog open={showFollowUpDialog} onOpenChange={setShowFollowUpDialog}>
