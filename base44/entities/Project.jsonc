@@ -56,6 +56,10 @@
     "client_access_token": {
       "type": "string"
     },
+    "gallery_pin": {
+      "type": "string",
+      "description": "PIN code for client gallery access"
+    },
     "raw_photos_count": {
       "type": "number"
     },

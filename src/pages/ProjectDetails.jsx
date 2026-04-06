@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { 
   ArrowRight, Phone, Mail, Calendar, MapPin, 
-  DollarSign, CheckCircle2, ListTodo, Download, Eye, Upload
+  DollarSign, CheckCircle2, ListTodo, Download, Eye, Upload,
+  Link as LinkIcon, Copy, Lock, RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 
 export default function ProjectDetails() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -21,6 +24,7 @@ export default function ProjectDetails() {
     queryFn: () => base44.auth.me(),
   });
   const isClient = user?.role === 'client';
+  const queryClient = useQueryClient();
 
   const { data: project, isLoading } = useQuery({
     queryKey: ['project', projectId],
@@ -28,8 +32,28 @@ export default function ProjectDetails() {
     enabled: !!projectId,
   });
 
-  if (isLoading) return <div className="p-8 text-center">טוען...</div>;
-  if (!project) return <div className="p-8 text-center">פרויקט לא נמצא</div>;
+  const updateProjectMutation = useMutation({
+    mutationFn: (data) => base44.entities.Project.update(projectId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      toast.success('עודכן בהצלחה');
+    },
+    onError: () => toast.error('שגיאה בעדכון הפרויקט')
+  });
+
+  const handleGeneratePin = () => {
+    const newPin = Math.floor(1000 + Math.random() * 9000).toString();
+    updateProjectMutation.mutate({ gallery_pin: newPin });
+  };
+
+  const handleCopyGalleryLink = () => {
+    const url = `${window.location.origin}/gallery/${projectId}${project.gallery_pin ? `?pin=${project.gallery_pin}` : ''}`;
+    navigator.clipboard.writeText(url);
+    toast.success('קישור לגלריה הועתק');
+  };
+
+  if (isLoading) return <div className="p-8 text-center text-white/50">טוען...</div>;
+  if (!project) return <div className="p-8 text-center text-white/50">פרויקט לא נמצא</div>;
 
   const getStatusBadge = (status) => {
     const statusMap = {
@@ -154,15 +178,51 @@ export default function ProjectDetails() {
           </Link>
           
           <Link to={createPageUrl(`FileStorage?projectId=${project.id}`)} className="block">
-            <Card className="bg-slate-50 border-slate-200 hover:bg-slate-100 transition-colors shadow-sm cursor-pointer">
-              <CardContent className="p-5 flex items-center gap-4 text-slate-700">
-                <div className="p-2 bg-slate-200 rounded-lg">
-                  <Upload className="w-6 h-6 text-slate-800" />
+            <Card className="bg-[#0a0a0a] border-white/10 hover:border-[#FFD700]/30 hover:bg-white/5 transition-all shadow-xl cursor-pointer">
+              <CardContent className="p-5 flex items-center gap-4 text-white">
+                <div className="p-2 bg-white/5 border border-white/10 rounded-lg text-[#FFD700]">
+                  <Upload className="w-6 h-6" />
                 </div>
                 <div className="font-semibold text-lg">ניהול קבצים</div>
               </CardContent>
             </Card>
           </Link>
+
+          {/* Client Gallery Access Card */}
+          <Card className="bg-[#0a0a0a] border-white/10 shadow-xl overflow-hidden rounded-2xl">
+            <CardHeader className="bg-gradient-to-r from-[#FFD700]/10 to-transparent border-b border-white/10 pb-4">
+              <CardTitle className="text-lg font-bold flex items-center gap-2 text-[#FFD700]">
+                <Eye className="w-5 h-5" />
+                גלריית לקוח פרטית
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-5">
+              <div>
+                <label className="text-sm text-white/50 mb-1.5 block">קוד גישה (PIN)</label>
+                <div className="flex gap-2">
+                  <div className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white font-mono text-lg flex items-center">
+                    {project.gallery_pin || 'לא הוגדר'}
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleGeneratePin}
+                    className="border-white/20 hover:bg-white/10 px-3"
+                    title="רענן קוד"
+                  >
+                    <RefreshCw className="w-4 h-4 text-white" />
+                  </Button>
+                </div>
+              </div>
+              <Button 
+                onClick={handleCopyGalleryLink}
+                className="w-full bg-[#FFD700] hover:bg-[#e6c200] text-black font-bold shadow-[0_4px_14px_rgba(255,215,0,0.25)] flex items-center justify-center gap-2"
+              >
+                <LinkIcon className="w-4 h-4" />
+                העתק קישור ללקוח
+              </Button>
+            </CardContent>
+          </Card>
+
         </div>
       </div>
     </div>
