@@ -128,7 +128,7 @@ export default function Quotes() {
                 <div className="flex gap-2">
                   <Button 
                     onClick={() => handleSendWhatsApp(quote)}
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                    className="flex-1 bg-[#FFD700] hover:bg-[#e6c200] text-black font-bold h-11 rounded-xl"
                   >
                     <Send className="w-4 h-4 ml-2" /> שליחה ב-WhatsApp
                   </Button>

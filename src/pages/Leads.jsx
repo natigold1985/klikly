@@ -137,7 +137,7 @@ const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
               
               <Button 
                 onClick={(e) => { e.stopPropagation(); onAction('trigger_airtable_whatsapp', lead); }}
-                className="flex items-center gap-2 bg-[#25D366] hover:bg-[#128C7E] text-white shadow-lg shadow-[#25D366]/20 px-4 py-2 h-10 transition-all duration-300 font-medium rounded-full"
+                className="flex items-center gap-2 bg-[#FFD700] hover:bg-[#e6c200] text-black shadow-lg shadow-[#FFD700]/20 px-6 py-2 h-11 transition-all duration-300 font-bold rounded-xl"
               >
                 <MessageCircle className="w-5 h-5" />
                 <span className="text-sm font-bold tracking-wide">WhatsApp</span>
