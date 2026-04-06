@@ -4,7 +4,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, Image, Video, FileImage, Film, Trash2, Download } from 'lucide-react';
+import { Upload, Image, Video, FileImage, Film, Trash2, Download, MessageSquare, CheckCircle2, Clock } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import FileUploader from '../components/FileUploader';
 import { toast } from 'sonner';
 
@@ -89,6 +90,16 @@ export default function FileStorage() {
       } catch(e) {
         toast.error("שגיאה במחיקת הקובץ");
       }
+    }
+  };
+
+  const updatePhotoStatus = async (id, status) => {
+    try {
+      await base44.entities.Photo.update(id, { editing_status: status });
+      queryClient.invalidateQueries({ queryKey: ['photos'] });
+      toast.success("סטטוס העריכה עודכן");
+    } catch(e) {
+      toast.error("שגיאה בעדכון הסטטוס");
     }
   };
 
@@ -185,7 +196,38 @@ export default function FileStorage() {
                           </>
                         )}
                         
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100 gap-2 z-20">
+                        {/* Client Comment Badge */}
+                        {photo.client_comment && (
+                          <div className="absolute top-2 right-2 bg-black/80 backdrop-blur-md px-2 py-1.5 rounded-lg flex items-start gap-2 z-30 max-w-[90%] border border-[#FFD700]/30 shadow-xl">
+                            <MessageSquare className="w-3.5 h-3.5 text-[#FFD700] shrink-0 mt-0.5" />
+                            <p className="text-[10px] text-white font-medium leading-tight line-clamp-3">
+                              {photo.client_comment}
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-colors duration-200 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 gap-3 z-20">
+                          
+                          {!isClient && photo.is_selected && (
+                            <div className="flex gap-2 mb-2" onClick={e => e.stopPropagation()}>
+                              <button 
+                                onClick={() => updatePhotoStatus(photo.id, 'in_progress')}
+                                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${photo.editing_status === 'in_progress' ? 'bg-blue-500 text-white shadow-lg' : 'bg-white/20 text-white hover:bg-blue-500'}`}
+                              >
+                                <Clock className="w-3.5 h-3.5" />
+                                בטיפול
+                              </button>
+                              <button 
+                                onClick={() => updatePhotoStatus(photo.id, 'finalized')}
+                                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${photo.editing_status === 'finalized' ? 'bg-green-500 text-white shadow-lg' : 'bg-white/20 text-white hover:bg-green-500'}`}
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                ערוך
+                              </button>
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-2">
                           <a 
                             href={photo.file_url} 
                             target="_blank" 
@@ -202,6 +244,7 @@ export default function FileStorage() {
                               <Trash2 className="w-4 h-4" />
                             </button>
                           )}
+                          </div>
                         </div>
                         
                         {/* File Name overlay */}

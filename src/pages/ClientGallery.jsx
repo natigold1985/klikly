@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Lock, CheckCircle2, Loader2, Camera, Download, Send } from 'lucide-react';
+import { Heart, Lock, CheckCircle2, Loader2, Camera, Download, Send, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
 export default function ClientGallery() {
@@ -17,6 +18,7 @@ export default function ClientGallery() {
     const [isSaving, setIsSaving] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [fullscreenImage, setFullscreenImage] = useState(null);
+    const [photoComments, setPhotoComments] = useState({});
 
     // Parse PIN from URL if present
     useEffect(() => {
@@ -44,6 +46,13 @@ export default function ClientGallery() {
                 setPhotos(data.photos || []);
                 const selected = new Set(data.photos.filter(p => p.is_selected).map(p => p.id));
                 setSelectedIds(selected);
+                
+                const initialComments = {};
+                data.photos.forEach(p => {
+                    if (p.client_comment) initialComments[p.id] = p.client_comment;
+                });
+                setPhotoComments(initialComments);
+                
                 setIsAuthenticated(true);
             } else {
                 toast.error(data.error || 'שגיאה בהתחברות');
@@ -74,7 +83,8 @@ export default function ClientGallery() {
                 body: JSON.stringify({ 
                     projectId: id, 
                     pin, 
-                    selectedPhotoIds: Array.from(selectedIds) 
+                    selectedPhotoIds: Array.from(selectedIds),
+                    photoComments
                 })
             });
             const data = await res.json();
@@ -189,6 +199,21 @@ export default function ClientGallery() {
                                     {/* Overlay Gradient */}
                                     <div className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${isSelected ? 'opacity-100 from-black/60' : ''}`} />
                                     
+                                    {/* Status / Comments Badges */}
+                                    <div className="absolute top-3 right-3 flex flex-col gap-2">
+                                        {photo.editing_status === 'in_progress' && (
+                                            <span className="bg-blue-500 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-lg">בטיפול</span>
+                                        )}
+                                        {photo.editing_status === 'finalized' && (
+                                            <span className="bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-lg">ערוך ומוכן</span>
+                                        )}
+                                        {photoComments[photo.id] && (
+                                            <div className="bg-black/60 backdrop-blur-md p-1.5 rounded-full text-[#FFD700]">
+                                                <MessageSquare className="w-3.5 h-3.5" />
+                                            </div>
+                                        )}
+                                    </div>
+
                                     {/* Select Button */}
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); toggleSelection(photo.id); }}
@@ -214,20 +239,49 @@ export default function ClientGallery() {
                         onClick={() => setFullscreenImage(null)}
                     >
                         <button className="absolute top-6 left-6 text-white/50 hover:text-white z-50">✕ סגור</button>
-                        <img 
-                            src={fullscreenImage.url} 
-                            alt="Fullscreen" 
-                            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-                            onClick={(e) => e.stopPropagation()}
-                        />
-                        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4" onClick={(e) => e.stopPropagation()}>
-                            <button 
-                                onClick={() => toggleSelection(fullscreenImage.id)}
-                                className={`flex items-center gap-2 px-6 py-3 rounded-full transition-all active:scale-95 ${selectedIds.has(fullscreenImage.id) ? 'bg-[#FFD700] text-black shadow-[0_0_20px_rgba(255,215,0,0.4)]' : 'bg-white/10 text-white hover:bg-white/20 border border-white/10'}`}
-                            >
-                                <Heart className={`w-5 h-5 ${selectedIds.has(fullscreenImage.id) ? 'fill-black' : ''}`} />
-                                <span className="font-bold">{selectedIds.has(fullscreenImage.id) ? 'נבחר' : 'בחר תמונה'}</span>
-                            </button>
+                        <div className="relative max-w-full max-h-[85vh] flex flex-col md:flex-row items-center justify-center gap-6" onClick={(e) => e.stopPropagation()}>
+                            <img 
+                                src={fullscreenImage.url} 
+                                alt="Fullscreen" 
+                                className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+                            />
+                            
+                            <div className="w-full md:w-80 bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 shadow-[0_10px_40px_rgba(0,0,0,0.8)] flex flex-col gap-4">
+                                <h3 className="text-lg font-bold text-[#FFD700]">פעולות לתמונה</h3>
+                                
+                                {fullscreenImage.editing_status !== 'pending' && (
+                                    <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2 text-sm">
+                                        <div className={`w-2 h-2 rounded-full ${fullscreenImage.editing_status === 'in_progress' ? 'bg-blue-500' : 'bg-green-500'}`} />
+                                        <span className="text-white/70">סטטוס:</span>
+                                        <span className="font-bold text-white">
+                                            {fullscreenImage.editing_status === 'in_progress' ? 'בעבודה אצל הצלם' : 'עריכה הסתיימה'}
+                                        </span>
+                                    </div>
+                                )}
+
+                                <button 
+                                    onClick={() => toggleSelection(fullscreenImage.id)}
+                                    className={`w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl transition-all active:scale-95 border ${selectedIds.has(fullscreenImage.id) ? 'bg-[#FFD700] text-black border-[#FFD700] shadow-[0_0_20px_rgba(255,215,0,0.2)]' : 'bg-white/5 text-white hover:bg-white/10 border-white/10'}`}
+                                >
+                                    <Heart className={`w-5 h-5 ${selectedIds.has(fullscreenImage.id) ? 'fill-black' : ''}`} />
+                                    <span className="font-bold text-lg">{selectedIds.has(fullscreenImage.id) ? 'נבחרה' : 'סמן כמועדפת'}</span>
+                                </button>
+
+                                {selectedIds.has(fullscreenImage.id) && (
+                                    <div className="space-y-2 mt-2">
+                                        <label className="text-sm font-medium text-white/70 flex items-center gap-2">
+                                            <MessageSquare className="w-4 h-4" />
+                                            הערות לעריכה (אופציונלי)
+                                        </label>
+                                        <Textarea 
+                                            placeholder="למשל: אפשר להבהיר קצת? / לחתוך את הרקע"
+                                            value={photoComments[fullscreenImage.id] || ''}
+                                            onChange={(e) => setPhotoComments({ ...photoComments, [fullscreenImage.id]: e.target.value })}
+                                            className="bg-white/5 border-white/10 text-white min-h-[100px] resize-none focus-visible:ring-[#FFD700]"
+                                        />
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </motion.div>
                 )}

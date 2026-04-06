@@ -19,7 +19,9 @@ Deno.serve(async (req) => {
         id: p.id,
         url: p.file_url,
         thumbnail: p.thumbnail_url || p.file_url,
-        is_selected: p.is_selected
+        is_selected: p.is_selected,
+        client_comment: p.client_comment || '',
+        editing_status: p.editing_status || 'pending'
     }));
 
     return Response.json({

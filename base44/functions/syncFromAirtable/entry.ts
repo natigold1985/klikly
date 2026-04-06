@@ -54,10 +54,29 @@ Deno.serve(async (req) => {
                     last_synced_from_airtable: new Date().toISOString()
                 };
                 
+                let projectId = match ? match.id : null;
                 if (match) {
                     await base44.asServiceRole.entities.Project.update(match.id, fields);
                 } else if (fields.client_name && fields.client_email) {
-                    await base44.asServiceRole.entities.Project.create(fields);
+                    const newProject = await base44.asServiceRole.entities.Project.create(fields);
+                    projectId = newProject.id;
+                }
+
+                // If Airtable has a "Photos Status" field, update all selected photos for this project
+                const photosStatus = record.fields["Photos Status"];
+                if (projectId && photosStatus) {
+                    let internalStatus = 'pending';
+                    if (photosStatus === 'In-progress' || photosStatus === 'בטיפול') internalStatus = 'in_progress';
+                    if (photosStatus === 'Finalized' || photosStatus === 'ערוך') internalStatus = 'finalized';
+                    
+                    if (internalStatus !== 'pending') {
+                        const projectPhotos = await base44.asServiceRole.entities.Photo.filter({ project_id: projectId, is_selected: true });
+                        for (const photo of projectPhotos) {
+                            if (photo.editing_status !== internalStatus) {
+                                await base44.asServiceRole.entities.Photo.update(photo.id, { editing_status: internalStatus });
+                            }
+                        }
+                    }
                 }
             }
         }

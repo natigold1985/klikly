@@ -3,7 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.24';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { projectId, pin, selectedPhotoIds } = await req.json();
+    const { projectId, pin, selectedPhotoIds, photoComments } = await req.json();
 
     const project = await base44.asServiceRole.entities.Project.get(projectId);
     
@@ -13,10 +13,22 @@ Deno.serve(async (req) => {
 
     // Update all photos for this project
     const photos = await base44.asServiceRole.entities.Photo.filter({ project_id: projectId });
+    let commentsSummary = [];
+
     for (const photo of photos) {
        const isSelected = selectedPhotoIds.includes(photo.id);
-       if (photo.is_selected !== isSelected) {
-          await base44.asServiceRole.entities.Photo.update(photo.id, { is_selected: isSelected });
+       const comment = photoComments?.[photo.id] || '';
+       
+       let updateData = {};
+       if (photo.is_selected !== isSelected) updateData.is_selected = isSelected;
+       if (photo.client_comment !== comment) updateData.client_comment = comment;
+
+       if (Object.keys(updateData).length > 0) {
+          await base44.asServiceRole.entities.Photo.update(photo.id, updateData);
+       }
+
+       if (comment && isSelected) {
+           commentsSummary.push(`${photo.file_name || photo.id}: ${comment}`);
        }
     }
 
@@ -41,7 +53,8 @@ Deno.serve(async (req) => {
 
             const fields = {
                 "Status": "editing",
-                "Selected Photos Count": selectedPhotoIds.length
+                "Selected Photos Count": selectedPhotoIds.length,
+                "Package Details": commentsSummary.length > 0 ? "הערות לקוח לעריכה:\n" + commentsSummary.join('\n') : undefined
             };
 
             await fetch(url, {

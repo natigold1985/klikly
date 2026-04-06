@@ -1,0 +1,75 @@
+{
+  "name": "Photo",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "type": "string",
+      "description": "ID \u05e9\u05dc \u05d4\u05e4\u05e8\u05d5\u05d9\u05e7\u05d8"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "raw",
+        "edited",
+        "client_upload"
+      ],
+      "description": "\u05e1\u05d5\u05d2 \u05d4\u05ea\u05de\u05d5\u05e0\u05d4 - \u05d2\u05d5\u05dc\u05de\u05d9\u05ea, \u05e2\u05e8\u05d5\u05db\u05d4 \u05d0\u05d5 \u05d4\u05e2\u05dc\u05d0\u05ea \u05dc\u05e7\u05d5\u05d7"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL \u05e9\u05dc \u05d4\u05ea\u05de\u05d5\u05e0\u05d4"
+    },
+    "thumbnail_url": {
+      "type": "string",
+      "description": "URL \u05e9\u05dc \u05ea\u05de\u05d5\u05e0\u05d4 \u05de\u05de\u05d5\u05d6\u05e2\u05e8\u05ea"
+    },
+    "file_name": {
+      "type": "string",
+      "description": "\u05e9\u05dd \u05d4\u05e7\u05d5\u05d1\u05e5"
+    },
+    "file_size": {
+      "type": "number",
+      "description": "\u05d2\u05d5\u05d3\u05dc \u05d4\u05e7\u05d5\u05d1\u05e5 (bytes)"
+    },
+    "is_selected": {
+      "type": "boolean",
+      "default": false,
+      "description": "\u05d4\u05d0\u05dd \u05d4\u05ea\u05de\u05d5\u05e0\u05d4 \u05e0\u05d1\u05d7\u05e8\u05d4 \u05e2\"\u05d9 \u05d4\u05dc\u05e7\u05d5\u05d7"
+    },
+    "client_comment": {
+      "type": "string",
+      "description": "\u05d4\u05e2\u05e8\u05ea \u05dc\u05e7\u05d5\u05d7 \u05dc\u05e2\u05e8\u05d9\u05db\u05d4"
+    },
+    "editing_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "in_progress",
+        "finalized"
+      ],
+      "default": "pending",
+      "description": "\u05e1\u05d8\u05d8\u05d5\u05e1 \u05e2\u05e8\u05d9\u05db\u05d4"
+    },
+    "selected_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u05de\u05ea\u05d9 \u05d4\u05ea\u05de\u05d5\u05e0\u05d4 \u05e0\u05d1\u05d7\u05e8\u05d4"
+    },
+    "order_index": {
+      "type": "number",
+      "description": "\u05de\u05d9\u05e7\u05d5\u05dd \u05d1\u05d2\u05dc\u05e8\u05d9\u05d4"
+    },
+    "drive_file_id": {
+      "type": "string",
+      "description": "ID \u05e9\u05dc \u05d4\u05e7\u05d5\u05d1\u05e5 \u05d1-Drive (\u05d0\u05dd \u05de\u05e9\u05ea\u05de\u05e9\u05d9\u05dd)"
+    },
+    "airtable_record_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "project_id",
+    "type",
+    "file_url"
+  ]
+}
