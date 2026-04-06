@@ -81,9 +81,9 @@ const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
         dragElastic={0.2}
         onDragEnd={handleDragEnd}
         animate={controls}
-        className="bg-card relative h-full z-10"
+        className="bg-[#0a0a0a] relative h-full z-10 rounded-xl border border-slate-800"
       >
-        <Card className="border hover:shadow-xl transition-all duration-300 h-full border-none shadow-none rounded-none">
+        <Card className="hover:border-[#FFD700]/30 transition-all duration-300 h-full border-none shadow-none bg-transparent">
           <CardContent className="p-5">
             <Link to={createPageUrl(`LeadDetails?id=${lead.id}`)} className="block hover:opacity-80">
               <div className="flex items-start justify-between mb-3">
@@ -120,23 +120,27 @@ const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
             </Link>
 
             {/* Quick Actions Row */}
-            <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
-              <a href={`tel:${lead.phone}`} onClick={(e) => { e.stopPropagation(); onAction('log_call', lead); }}>
-                <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full bg-green-50 text-green-600 hover:bg-green-100">
-                  <Phone className="w-5 h-5" />
+            <div className="flex items-center justify-between gap-3 pt-4 border-t border-slate-800">
+              <div className="flex gap-2">
+                <a href={`tel:${lead.phone}`} onClick={(e) => { e.stopPropagation(); onAction('log_call', lead); }}>
+                  <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-[#FFD700]">
+                    <Phone className="w-5 h-5" />
+                  </Button>
+                </a>
+                <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-[#FFD700]" onClick={(e) => { e.stopPropagation(); onAction('log_manual', lead); }}>
+                  <FileText className="w-5 h-5" />
                 </Button>
-              </a>
-              <a href={whatsappLink} target="_blank" rel="noopener noreferrer" onClick={(e) => { e.stopPropagation(); onAction('log_whatsapp', lead); }}>
-                <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100">
-                  <MessageCircle className="w-5 h-5" />
+                <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-[#FFD700]" onClick={(e) => { e.stopPropagation(); onAction('followup', lead); }}>
+                  <Clock className="w-5 h-5" />
                 </Button>
-              </a>
-              <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100" onClick={(e) => { e.stopPropagation(); onAction('log_manual', lead); }}>
-                <FileText className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" className="mr-auto text-xs text-slate-500 hover:text-slate-800" onClick={(e) => { e.stopPropagation(); onAction('followup', lead); }}>
-                <Clock className="w-4 h-4 mr-1" />
-                תזמון
+              </div>
+              
+              <Button 
+                onClick={(e) => { e.stopPropagation(); onAction('trigger_airtable_whatsapp', lead); }}
+                className="flex items-center gap-2 bg-[#25D366] hover:bg-[#128C7E] text-white shadow-lg shadow-[#25D366]/20 px-4 py-2 h-10 transition-all duration-300 font-medium rounded-full"
+              >
+                <MessageCircle className="w-5 h-5" />
+                <span className="text-sm font-bold tracking-wide">WhatsApp</span>
               </Button>
             </div>
           </CardContent>
@@ -228,6 +232,16 @@ export default function Leads() {
       if (confirm('למחוק את הליד?')) {
         deleteLeadMutation.mutate(lead.id);
       }
+    } else if (action === 'trigger_airtable_whatsapp') {
+      toast.loading("מפעיל אוטומציה ב-Airtable...", { id: 'wa-trigger' });
+      base44.functions.invoke('triggerAirtableWhatsApp', { 
+        leadId: lead.id, 
+        templateName: 'Bronze Package'
+      }).then(() => {
+        toast.success("הודעת WhatsApp נשלחה דרך Airtable", { id: 'wa-trigger' });
+      }).catch((e) => {
+        toast.error("שגיאה בהפעלת Airtable: " + e.message, { id: 'wa-trigger' });
+      });
     } else if (action === 'ai_assist') {
       setAiLead(lead);
       setShowAiAssist(true);

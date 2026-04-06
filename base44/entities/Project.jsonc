@@ -1,0 +1,83 @@
+{
+  "name": "Project",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string"
+    },
+    "client_name": {
+      "type": "string"
+    },
+    "client_email": {
+      "type": "string"
+    },
+    "client_phone": {
+      "type": "string"
+    },
+    "shooting_type": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending_payment",
+        "paid",
+        "shooting_scheduled",
+        "shooting_done",
+        "awaiting_selection",
+        "editing",
+        "ready_for_download",
+        "completed"
+      ],
+      "default": "pending_payment"
+    },
+    "shooting_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "shooting_location": {
+      "type": "string"
+    },
+    "package_details": {
+      "type": "string"
+    },
+    "total_price": {
+      "type": "number"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "partial",
+        "paid"
+      ],
+      "default": "pending"
+    },
+    "client_access_token": {
+      "type": "string"
+    },
+    "raw_photos_count": {
+      "type": "number"
+    },
+    "selected_photos_count": {
+      "type": "number"
+    },
+    "final_photos_count": {
+      "type": "number"
+    },
+    "drive_folder_url": {
+      "type": "string"
+    },
+    "airtable_record_id": {
+      "type": "string"
+    },
+    "last_synced_from_airtable": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "client_name",
+    "client_email"
+  ]
+}

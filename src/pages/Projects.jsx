@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { 
   Plus, Search, Briefcase, Upload, Download, Eye, CheckCircle2, 
-  Smartphone, ExternalLink, RefreshCw, ListTodo
+  Smartphone, ExternalLink, RefreshCw, ListTodo, MessageCircle
 } from 'lucide-react';
 import DeliveryLinkButton from '../components/DeliveryLinkButton';
 import FileUploader from '../components/FileUploader';
@@ -239,25 +239,42 @@ export default function Projects() {
                 )}
 
                 {!isClient && (
-                  <div className="pt-3 mt-2 border-t border-slate-200 flex items-center gap-2 flex-wrap">
-                    <DeliveryLinkButton project={project} />
-                    <Link to={createPageUrl(`ProjectTasks?projectId=${project.id}`)} onClick={(e) => e.stopPropagation()}>
-                      <Button variant="secondary" size="sm" className="text-xs gap-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100">
-                        <ListTodo className="w-3 h-3" />
-                        משימות
+                  <div className="pt-4 mt-3 border-t border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex gap-2">
+                      <DeliveryLinkButton project={project} />
+                      <Link to={createPageUrl(`ProjectTasks?projectId=${project.id}`)} onClick={(e) => e.stopPropagation()}>
+                        <Button variant="secondary" size="sm" className="text-xs gap-1 bg-slate-800 text-slate-300 hover:bg-slate-700 border-none">
+                          <ListTodo className="w-3 h-3" />
+                          משימות
+                        </Button>
+                      </Link>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="text-xs gap-1 border-dashed border-slate-700 bg-transparent text-slate-400 hover:text-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setUploadProject(project);
+                        }}
+                      >
+                        <Smartphone className="w-3 h-3" />
+                        מהנייד
                       </Button>
-                    </Link>
+                    </div>
                     <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="text-xs gap-1 border-dashed mr-auto"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setUploadProject(project);
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        toast.loading("מפעיל אוטומציה ב-Airtable...", { id: 'wa-trigger-proj' });
+                        base44.functions.invoke('triggerAirtableWhatsApp', { 
+                          projectId: project.id, 
+                          templateName: 'Project Update'
+                        }).then(() => toast.success("הודעת WhatsApp נשלחה דרך Airtable", { id: 'wa-trigger-proj' }))
+                          .catch((err) => toast.error("שגיאה: " + err.message, { id: 'wa-trigger-proj' }));
                       }}
+                      className="flex items-center gap-1.5 bg-[#25D366] hover:bg-[#128C7E] text-white shadow-lg shadow-[#25D366]/20 px-3 py-1.5 h-8 transition-all duration-300 font-medium rounded-full text-xs"
                     >
-                      <Smartphone className="w-3 h-3" />
-                      מהנייד
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      <span className="font-bold">Airtable WA</span>
                     </Button>
                   </div>
                 )}
