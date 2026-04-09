@@ -145,7 +145,7 @@ export default function Settings() {
   if (isLoading) {
     return (
       <div className="text-center py-12">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#FFD700]"></div>
       </div>
     );
   }
@@ -245,9 +245,9 @@ export default function Settings() {
           </p>
           
           {checkingCal ? (
-            <div className="text-sm text-slate-500">בודק חיבור ליומן...</div>
+            <div className="text-sm text-slate-500 text-center">בודק חיבור ליומן...</div>
           ) : calConnected ? (
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button 
                 variant="destructive" 
                 onClick={handleDisconnectCal}
@@ -258,19 +258,21 @@ export default function Settings() {
               <Button 
                 onClick={handleSyncCal}
                 disabled={syncingCal}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-[#FFD700] hover:bg-[#e6c200] text-black font-bold px-6"
               >
                 {syncingCal ? 'מסנכרן...' : 'סנכרן נתונים עכשיו'}
               </Button>
             </div>
           ) : (
-            <Button 
-              onClick={handleConnectCal}
-              className="bg-[#FFD700] hover:bg-[#e6c200] text-black font-bold shadow-[0_0_15px_rgba(255,215,0,0.3)] transition-all duration-300 hover:-translate-y-1 font-sans gap-3"
-            >
-              <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg" alt="Google Calendar" className="w-5 h-5 bg-white rounded-sm p-0.5" />
-              התחבר ליומן גוגל
-            </Button>
+            <div className="flex justify-center mt-4">
+              <Button 
+                onClick={handleConnectCal}
+                className="bg-[#FFD700] hover:bg-[#e6c200] text-black font-bold shadow-[0_0_15px_rgba(255,215,0,0.3)] transition-all duration-300 hover:-translate-y-1 font-sans gap-3 px-8 h-12 rounded-xl"
+              >
+                <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg" alt="Google Calendar" className="w-5 h-5 bg-white rounded-sm p-0.5" />
+                התחבר ליומן גוגל
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -347,7 +349,7 @@ export default function Settings() {
               value={formData.quote_footer_text || ''}
               onChange={(e) => setFormData({ ...formData, quote_footer_text: e.target.value })}
               placeholder="תודה שבחרתם בנו! נשמח לצלם את האירוע המיוחד שלכם"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
               rows="2"
             />
           </div>
@@ -358,7 +360,7 @@ export default function Settings() {
               value={formData.default_terms || ''}
               onChange={(e) => setFormData({ ...formData, default_terms: e.target.value })}
               placeholder="תנאי התשלום וההתקשרות הסטנדרטיים..."
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
               rows="4"
             />
           </div>

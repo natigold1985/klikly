@@ -51,27 +51,34 @@ export default function Dashboard() {
   };
 
   const { data: leads = [] } = useQuery({
-    queryKey: ['leads', user?.email],
-    queryFn: () => base44.entities.Lead.filter({ created_by: user.email }, '-created_date', 100),
+    queryKey: ['leads'],
+    queryFn: () => base44.entities.Lead.filter({}, '-created_date', 100),
     enabled: !!user && !isClient,
   });
 
   const { data: projects = [] } = useQuery({
-    queryKey: ['projects', user?.email],
+    queryKey: ['projects'],
     queryFn: () => {
       if (isClient) {
         return base44.entities.Project.filter({ client_email: user.email }, '-created_date', 100);
       }
-      return base44.entities.Project.filter({ created_by: user.email }, '-created_date', 100);
+      return base44.entities.Project.filter({}, '-created_date', 100);
     },
     enabled: !!user,
   });
 
   const { data: tasks = [] } = useQuery({
-    queryKey: ['tasks', user?.email],
-    queryFn: () => base44.entities.Task.filter({ status: 'pending', created_by: user.email }, '-due_date', 50),
-    enabled: !!user,
+    queryKey: ['tasks'],
+    queryFn: () => base44.entities.Task.filter({ status: 'pending' }, '-due_date', 50),
+    enabled: !!user && !isClient,
   });
+
+  // Redirect clients to File Storage
+  useEffect(() => {
+    if (isClient) {
+      window.location.href = '/FileStorage';
+    }
+  }, [isClient]);
 
   const today = new Date().toISOString().split('T')[0];
   const leadsToday = leads.filter(l => l.created_date && l.created_date.startsWith(today)).length;
@@ -90,7 +97,7 @@ export default function Dashboard() {
       title: 'אחוז המרה',
       value: `${conversionRate}%`,
       icon: DollarSign,
-      color: 'from-purple-500 to-pink-500',
+      color: 'from-[#FFD700] to-[#C5A028]',
       link: 'Projects'
     },
     {
@@ -115,7 +122,7 @@ export default function Dashboard() {
       title: 'הפרויקטים שלי',
       value: projects.length,
       icon: Briefcase,
-      color: 'from-purple-500 to-pink-500',
+      color: 'from-[#FFD700] to-[#C5A028]',
       link: 'Projects'
     },
     {

@@ -32,6 +32,9 @@ export default function Tasks() {
 
   const queryClient = useQueryClient();
 
+  const { data: user } = useQuery({ queryKey: ['currentUser'], queryFn: () => base44.auth.me() });
+  const isAdmin = user?.role === 'admin' || user?.email === 'natigold04@gmail.com';
+
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['tasks'],
     queryFn: () => base44.entities.Task.list('-due_date', 200),
@@ -132,7 +135,7 @@ export default function Tasks() {
                   value={newTask.description}
                   onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
                   placeholder="פרטים נוספים..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
                   rows="3"
                 />
               </div>
@@ -228,6 +231,7 @@ export default function Tasks() {
         </Card>
 
         {/* Completed Tasks */}
+        {isAdmin && (
         <Card className="bg-white border-[#FFD700] shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center gap-3 mb-4">
@@ -266,6 +270,7 @@ export default function Tasks() {
             </div>
           </CardContent>
         </Card>
+        )}
       </div>
     </div>
   );

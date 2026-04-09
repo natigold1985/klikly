@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { FileText, Send, Plus, Search } from 'lucide-react';
+import { FileText, Send, Plus, Search, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,9 +29,17 @@ export default function Quotes() {
   const queryClient = useQueryClient();
 
   const { data: quotes = [], isLoading } = useQuery({
-    queryKey: ['quotes', user?.email],
-    queryFn: () => base44.entities.Quote.filter({ created_by: user.email }, '-created_date', 100),
+    queryKey: ['quotes'],
+    queryFn: () => base44.entities.Quote.filter({}, '-created_date', 100),
     enabled: !!user,
+  });
+
+  const deleteQuoteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Quote.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quotes'] });
+      toast.success('הצעת המחיר נמחקה');
+    },
   });
 
   const createQuoteMutation = useMutation({
@@ -73,6 +81,11 @@ export default function Quotes() {
           <h1 className="text-3xl font-bold text-[#FFD700]">הצעות מחיר</h1>
           <p className="text-slate-400 mt-1">נהל ושלח הצעות מחיר מוכנות מראש</p>
         </div>
+      </div>
+
+      {/* Airtable Embed */}
+      <div className="mb-8 rounded-xl overflow-hidden border border-[#FFD700]/30 shadow-[0_0_15px_rgba(255,215,0,0.15)] w-full">
+        <iframe className="airtable-embed" src="https://airtable.com/embed/apptJ04lwVnSX7EpK/shrKf78IFWrLEYVwR" frameBorder="0" width="100%" height="533" style={{ background: 'transparent', border: 'none' }}></iframe>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
@@ -118,9 +131,14 @@ export default function Quotes() {
                     <h3 className="font-bold text-white">{quote.client_name}</h3>
                     <p className="text-sm text-slate-400">{quote.package_name}</p>
                   </div>
-                  <Badge variant={quote.status === 'sent' ? 'default' : 'secondary'} className={quote.status === 'sent' ? 'bg-green-500/20 text-green-400 border-none' : 'bg-slate-800 text-slate-300 border-none'}>
-                    {quote.status === 'sent' ? 'נשלח' : 'טיוטה'}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={quote.status === 'sent' ? 'default' : 'secondary'} className={quote.status === 'sent' ? 'bg-green-500/20 text-green-400 border-none' : 'bg-slate-800 text-slate-300 border-none'}>
+                      {quote.status === 'sent' ? 'נשלח' : 'טיוטה'}
+                    </Badge>
+                    <Button variant="ghost" size="icon" onClick={() => deleteQuoteMutation.mutate(quote.id)} className="h-8 w-8 text-[#FFD700] hover:bg-[#FFD700]/20 hover:text-[#FFD700] -mt-1 -mr-1">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
                 <div className="mb-4">
                   <span className="text-2xl font-bold text-[#FFD700]">₪{quote.total_price}</span>

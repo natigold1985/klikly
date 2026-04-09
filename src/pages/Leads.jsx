@@ -81,7 +81,7 @@ const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
         dragElastic={0.2}
         onDragEnd={handleDragEnd}
         animate={controls}
-        className="bg-black relative h-full z-10 rounded-xl border border-[#FFD700] shadow-[0_0_15px_rgba(255,215,0,0.15)]"
+        className="bg-black relative h-full z-10 rounded-xl border border-[#FFD700] shadow-[0_0_15px_rgba(255,215,0,0.15)] w-full max-w-full box-border"
       >
         <Card className="hover:border-[#FFD700]/50 transition-all duration-300 h-full border-none shadow-none bg-transparent">
           <CardContent className="p-5">
@@ -95,7 +95,12 @@ const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
                     <p className="text-xs text-slate-400">{lead.shooting_type}</p>
                   )}
                 </div>
-                {getStatusBadge(lead.status)}
+                <div className="flex items-center gap-2">
+                  {getStatusBadge(lead.status)}
+                  <Button variant="ghost" size="icon" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAction('delete', lead); }} className="h-8 w-8 text-[#FFD700] hover:bg-[#FFD700]/20 hover:text-[#FFD700]">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-3 mb-5">
@@ -196,8 +201,8 @@ export default function Leads() {
   });
 
   const { data: leads = [], isLoading } = useQuery({
-    queryKey: ['leads', user?.email],
-    queryFn: () => base44.entities.Lead.filter({ created_by: user.email }, '-created_date', 200),
+    queryKey: ['leads'],
+    queryFn: () => base44.entities.Lead.filter({}, '-created_date', 200),
     enabled: !!user,
   });
 
@@ -442,7 +447,7 @@ export default function Leads() {
                   value={newLead.notes}
                   onChange={(e) => setNewLead({ ...newLead, notes: e.target.value })}
                   placeholder="הערות נוספות..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
                   rows="3"
                 />
               </div>
@@ -511,7 +516,7 @@ export default function Leads() {
             />
             <Button 
               onClick={handleSaveFollowUp} 
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+              className="w-full bg-[#FFD700] hover:bg-[#e6c200] text-black font-bold"
               disabled={!followUpDate}
             >
               שמור תזכורת
@@ -519,6 +524,16 @@ export default function Leads() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Airtable Embed */}
+      <div className="mb-8 rounded-xl overflow-hidden border border-[#FFD700]/30 shadow-[0_0_15px_rgba(255,215,0,0.15)] w-full">
+        <iframe className="airtable-embed" src="https://airtable.com/embed/apptJ04lwVnSX7EpK/shrKf78IFWrLEYVwR" frameBorder="0" width="100%" height="533" style={{ background: 'transparent', border: 'none' }}></iframe>
+      </div>
+
+      {/* Airtable Embed */}
+      <div className="mb-8 rounded-xl overflow-hidden border border-[#FFD700]/30 shadow-[0_0_15px_rgba(255,215,0,0.15)] w-full">
+        <iframe className="airtable-embed" src="https://airtable.com/embed/apptJ04lwVnSX7EpK/shrKf78IFWrLEYVwR" frameBorder="0" width="100%" height="533" style={{ background: 'transparent', border: 'none' }}></iframe>
+      </div>
 
       {/* Filters */}
       <Card className="border shadow-lg">
@@ -569,7 +584,7 @@ export default function Leads() {
       {/* Leads Grid */}
       {isLoading ? (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#FFD700]"></div>
         </div>
       ) : filteredLeads.length === 0 ? (
         <Card className="border shadow-lg">

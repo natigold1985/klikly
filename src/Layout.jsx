@@ -41,10 +41,7 @@ export default function Layout({ children, currentPageName }) {
   // Desktop Sidebar Items
   const sidebarNavigation = isClient
     ? [
-        { name: 'לוח ניהול', icon: LayoutDashboard, page: 'Dashboard' },
-        { name: 'הפרויקטים שלי', icon: Briefcase, page: 'Projects' },
         { name: 'קבצים להורדה', icon: Folder, page: 'FileStorage' },
-        { name: 'משימות', icon: CheckCircle2, page: 'Tasks' },
       ]
     : [
         { name: 'לוח ניהול', icon: LayoutDashboard, page: 'Dashboard' },
@@ -60,10 +57,7 @@ export default function Layout({ children, currentPageName }) {
   // Mobile Bottom Navigation Items (Fixed as requested: Dashboard, Leads, Projects, Settings)
   const mobileNavItems = isClient
     ? [
-        { name: 'לוח', icon: LayoutDashboard, page: 'Dashboard' },
-        { name: 'פרויקטים', icon: Briefcase, page: 'Projects' },
         { name: 'קבצים', icon: Folder, page: 'FileStorage' },
-        { name: 'משימות', icon: CheckCircle2, page: 'Tasks' },
       ]
     : [
         { name: 'לוח', icon: LayoutDashboard, page: 'Dashboard' },
@@ -74,10 +68,13 @@ export default function Layout({ children, currentPageName }) {
 
   // Pages that should render without any nav
   const noLayoutPages = ['DownloadPage', 'QuoteView'];
-  // Force Light Mode Theme for Main App
+  
   useEffect(() => {
     document.documentElement.classList.remove('dark');
-  }, []);
+    if (isClient && !['FileStorage', 'DownloadPage', 'QuoteView'].includes(pageName)) {
+      window.location.href = createPageUrl('FileStorage');
+    }
+  }, [isClient, pageName]);
 
   if (noLayoutPages.includes(pageName)) {
     return children;

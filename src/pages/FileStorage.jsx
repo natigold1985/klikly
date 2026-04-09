@@ -239,7 +239,7 @@ export default function FileStorage() {
                           {!isClient && (
                             <button 
                               onClick={() => deletePhoto(photo.id)}
-                              className="w-8 h-8 rounded-full bg-red-500/80 hover:bg-red-500 text-white flex items-center justify-center backdrop-blur-sm transition-all"
+                              className="w-8 h-8 rounded-full bg-[#FFD700]/80 hover:bg-[#FFD700] text-black flex items-center justify-center backdrop-blur-sm transition-all"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
