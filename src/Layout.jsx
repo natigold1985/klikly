@@ -96,10 +96,10 @@ export default function Layout({ children, currentPageName }) {
         
         {/* Central Logo / Title */}
         <div className="flex items-center gap-3">
-          <Camera className="w-6 h-6 text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]" />
           <span className="text-xl font-extrabold tracking-wider text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]">
             {settings?.business_name || 'KLIKLY'}
           </span>
+          <Camera className="w-6 h-6 text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]" />
         </div>
 
         {/* Placeholder for right side balance or menu trigger if needed */}
@@ -109,11 +109,11 @@ export default function Layout({ children, currentPageName }) {
       {/* ── Desktop Sidebar (Hidden on Mobile) ── */}
       <aside className="hidden md:flex flex-col w-72 bg-black text-white flex-shrink-0 h-full border-l border-white/5 transition-all duration-300">
         {/* Logo */}
-        <div className="h-20 flex items-center gap-3 px-8 border-b border-white/10 bg-black">
-          <Camera className="w-8 h-8 text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]" />
+        <div className="h-20 flex items-center justify-end gap-3 px-8 border-b border-white/10 bg-black">
           <span className="text-2xl font-bold tracking-wider text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]">
             {settings?.business_name || 'Klikly'}
           </span>
+          <Camera className="w-8 h-8 text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]" />
         </div>
 
         {/* Nav Links */}

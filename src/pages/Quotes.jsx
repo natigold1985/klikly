@@ -83,10 +83,7 @@ export default function Quotes() {
         </div>
       </div>
 
-      {/* Airtable Embed */}
-      <div className="mb-8 rounded-xl overflow-hidden border border-[#FFD700]/30 shadow-[0_0_15px_rgba(255,215,0,0.15)] w-full">
-        <iframe className="airtable-embed" src="https://airtable.com/embed/apptJ04lwVnSX7EpK/shrKf78IFWrLEYVwR" frameBorder="0" width="100%" height="533" style={{ background: 'transparent', border: 'none' }}></iframe>
-      </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         {TEMPLATES.map(template => (

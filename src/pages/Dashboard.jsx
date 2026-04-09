@@ -193,22 +193,33 @@ export default function Dashboard() {
 
       <div className="space-y-6 md:space-y-8">
         {/* Urgent Attention Alert */}
-      {urgentLeads.length > 0 && !isClient && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between animate-pulse">
+      {urgentLeads.length > 0 && !isClient && (() => {
+        const oldestLead = [...urgentLeads].sort((a,b) => new Date(a.created_date) - new Date(b.created_date))[0];
+        return (
+        <div className="bg-[#1a1a1a] border border-[#FFD700]/30 shadow-[0_0_15px_rgba(255,215,0,0.15)] rounded-xl p-4 flex items-center justify-between animate-pulse">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+            <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center text-red-500">
               <AlertCircle className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-bold text-red-800">דורש טיפול דחוף</h3>
-              <p className="text-sm text-red-600">{urgentLeads.length} לידים חדשים ממתינים מעל 24 שעות</p>
+              <h3 className="font-bold text-[#FFD700]">דורש טיפול דחוף</h3>
+              <p className="text-sm text-slate-300">{urgentLeads.length} לידים חדשים ממתינים מעל 24 שעות</p>
             </div>
           </div>
-          <Link to={createPageUrl('Leads')}>
-            <Button variant="destructive" size="sm">טפל עכשיו</Button>
-          </Link>
+          <div className="flex gap-2">
+            <a 
+              href={`https://wa.me/${oldestLead.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`היי ${oldestLead.name}, חזרתי אליך בנוגע לפנייה שלך...`)}`}
+              target="_blank" rel="noopener noreferrer"
+            >
+              <Button className="bg-[#25D366] text-white hover:bg-[#128C7E] font-bold" size="sm">WhatsApp</Button>
+            </a>
+            <Link to={createPageUrl(`LeadDetails?id=${oldestLead.id}`)}>
+              <Button className="bg-[#FFD700] text-black hover:bg-[#e6c200] font-bold" size="sm">טפל עכשיו</Button>
+            </Link>
+          </div>
         </div>
-      )}
+        );
+      })()}
       {/* Header */}
       <div className="mb-6 mt-4">
         <h1 className="text-3xl md:text-5xl font-extrabold text-[#FFD700] mb-2 truncate leading-normal py-1 animate-glow">

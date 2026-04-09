@@ -525,15 +525,7 @@ export default function Leads() {
         </DialogContent>
       </Dialog>
 
-      {/* Airtable Embed */}
-      <div className="mb-8 rounded-xl overflow-hidden border border-[#FFD700]/30 shadow-[0_0_15px_rgba(255,215,0,0.15)] w-full">
-        <iframe className="airtable-embed" src="https://airtable.com/embed/apptJ04lwVnSX7EpK/shrKf78IFWrLEYVwR" frameBorder="0" width="100%" height="533" style={{ background: 'transparent', border: 'none' }}></iframe>
-      </div>
 
-      {/* Airtable Embed */}
-      <div className="mb-8 rounded-xl overflow-hidden border border-[#FFD700]/30 shadow-[0_0_15px_rgba(255,215,0,0.15)] w-full">
-        <iframe className="airtable-embed" src="https://airtable.com/embed/apptJ04lwVnSX7EpK/shrKf78IFWrLEYVwR" frameBorder="0" width="100%" height="533" style={{ background: 'transparent', border: 'none' }}></iframe>
-      </div>
 
       {/* Filters */}
       <Card className="border shadow-lg">
