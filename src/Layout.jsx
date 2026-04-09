@@ -74,9 +74,9 @@ export default function Layout({ children, currentPageName }) {
 
   // Pages that should render without any nav
   const noLayoutPages = ['DownloadPage', 'QuoteView'];
-  // Force Deep Dark Mode Theme
+  // Force Light Mode Theme for Main App
   useEffect(() => {
-    document.documentElement.classList.add('dark');
+    document.documentElement.classList.remove('dark');
   }, []);
 
   if (noLayoutPages.includes(pageName)) {
@@ -128,7 +128,7 @@ export default function Layout({ children, currentPageName }) {
               <Link
                 key={item.name}
                 to={createPageUrl(item.page)}
-                className={`flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 group ${
+                className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group ${
                   isActive
                     ? 'bg-gradient-to-r from-[#D4AF37] to-[#C5A028] text-black shadow-lg shadow-yellow-900/20 font-bold'
                     : 'text-white/70 hover:bg-white/10 hover:text-white'
@@ -144,7 +144,7 @@ export default function Layout({ children, currentPageName }) {
         {/* User Footer */}
         {user && (
           <div className="p-6 border-t border-white/10 bg-[#050505]">
-            <div className="flex items-center gap-4 p-2 rounded-lg bg-white/5 border border-white/5">
+            <div className="flex items-center gap-3 p-2 rounded-lg bg-white/5 border border-white/5">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#b38f2d] flex items-center justify-center text-white font-bold text-sm shadow-md">
                 {user.full_name?.[0] || '?'}
               </div>
@@ -158,9 +158,9 @@ export default function Layout({ children, currentPageName }) {
       </aside>
 
       {/* ── Main Content ── */}
-      <div className="flex-1 flex flex-col min-w-0 h-full relative bg-black">
+      <div className="flex-1 flex flex-col min-w-0 h-full relative bg-white text-black">
         {/* Scrollable Content Area */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden pt-20 md:pt-0 pb-24 md:pb-0 px-4 md:px-8 bg-black">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden pt-20 md:pt-0 pb-24 md:pb-0 px-4 md:px-8 bg-white text-black">
           <div className="max-w-6xl mx-auto w-full py-6">
             {children}
           </div>

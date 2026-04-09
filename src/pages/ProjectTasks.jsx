@@ -155,8 +155,8 @@ export default function ProjectTasks() {
               onClick={() => setActiveStage(stage.id)}
               className={`p-4 rounded-xl border text-right transition-all flex flex-col gap-3 relative overflow-hidden ${
                 isActive 
-                  ? 'bg-white border-indigo-500 shadow-md ring-1 ring-indigo-500' 
-                  : 'bg-white/60 border-slate-200 hover:bg-white'
+                  ? 'bg-white border-[#FFD700] shadow-md ring-1 ring-[#FFD700]' 
+                  : 'bg-white border-slate-200 hover:border-[#FFD700]/50'
               }`}
             >
               <div className={`w-8 h-8 rounded-lg ${stage.bg} flex items-center justify-center ${stage.color}`}>
@@ -176,7 +176,7 @@ export default function ProjectTasks() {
         })}
       </div>
 
-      <Card className="bg-white/80 border-slate-200 shadow-sm mt-6">
+      <Card className="bg-white border-[#FFD700] shadow-sm mt-6">
         <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-slate-100">
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-lg ${STAGES.find(s=>s.id === activeStage)?.bg}`}>
@@ -184,8 +184,8 @@ export default function ProjectTasks() {
             </div>
             <CardTitle className="text-lg">{STAGES.find(s=>s.id === activeStage)?.label}</CardTitle>
           </div>
-          <Button onClick={() => setShowNewTaskDialog(true)} size="sm" className="bg-indigo-600 hover:bg-indigo-700">
-            <Plus className="w-4 h-4 mr-1" />
+          <Button onClick={() => setShowNewTaskDialog(true)} size="sm" className="bg-[#FFD700] hover:bg-[#e6c200] text-black font-bold gap-3">
+            <Plus className="w-4 h-4" />
             משימה חדשה
           </Button>
         </CardHeader>
@@ -197,7 +197,7 @@ export default function ProjectTasks() {
               <span>{progress}%</span>
             </div>
             <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-              <div className="bg-indigo-500 h-full rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
+              <div className="bg-[#FFD700] h-full rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
             </div>
           </div>
 
@@ -209,7 +209,7 @@ export default function ProjectTasks() {
               </div>
             ) : (
               currentTasks.map(task => (
-                <div key={task.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl border transition-all gap-3 ${task.status === 'completed' ? 'bg-slate-50 border-slate-200 opacity-75' : 'bg-white border-slate-200 shadow-sm hover:border-indigo-300 hover:shadow-md'}`}>
+                <div key={task.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl border transition-all gap-3 ${task.status === 'completed' ? 'bg-slate-50 border-[#FFD700] opacity-75' : 'bg-white border-[#FFD700] shadow-sm hover:shadow-md'}`}>
                   <div className="flex items-start gap-3 flex-1 cursor-pointer" onClick={() => toggleTaskStatus(task)}>
                     <button className="mt-0.5 shrink-0 focus:outline-none">
                       {task.status === 'completed' ? (
@@ -261,7 +261,7 @@ export default function ProjectTasks() {
                 <input 
                   type="checkbox" 
                   id="reminder" 
-                  className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                  className="w-4 h-4 text-[#FFD700] rounded border-slate-300 focus:ring-[#FFD700]"
                   checked={newTask.withReminder}
                   onChange={(e) => setNewTask({...newTask, withReminder: e.target.checked})}
                 />
@@ -284,7 +284,7 @@ export default function ProjectTasks() {
               )}
             </div>
 
-            <Button onClick={handleCreateTask} className="w-full mt-2 h-11 text-base font-medium" disabled={!newTask.title}>
+            <Button onClick={handleCreateTask} className="w-full mt-2 h-11 text-base bg-[#FFD700] hover:bg-[#e6c200] text-black font-bold gap-3" disabled={!newTask.title}>
               שמור משימה
             </Button>
           </div>

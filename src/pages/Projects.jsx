@@ -115,10 +115,10 @@ export default function Projects() {
   };
 
   const getStatusIcon = (status) => {
-    if (status === 'awaiting_selection') return <Eye className="w-5 h-5 text-purple-500" />;
-    if (status === 'ready_for_download') return <Download className="w-5 h-5 text-cyan-500" />;
+    if (status === 'awaiting_selection') return <Eye className="w-5 h-5 text-[#FFD700]" />;
+    if (status === 'ready_for_download') return <Download className="w-5 h-5 text-[#FFD700]" />;
     if (status === 'completed') return <CheckCircle2 className="w-5 h-5 text-green-500" />;
-    return <Briefcase className="w-5 h-5 text-indigo-500" />;
+    return <Briefcase className="w-5 h-5 text-[#FFD700]" />;
   };
 
   return (
@@ -126,7 +126,7 @@ export default function Projects() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-extrabold text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.4)] tracking-wider">
             פרויקטים
           </h1>
           <p className="text-slate-600 mt-1">נהל את כל הפרויקטים הפעילים שלך</p>
@@ -134,7 +134,7 @@ export default function Projects() {
       </div>
 
       {/* Filters */}
-      <Card className="bg-white/60 backdrop-blur-sm border-white/20 shadow-lg">
+      <Card className="bg-white border-[#FFD700] shadow-[0_4px_20px_rgba(0,0,0,0.05)] rounded-2xl">
         <CardContent className="p-4">
           <div className="flex gap-4">
             <div className="flex-1 relative">
@@ -169,10 +169,10 @@ export default function Projects() {
       {/* Projects Grid */}
       {isLoading ? (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#FFD700]"></div>
         </div>
       ) : filteredProjects.length === 0 ? (
-        <Card className="bg-white/60 backdrop-blur-sm border-white/20 shadow-lg">
+        <Card className="bg-white border-[#FFD700] shadow-[0_4px_20px_rgba(0,0,0,0.05)] rounded-2xl">
           <CardContent className="p-12 text-center">
             <Briefcase className="w-16 h-16 mx-auto text-slate-400 mb-4" />
             <p className="text-slate-500">לא נמצאו פרויקטים</p>
@@ -181,16 +181,16 @@ export default function Projects() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProjects.map((project) => (
-            <Card key={project.id} className="bg-white/60 backdrop-blur-sm border-white/20 hover:shadow-xl transition-all duration-300 cursor-pointer group">
+            <Card key={project.id} className="bg-white border-slate-200 hover:border-[#FFD700] hover:shadow-[0_8px_30px_rgba(255,215,0,0.15)] transition-all duration-300 cursor-pointer group rounded-2xl">
               <CardContent className="p-6">
                 <Link to={createPageUrl(`ProjectDetails?id=${project.id}`)} className="block hover:opacity-80">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-lg bg-slate-50 border border-slate-200 text-[#FFD700] flex items-center justify-center group-hover:bg-[#FFD700]/10 group-hover:border-[#FFD700] transition-colors">
                         {getStatusIcon(project.status)}
                       </div>
                       <div>
-                        <h3 className="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
+                        <h3 className="font-bold text-slate-800 group-hover:text-[#C5A028] transition-colors">
                           {project.client_name}
                         </h3>
                         {project.shooting_type && (
@@ -208,7 +208,7 @@ export default function Projects() {
                       </div>
                     )}
                     {project.total_price && (
-                      <div className="text-sm font-medium text-indigo-600">
+                      <div className="text-sm font-medium text-[#C5A028]">
                         ₪{project.total_price.toLocaleString()}
                       </div>
                     )}

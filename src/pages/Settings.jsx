@@ -154,7 +154,7 @@ export default function Settings() {
     <div className="space-y-6 max-w-4xl">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+        <h1 className="text-3xl font-extrabold text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.4)] tracking-wider">
           הגדרות
         </h1>
         <p className="text-slate-600 mt-1">נהל את פרטי העסק והמיתוג שלך</p>
@@ -163,8 +163,8 @@ export default function Settings() {
       {/* Branding Section */}
       <Card className="bg-white/60 backdrop-blur-sm border-white/20 shadow-lg">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Camera className="w-5 h-5 text-indigo-500" />
+          <CardTitle className="flex items-center gap-3">
+            <Camera className="w-5 h-5 text-[#FFD700]" />
             מיתוג ולוגו
           </CardTitle>
         </CardHeader>
@@ -234,8 +234,8 @@ export default function Settings() {
       {/* Google Calendar Integrations */}
       <Card className="bg-white/60 backdrop-blur-sm border-white/20 shadow-lg">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-blue-500" />
+          <CardTitle className="flex items-center gap-3">
+            <Calendar className="w-5 h-5 text-[#FFD700]" />
             חיבור יומן גוגל (Google Calendar)
           </CardTitle>
         </CardHeader>
@@ -266,10 +266,10 @@ export default function Settings() {
           ) : (
             <Button 
               onClick={handleConnectCal}
-              className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm"
+              className="bg-[#FFD700] hover:bg-[#e6c200] text-black font-bold shadow-[0_0_15px_rgba(255,215,0,0.3)] transition-all duration-300 hover:-translate-y-1 font-sans gap-3"
             >
-              <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg" alt="Google Calendar" className="w-4 h-4 ml-2" />
-              התחבר עם Google
+              <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg" alt="Google Calendar" className="w-5 h-5 bg-white rounded-sm p-0.5" />
+              התחבר ליומן גוגל
             </Button>
           )}
         </CardContent>
@@ -278,8 +278,8 @@ export default function Settings() {
       {/* Business Information */}
       <Card className="bg-white/60 backdrop-blur-sm border-white/20 shadow-lg">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-purple-500" />
+          <CardTitle className="flex items-center gap-3">
+            <Building2 className="w-5 h-5 text-[#FFD700]" />
             פרטי עסק
           </CardTitle>
         </CardHeader>
@@ -369,10 +369,10 @@ export default function Settings() {
       <div className="flex justify-end">
         <Button
           onClick={handleSave}
-          className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-lg px-8"
+          className="bg-[#FFD700] hover:bg-[#e6c200] text-black font-bold shadow-[0_0_15px_rgba(255,215,0,0.3)] transition-all hover:-translate-y-0.5 px-8 gap-3"
           disabled={!formData.business_name}
         >
-          <Save className="w-5 h-5 ml-2" />
+          <Save className="w-5 h-5" />
           שמור הגדרות
         </Button>
       </div>
