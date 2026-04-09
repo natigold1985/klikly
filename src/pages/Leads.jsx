@@ -81,38 +81,52 @@ const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
         dragElastic={0.2}
         onDragEnd={handleDragEnd}
         animate={controls}
-        className="bg-[#0a0a0a] relative h-full z-10 rounded-xl border border-slate-800"
+        className="bg-black relative h-full z-10 rounded-xl border border-[#FFD700] shadow-[0_0_15px_rgba(255,215,0,0.15)]"
       >
-        <Card className="hover:border-[#FFD700]/30 transition-all duration-300 h-full border-none shadow-none bg-transparent">
+        <Card className="hover:border-[#FFD700]/50 transition-all duration-300 h-full border-none shadow-none bg-transparent">
           <CardContent className="p-5">
             <Link to={createPageUrl(`LeadDetails?id=${lead.id}`)} className="block hover:opacity-80">
-              <div className="flex items-start justify-between mb-3">
+              <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-800 hover:underline">
+                  <h3 className="text-lg font-bold text-white hover:underline">
                     {lead.name}
                   </h3>
                   {lead.shooting_type && (
-                    <p className="text-xs text-slate-500">{lead.shooting_type}</p>
+                    <p className="text-xs text-slate-400">{lead.shooting_type}</p>
                   )}
                 </div>
                 {getStatusBadge(lead.status)}
               </div>
 
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <Phone className="w-3.5 h-3.5 text-slate-400" />
+              <div className="space-y-3 mb-5">
+                <div className="flex items-center gap-3 text-sm text-slate-300">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#FFD700] to-[#C5A028] flex items-center justify-center shadow-[0_0_10px_rgba(255,215,0,0.4)] shrink-0">
+                    <Phone className="w-4 h-4 text-white" />
+                  </div>
                   {lead.phone}
                 </div>
-                <div 
-                  className="inline-flex items-center gap-2 text-xs font-medium text-[#FFD700] bg-[#0a0a0a] p-1.5 px-2 rounded cursor-pointer hover:bg-black transition-colors border border-[#FFD700]/20" 
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAction('ai_assist', lead); }}
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  מידע לפי נייד
+                <div className="flex items-center gap-3 text-sm text-slate-300">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#FFD700] to-[#C5A028] flex items-center justify-center shadow-[0_0_10px_rgba(255,215,0,0.4)] shrink-0">
+                    <Search className="w-4 h-4 text-white" />
+                  </div>
+                  {lead.source || 'מקור לא ידוע'}
                 </div>
+                
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="inline-flex items-center gap-3 text-xs font-bold text-[#FFD700] bg-[#1a1a1a] p-2 rounded-lg cursor-pointer hover:bg-[#2a2a2a] transition-colors border border-[#FFD700]/30" 
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAction('ai_assist', lead); }}
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    מידע לפי נייד
+                  </div>
+                </div>
+                
                 {lead.next_follow_up_date && (
-                  <div className="flex items-center gap-2 text-sm text-amber-600 font-medium bg-amber-50 p-1 rounded">
-                    <Clock className="w-3.5 h-3.5" />
+                  <div className="flex items-center gap-3 text-sm text-amber-500 font-bold bg-[#1a1a1a] p-2 rounded-lg border border-amber-500/30">
+                    <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                      <Clock className="w-3.5 h-3.5 text-amber-500" />
+                    </div>
                     פולו-אפ: {new Date(lead.next_follow_up_date).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' })}
                   </div>
                 )}
@@ -120,28 +134,28 @@ const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
             </Link>
 
             {/* Quick Actions Row */}
-            <div className="flex items-center justify-between gap-3 pt-4 border-t border-slate-800">
+            <div className="flex items-center justify-between gap-3 pt-4 border-t border-white/10">
               <div className="flex gap-2">
                 <a href={`tel:${lead.phone}`} onClick={(e) => { e.stopPropagation(); onAction('log_call', lead); }}>
-                  <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-[#FFD700]">
+                  <Button size="icon" variant="ghost" className="h-11 w-11 rounded-xl bg-[#1a1a1a] text-slate-300 hover:bg-[#2a2a2a] hover:text-[#FFD700] border border-white/5">
                     <Phone className="w-5 h-5" />
                   </Button>
                 </a>
-                <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-[#FFD700]" onClick={(e) => { e.stopPropagation(); onAction('log_manual', lead); }}>
+                <Button size="icon" variant="ghost" className="h-11 w-11 rounded-xl bg-[#1a1a1a] text-slate-300 hover:bg-[#2a2a2a] hover:text-[#FFD700] border border-white/5" onClick={(e) => { e.stopPropagation(); onAction('log_manual', lead); }}>
                   <FileText className="w-5 h-5" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-10 w-10 rounded-full bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-[#FFD700]" onClick={(e) => { e.stopPropagation(); onAction('followup', lead); }}>
-                  <Clock className="w-5 h-5" />
                 </Button>
               </div>
               
-              <Button 
-                onClick={(e) => { e.stopPropagation(); onAction('trigger_airtable_whatsapp', lead); }}
-                className="flex items-center gap-2 bg-[#FFD700] hover:bg-[#e6c200] text-black shadow-lg shadow-[#FFD700]/20 px-6 py-2 h-11 transition-all duration-300 font-bold rounded-xl"
+              <a 
+                href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`היי ${lead.name}, זה נתי גולד, קיבלתי את הפנייה שלך...`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => { e.stopPropagation(); onAction('log_whatsapp', lead); }}
+                className="flex items-center gap-3 bg-[#FFD700] hover:bg-[#e6c200] text-black shadow-[0_0_15px_rgba(255,215,0,0.3)] px-6 py-2 h-11 transition-all duration-300 font-bold rounded-xl"
               >
-                <MessageCircle className="w-5 h-5" />
+                <MessageCircle className="w-5 h-5 text-black" />
                 <span className="text-sm font-bold tracking-wide">WhatsApp</span>
-              </Button>
+              </a>
             </div>
           </CardContent>
         </Card>
@@ -306,29 +320,36 @@ export default function Leads() {
 
   const getStatusBadge = (status) => {
     const statusMap = {
-      new: { label: 'חדש', color: 'bg-blue-500' },
-      follow_up: { label: 'מעקב', color: 'bg-yellow-500' },
-      quote_sent: { label: 'הצעה נשלחה', color: 'bg-purple-500' },
-      closed_won: { label: 'נסגר בהצלחה', color: 'bg-green-500' },
-      closed_lost: { label: 'נכשל', color: 'bg-red-500' },
+      new: { label: 'חדש', icon: Search },
+      in_progress: { label: 'בטיפול', icon: Clock },
+      follow_up: { label: 'מעקב', icon: Phone },
+      quote_sent: { label: 'הצעה נשלחה', icon: FileText },
+      closed_won: { label: 'נסגר בהצלחה', icon: CheckSquare },
+      closed_lost: { label: 'נכשל', icon: Trash2 },
     };
-    const badge = statusMap[status] || { label: status, color: 'bg-gray-500' };
+    const badge = statusMap[status] || { label: status, icon: Search };
+    const Icon = badge.icon;
     return (
-      <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium text-white ${badge.color} shadow-sm`}>
-        {badge.label}
-      </span>
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#FFD700] to-[#C5A028] flex items-center justify-center shadow-[0_0_10px_rgba(255,215,0,0.4)] shrink-0">
+          <Icon className="w-4 h-4 text-white" />
+        </div>
+        <span className="text-xs font-bold text-[#FFD700] tracking-wide">
+          {badge.label}
+        </span>
+      </div>
     );
   };
 
   return (
     <div className="space-y-6 pb-20">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">
+          <h1 className="text-3xl font-extrabold text-[#FFD700] drop-shadow-[0_0_10px_rgba(255,215,0,0.8)] tracking-wider">
             ניהול לידים
           </h1>
-          <p className="text-slate-600 mt-1">נהל את כל הלידים והפניות שלך במקום אחד</p>
+          <p className="text-slate-400 mt-1">נהל את כל הלידים והפניות שלך במקום אחד</p>
         </div>
         <Dialog open={showNewLeadDialog} onOpenChange={setShowNewLeadDialog}>
           <DialogTrigger asChild>
@@ -528,12 +549,13 @@ export default function Leads() {
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-32 md:w-48">
+              <SelectTrigger className="w-32 md:w-48 bg-[#1a1a1a] text-[#FFD700] border-[#FFD700]/30 font-bold">
                 <SelectValue placeholder="סטטוס" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-[#1a1a1a] text-white border-[#FFD700]/30">
                 <SelectItem value="all">הכל</SelectItem>
                 <SelectItem value="new">חדש</SelectItem>
+                <SelectItem value="in_progress">בטיפול</SelectItem>
                 <SelectItem value="follow_up">מעקב</SelectItem>
                 <SelectItem value="quote_sent">הצעה</SelectItem>
                 <SelectItem value="closed_won">סגור</SelectItem>

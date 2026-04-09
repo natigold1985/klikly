@@ -21,11 +21,20 @@ Deno.serve(async (req) => {
             'Content-Type': 'application/json'
         };
 
+        let mappedStatus = record.status || "New";
+        if (record.status === 'new') mappedStatus = "New";
+        if (record.status === 'in_progress') mappedStatus = "In Progress";
+        if (record.status === 'follow_up') mappedStatus = "Follow Up";
+        if (record.status === 'quote_sent') mappedStatus = "Quote Sent";
+        if (record.status === 'closed_won') mappedStatus = "Closed Won";
+        if (record.status === 'closed_lost') mappedStatus = "Closed Lost";
+
         const fields = event.entity_name === 'Lead' ? {
             "Name": record.name || "",
             "Phone": record.phone || "",
             "Email": record.email || "",
-            "Status": record.status || "new",
+            "Status": mappedStatus,
+            "Source": record.source || "",
         } : {
             "Client Name": record.client_name || "",
             "Client Email": record.client_email || "",

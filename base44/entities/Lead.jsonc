@@ -26,6 +26,7 @@
       "type": "string",
       "enum": [
         "new",
+        "in_progress",
         "follow_up",
         "quote_sent",
         "closed_won",
