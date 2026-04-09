@@ -134,28 +134,29 @@ const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
             </Link>
 
             {/* Quick Actions Row */}
-            <div className="flex items-center justify-between gap-3 pt-4 border-t border-white/10">
-              <div className="flex gap-2">
-                <a href={`tel:${lead.phone}`} onClick={(e) => { e.stopPropagation(); onAction('log_call', lead); }}>
-                  <Button size="icon" variant="ghost" className="h-11 w-11 rounded-xl bg-[#1a1a1a] text-slate-300 hover:bg-[#2a2a2a] hover:text-[#FFD700] border border-white/5">
-                    <Phone className="w-5 h-5" />
-                  </Button>
-                </a>
-                <Button size="icon" variant="ghost" className="h-11 w-11 rounded-xl bg-[#1a1a1a] text-slate-300 hover:bg-[#2a2a2a] hover:text-[#FFD700] border border-white/5" onClick={(e) => { e.stopPropagation(); onAction('log_manual', lead); }}>
-                  <FileText className="w-5 h-5" />
-                </Button>
-              </div>
-              
+            <div className="flex flex-col gap-3 pt-4 border-t border-white/10 w-full">
               <a 
                 href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`היי ${lead.name}, זה נתי גולד, קיבלתי את הפנייה שלך...`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => { e.stopPropagation(); onAction('log_whatsapp', lead); }}
-                className="flex items-center gap-3 bg-[#FFD700] hover:bg-[#e6c200] text-black shadow-[0_0_15px_rgba(255,215,0,0.3)] px-6 py-2 h-11 transition-all duration-300 font-bold rounded-xl"
+                className="flex items-center justify-center gap-3 bg-[#FFD700] hover:bg-[#e6c200] text-black shadow-[0_0_15px_rgba(255,215,0,0.3)] px-6 py-2 h-11 transition-all duration-300 font-bold rounded-xl w-full"
               >
                 <MessageCircle className="w-5 h-5 text-black" />
                 <span className="text-sm font-bold tracking-wide">WhatsApp</span>
               </a>
+              <div className="flex justify-between w-full">
+                <a href={`tel:${lead.phone}`} onClick={(e) => { e.stopPropagation(); onAction('log_call', lead); }} className="flex-1 mr-2">
+                  <Button variant="ghost" className="h-10 w-full rounded-xl bg-[#1a1a1a] text-slate-300 hover:bg-[#2a2a2a] hover:text-[#FFD700] border border-white/5">
+                    <Phone className="w-4 h-4 ml-2" />
+                    התקשר
+                  </Button>
+                </a>
+                <Button variant="ghost" className="h-10 flex-1 ml-2 rounded-xl bg-[#1a1a1a] text-slate-300 hover:bg-[#2a2a2a] hover:text-[#FFD700] border border-white/5" onClick={(e) => { e.stopPropagation(); onAction('log_manual', lead); }}>
+                  <FileText className="w-4 h-4 ml-2" />
+                  תיעוד
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -596,7 +597,7 @@ export default function Leads() {
           </MapContainer>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-full box-border">
           {filteredLeads.map((lead) => (
             <SwipeableLeadCard 
               key={lead.id} 

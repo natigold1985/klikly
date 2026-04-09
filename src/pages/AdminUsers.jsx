@@ -43,13 +43,13 @@ export default function AdminUsers() {
   return (
     <div className="space-y-6 pb-20">
       <div>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">ניהול משתמשים</h1>
+        <h1 className="text-3xl font-extrabold text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.4)] tracking-wider mb-2">ניהול משתמשים</h1>
         <p className="text-slate-600">צפה בכל המשתמשים והלקוחות הרשומים למערכת</p>
       </div>
 
       {isLoading ? (
         <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin"></div>
+          <div className="w-8 h-8 border-4 border-slate-200 border-t-[#FFD700] rounded-full animate-spin"></div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -60,11 +60,11 @@ export default function AdminUsers() {
               <Card key={u.id} className="hover:shadow-lg transition-all duration-300 border-white/20 bg-white/60 backdrop-blur-sm group">
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center border border-indigo-100 shadow-sm flex-shrink-0 group-hover:scale-105 transition-transform">
+                    <div className="w-14 h-14 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-200 shadow-sm flex-shrink-0 group-hover:scale-105 group-hover:border-[#FFD700]/50 transition-all">
                       {isUserAdmin ? (
-                        <Shield className="w-7 h-7 text-indigo-500" />
+                        <Shield className="w-7 h-7 text-[#FFD700]" />
                       ) : (
-                        <User className="w-7 h-7 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                        <User className="w-7 h-7 text-slate-400 group-hover:text-[#FFD700] transition-colors" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -79,7 +79,7 @@ export default function AdminUsers() {
                   </div>
                   
                   <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
-                    <Badge className={isUserAdmin ? 'bg-indigo-500 hover:bg-indigo-600' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}>
+                    <Badge className={isUserAdmin ? 'bg-[#FFD700] text-black font-bold hover:bg-[#e6c200]' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}>
                       {isUserAdmin ? 'מנהל מערכת' : 'לקוח'}
                     </Badge>
                     <div className="flex items-center gap-1.5 text-xs text-slate-400">
