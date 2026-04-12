@@ -1,4 +1,8 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.24';
+
+// Architecture Note: Future integration of S3-compatible storage (Wasabi/Backblaze)
+// import { S3Client, GetObjectCommand } from 'npm:@aws-sdk/client-s3';
+// const s3Client = new S3Client({ ... });
 
 Deno.serve(async (req) => {
   try {
@@ -20,26 +24,18 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Link expired', expired: true }, { status: 410 });
     }
 
-    // Track view
+    // Delivery Tracking: Register view in the CRM silently
     await base44.asServiceRole.entities.DeliveryLink.update(link.id, {
       view_count: (link.view_count || 0) + 1,
     });
 
-    // Fetch some photos for preview (thumbnails)
-    const photos = await base44.asServiceRole.entities.Photo.filter({ 
-      project_id: link.project_id,
-      type: 'edited'
-    }, '-order_index', 50);
-
+    // ABSOLUTE ISOLATION: The Client Portal receives strictly what it needs to render the gallery.
+    // Zero CRM entity data, zero IDs, zero financial/status info.
     return Response.json({
       success: true,
-      project_id: link.project_id, // Needed for uploads potentially
       project_title: link.project_title,
-      client_name: link.client_name,
-      cover_image_url: link.cover_image_url,
-      file_size_label: link.file_size_label,
-      is_downloaded: link.is_downloaded,
-      preview_photos: photos.map(p => p.file_url) // Return URLs
+      // Future Presigned URL generation for S3
+      // download_url: await getSignedUrl(s3Client, new GetObjectCommand(...), { expiresIn: 3600 })
     });
 
   } catch (error) {
