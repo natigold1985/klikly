@@ -8,6 +8,13 @@ Deno.serve(async (req) => {
     const project = await base44.asServiceRole.entities.Project.get(projectId);
     
     if (!project || project.gallery_pin !== pin) {
+      // BOLA Protection & Security Logging
+      await base44.asServiceRole.entities.SystemLog.create({
+        action: 'security_violation',
+        details: `[403 Access Denied] Unauthorized access attempt to Gallery (Project ID: ${projectId}) with invalid PIN.`,
+        status: 'error',
+        owner_id: project ? project.created_by : null
+      });
       return Response.json({ error: 'קוד אישי שגוי או פרויקט לא נמצא' }, { status: 403 });
     }
 

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { base44 } from '@/api/base44Client';
 
 export default function ClientGallery() {
     const { id } = useParams();
@@ -34,14 +35,10 @@ export default function ClientGallery() {
         if (!currentPin) return;
         setIsLoading(true);
         try {
-            const res = await fetch('/api/functions/getPublicGallery', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ projectId: id, pin: currentPin })
-            });
-            const data = await res.json();
+            const res = await base44.functions.invoke('getPublicGallery', { projectId: id, pin: currentPin });
+            const data = res.data;
             
-            if (res.ok) {
+            if (res.status === 200) {
                 setProject(data.project);
                 setPhotos(data.photos || []);
                 const selected = new Set(data.photos.filter(p => p.is_selected).map(p => p.id));
@@ -77,18 +74,14 @@ export default function ClientGallery() {
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            const res = await fetch('/api/functions/submitFavorites', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+            const res = await base44.functions.invoke('submitFavorites', {
                     projectId: id, 
                     pin, 
                     selectedPhotoIds: Array.from(selectedIds),
                     photoComments
-                })
-            });
-            const data = await res.json();
-            if (res.ok) {
+                });
+            const data = res.data;
+            if (res.status === 200) {
                 toast.success('הבחירה נשמרה בהצלחה!', {
                     icon: <CheckCircle2 className="w-5 h-5 text-green-500" />
                 });

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useQuery } from '@tanstack/react-query';
@@ -69,12 +69,37 @@ export default function Layout({ children, currentPageName }) {
   // Pages that should render without any nav
   const noLayoutPages = ['DownloadPage', 'QuoteView'];
   
+  const [accessDenied, setAccessDenied] = useState(false);
+
   useEffect(() => {
     document.documentElement.classList.remove('dark');
-    if (isClient && !['FileStorage', 'DownloadPage', 'QuoteView'].includes(pageName)) {
+    
+    // Security Directive: BOLA Protection & Route Segregation
+    const protectedPages = ['Dashboard', 'Leads', 'Quotes', 'Projects', 'Tasks', 'AdminUsers', 'Settings'];
+    
+    if (isClient && protectedPages.includes(pageName)) {
+      setAccessDenied(true);
+      base44.functions.invoke('logSecurityIncident', { 
+        path: location.pathname, 
+        details: `Client role attempted to access restricted admin page: ${pageName}` 
+      }).catch(console.error);
+    } else if (isClient && !['FileStorage', 'DownloadPage', 'QuoteView', 'ClientGallery'].includes(pageName)) {
       window.location.href = createPageUrl('FileStorage');
     }
-  }, [isClient, pageName]);
+  }, [isClient, pageName, location.pathname]);
+
+  if (accessDenied) {
+    return (
+      <div className="flex h-screen bg-[#050505] text-white items-center justify-center p-6 text-center" dir="rtl">
+        <div className="bg-[#0a0a0a] p-8 rounded-2xl border border-red-500/30 shadow-[0_0_30px_rgba(220,38,38,0.3)] max-w-md w-full">
+          <Shield className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold mb-2 text-white">403 Access Denied</h1>
+          <p className="text-white/60 mb-6">אין לך הרשאה לגשת לעמוד זה. ניסיון הגישה נרשם במערכת.</p>
+          <p className="text-xs text-red-400/80 font-mono tracking-widest">SECURITY_INCIDENT_LOGGED</p>
+        </div>
+      </div>
+    );
+  }
 
   if (noLayoutPages.includes(pageName)) {
     return children;
