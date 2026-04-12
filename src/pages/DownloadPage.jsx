@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Loader2, AlertCircle, Camera } from 'lucide-react';
+import { Loader2, AlertCircle, Camera, Download, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function DownloadPage() {
@@ -20,15 +20,46 @@ export default function DownloadPage() {
     loadLink();
   }, [token]);
 
+  const [downloading, setDownloading] = useState(false);
+
   const loadLink = async () => {
     try {
-      // Delivery Controller (Backend Function) - Absolute Isolation
-      const res = await base44.functions.invoke('getDeliveryLink', { token });
+      // Delivery Gateway (Backend Function) - Absolute Isolation
+      const res = await base44.functions.invoke('deliveryGateway', { token });
       setLinkData(res.data);
     } catch (err) {
       setError(err.response?.data?.error || 'הקישור לא נמצא או פג תוקף');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownload = async (fileName) => {
+    try {
+      setDownloading(true);
+      
+      // 1. Fetch Presigned URL
+      const urlRes = await base44.functions.invoke('generatePresignedUrl', {
+        token,
+        action: 'get',
+        fileName
+      });
+      
+      const presignedUrl = urlRes.data.url;
+
+      // 2. Fire Download Webhook
+      await base44.functions.invoke('onClientDownload', {
+        token,
+        fileName
+      });
+
+      // 3. Initiate Secure Download
+      window.location.href = presignedUrl;
+
+    } catch (err) {
+      console.error('Download failed:', err);
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -73,9 +104,27 @@ export default function DownloadPage() {
         
         <div className="h-px w-24 bg-gradient-to-r from-transparent via-[#FFD700]/50 to-transparent mx-auto my-6" />
         
-        <p className="text-white/40 tracking-[0.2em] uppercase text-xs font-medium">
-          Secure Delivery Controller • Base 44
-        </p>
+        {linkData?.files?.map((file, idx) => (
+          <button
+            key={idx}
+            onClick={() => handleDownload(file.name)}
+            disabled={downloading}
+            className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-[#D4AF37] to-[#C5A028] hover:from-[#C5A028] hover:to-[#D4AF37] text-black font-bold rounded-xl transition-all duration-300 hover:scale-[1.02] shadow-[0_0_20px_rgba(255,215,0,0.3)] disabled:opacity-70"
+          >
+            {downloading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Download className="w-5 h-5 transition-transform group-hover:-translate-y-1" />
+            )}
+            <span>{downloading ? 'מכין קבצים להורדה...' : 'הורד גלריה מלאה'}</span>
+            {file.size && <span className="opacity-70 text-sm">({file.size})</span>}
+          </button>
+        ))}
+
+        <div className="mt-12 flex items-center justify-center gap-2 text-white/40 tracking-[0.2em] uppercase text-[10px] font-medium">
+          <ShieldCheck className="w-4 h-4 text-green-500/70" />
+          <span>Secure Delivery Gateway • 256-bit Encrypted</span>
+        </div>
       </motion.div>
     </div>
   );
