@@ -119,13 +119,12 @@ export default function Layout({ children, currentPageName }) {
           </div>
         )}
         
-        {/* Central Logo / Title */}
-        <div className="flex items-center gap-3">
-          <span className="text-xl font-extrabold tracking-wider text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]">
-            {settings?.business_name || 'KLIKLY'}
-          </span>
-          <Camera className="w-6 h-6 text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]" />
-        </div>
+        {/* Central Logo */}
+        <img 
+          src="https://media.base44.com/images/public/699330cced2139a6e7aa06a9/1e11bfcc1_generated_image.png" 
+          alt="KLIKLY" 
+          className="h-10 object-contain drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]" 
+        />
 
         {/* Placeholder for right side balance or menu trigger if needed */}
         <div className="absolute right-4 top-1/2 -translate-y-1/2 w-9"></div>
@@ -134,11 +133,12 @@ export default function Layout({ children, currentPageName }) {
       {/* ── Desktop Sidebar (Hidden on Mobile) ── */}
       <aside className="hidden md:flex flex-col w-72 bg-black text-white flex-shrink-0 h-full border-l border-white/5 transition-all duration-300">
         {/* Logo */}
-        <div className="h-20 flex items-center justify-end gap-3 px-8 border-b border-white/10 bg-black">
-          <span className="text-2xl font-bold tracking-wider text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]">
-            {settings?.business_name || 'Klikly'}
-          </span>
-          <Camera className="w-8 h-8 text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]" />
+        <div className="h-20 flex items-center justify-center px-8 border-b border-white/10 bg-black">
+          <img 
+            src="https://media.base44.com/images/public/699330cced2139a6e7aa06a9/1e11bfcc1_generated_image.png" 
+            alt="KLIKLY" 
+            className="h-14 object-contain drop-shadow-[0_0_10px_rgba(255,215,0,0.4)]" 
+          />
         </div>
 
         {/* Nav Links */}
