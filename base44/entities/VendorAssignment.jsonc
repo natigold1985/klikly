@@ -1,0 +1,53 @@
+{
+  "name": "VendorAssignment",
+  "type": "object",
+  "properties": {
+    "vendor_id": {
+      "type": "string",
+      "description": "ID \u05e9\u05dc \u05d4\u05e1\u05e4\u05e7"
+    },
+    "project_id": {
+      "type": "string",
+      "description": "ID \u05e9\u05dc \u05d4\u05e4\u05e8\u05d5\u05d9\u05e7\u05d8"
+    },
+    "vendor_name": {
+      "type": "string",
+      "description": "\u05e9\u05dd \u05d4\u05e1\u05e4\u05e7"
+    },
+    "project_name": {
+      "type": "string",
+      "description": "\u05e9\u05dd \u05d4\u05e4\u05e8\u05d5\u05d9\u05e7\u05d8"
+    },
+    "role": {
+      "type": "string",
+      "description": "\u05ea\u05e4\u05e7\u05d9\u05d3 \u05d1\u05e4\u05e8\u05d5\u05d9\u05e7\u05d8"
+    },
+    "agreed_rate": {
+      "type": "number",
+      "description": "\u05ea\u05e2\u05e8\u05d9\u05e3 \u05de\u05d5\u05e1\u05db\u05dd (\u20aa)"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "partial",
+        "paid"
+      ],
+      "default": "pending",
+      "description": "\u05e1\u05d8\u05d8\u05d5\u05e1 \u05ea\u05e9\u05dc\u05d5\u05dd"
+    },
+    "payment_date": {
+      "type": "string",
+      "format": "date",
+      "description": "\u05ea\u05d0\u05e8\u05d9\u05da \u05ea\u05e9\u05dc\u05d5\u05dd"
+    },
+    "notes": {
+      "type": "string",
+      "description": "\u05d4\u05e2\u05e8\u05d5\u05ea"
+    }
+  },
+  "required": [
+    "vendor_id",
+    "project_id"
+  ]
+}

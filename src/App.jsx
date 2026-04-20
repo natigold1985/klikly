@@ -10,6 +10,9 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import AdminUsers from './pages/AdminUsers';
 import Quotes from './pages/Quotes';
 import ClientGallery from './pages/ClientGallery';
+import Contacts from './pages/Contacts';
+import SubVendors from './pages/SubVendors';
+import Analytics from './pages/Analytics';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -58,6 +61,21 @@ const AuthenticatedApp = () => {
       <Route path="/Quotes" element={
         <LayoutWrapper currentPageName="Quotes">
           <Quotes />
+        </LayoutWrapper>
+      } />
+      <Route path="/Contacts" element={
+        <LayoutWrapper currentPageName="Contacts">
+          <Contacts />
+        </LayoutWrapper>
+      } />
+      <Route path="/SubVendors" element={
+        <LayoutWrapper currentPageName="SubVendors">
+          <SubVendors />
+        </LayoutWrapper>
+      } />
+      <Route path="/Analytics" element={
+        <LayoutWrapper currentPageName="Analytics">
+          <Analytics />
         </LayoutWrapper>
       } />
       {Object.entries(Pages).map(([path, Page]) => (

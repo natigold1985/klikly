@@ -13,7 +13,10 @@ import {
   Menu,
   Shield,
   FileText,
-  Camera
+  Camera,
+  BookUser,
+  UserCog,
+  BarChart3
 } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
@@ -46,10 +49,13 @@ export default function Layout({ children, currentPageName }) {
     : [
         { name: 'לוח ניהול', icon: LayoutDashboard, page: 'Dashboard' },
         { name: 'לידים', icon: Users, page: 'Leads' },
+        { name: 'אנשי קשר', icon: BookUser, page: 'Contacts' },
         { name: 'הצעות מחיר', icon: FileText, page: 'Quotes' },
         { name: 'פרויקטים', icon: Briefcase, page: 'Projects' },
+        { name: 'ספקי משנה', icon: UserCog, page: 'SubVendors' },
         { name: 'אחסון קבצים', icon: Folder, page: 'FileStorage' },
         { name: 'משימות', icon: CheckCircle2, page: 'Tasks' },
+        { name: 'אנליטיקס', icon: BarChart3, page: 'Analytics' },
         ...(isAdmin ? [{ name: 'משתמשים', icon: Shield, page: 'AdminUsers' }] : []),
         { name: 'הגדרות', icon: SettingsIcon, page: 'Settings' },
       ];
@@ -75,7 +81,7 @@ export default function Layout({ children, currentPageName }) {
     document.documentElement.classList.remove('dark');
     
     // Security Directive: BOLA Protection & Route Segregation
-    const protectedPages = ['Dashboard', 'Leads', 'Quotes', 'Projects', 'Tasks', 'AdminUsers', 'Settings'];
+    const protectedPages = ['Dashboard', 'Leads', 'Quotes', 'Projects', 'Tasks', 'AdminUsers', 'Settings', 'Contacts', 'SubVendors', 'Analytics'];
     
     if (isClient && protectedPages.includes(pageName)) {
       setAccessDenied(true);
