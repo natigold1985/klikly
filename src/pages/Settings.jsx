@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Upload, Save, Camera, Building2, Calendar, Bell, Loader2 } from 'lucide-react';
+import { Upload, Save, Camera, Building2, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +15,6 @@ export default function Settings() {
   const [calConnected, setCalConnected] = useState(false);
   const [checkingCal, setCheckingCal] = useState(true);
   const [syncingCal, setSyncingCal] = useState(false);
-  const [sendingTestPush, setSendingTestPush] = useState(false);
 
   const checkCalConnection = async () => {
     try {
@@ -275,51 +274,6 @@ export default function Settings() {
               </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Push Notification Test */}
-      <Card className="bg-white/60 backdrop-blur-sm border-white/20 shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3">
-            <Bell className="w-5 h-5 text-[#FFD700]" />
-            בדיקת התראות (Push Notifications)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-slate-600">
-            1. לחץ על הפעמון 🔔 בתפריט העליון כדי להפעיל התראות.<br/>
-            2. אם הדפדפן שואל - אשר קבלת התראות.<br/>
-            3. לחץ על "שלח התראת בדיקה" למטה.
-          </p>
-          <div className="flex justify-center">
-            <Button
-              onClick={async () => {
-                setSendingTestPush(true);
-                try {
-                  const res = await base44.functions.invoke('sendPushNotification', {
-                    title: '🔔 KLIKLY - בדיקה',
-                    body: 'ההתראות עובדות מעולה! 🎉',
-                    url: '/',
-                  });
-                  if (res.data.sent > 0) {
-                    toast.success(`התראה נשלחה בהצלחה (${res.data.sent} מכשירים)`);
-                  } else {
-                    toast.error(`לא נמצאו מנויים פעילים. לחץ על 🔔 בתפריט כדי להפעיל. (${JSON.stringify(res.data)})`);
-                  }
-                } catch (err) {
-                  toast.error('שגיאה בשליחת התראה');
-                } finally {
-                  setSendingTestPush(false);
-                }
-              }}
-              disabled={sendingTestPush}
-              className="bg-[#FFD700] hover:bg-[#e6c200] text-black font-bold shadow-[0_0_15px_rgba(255,215,0,0.3)] transition-all duration-300 hover:-translate-y-1 px-8 h-12 rounded-xl gap-3"
-            >
-              {sendingTestPush ? <Loader2 className="w-5 h-5 animate-spin" /> : <Bell className="w-5 h-5" />}
-              {sendingTestPush ? 'שולח...' : 'שלח התראת בדיקה'}
-            </Button>
-          </div>
         </CardContent>
       </Card>
 

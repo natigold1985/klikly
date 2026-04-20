@@ -4,8 +4,6 @@ import { createPageUrl } from '@/utils';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import PWAInstallBanner from '@/components/PWAInstallBanner';
-import PushNotificationToggle from '@/components/PushNotificationToggle';
-import PushPermissionPrompt from '@/components/PushPermissionPrompt';
 import {
   LayoutDashboard,
   Users,
@@ -139,25 +137,19 @@ export default function Layout({ children, currentPageName }) {
           className="h-10 object-contain drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]" 
         />
 
-        {/* Push notification toggle */}
-        <div className="absolute right-4 top-1/2 -translate-y-1/2">
-          <PushNotificationToggle />
-        </div>
+        {/* Placeholder for right side balance or menu trigger if needed */}
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 w-9"></div>
       </header>
 
       {/* ── Desktop Sidebar (Hidden on Mobile) ── */}
       <aside className="hidden md:flex flex-col w-72 bg-black text-white flex-shrink-0 h-full border-l border-white/5 transition-all duration-300">
-        {/* Logo + Notifications */}
-        <div className="h-20 flex items-center justify-between px-8 border-b border-white/10 bg-black">
-          <div className="flex-1" />
+        {/* Logo */}
+        <div className="h-20 flex items-center justify-center px-8 border-b border-white/10 bg-black">
           <img 
             src="https://media.base44.com/images/public/699330cced2139a6e7aa06a9/1e11bfcc1_generated_image.png" 
             alt="KLIKLY" 
             className="h-14 object-contain drop-shadow-[0_0_10px_rgba(255,215,0,0.4)]" 
           />
-          <div className="flex-1 flex justify-end">
-            <PushNotificationToggle />
-          </div>
         </div>
 
         {/* Nav Links */}
@@ -207,9 +199,6 @@ export default function Layout({ children, currentPageName }) {
           </div>
         </main>
       </div>
-
-      {/* ── Auto Push Permission ── */}
-      <PushPermissionPrompt />
 
       {/* ── PWA Install Banner ── */}
       <PWAInstallBanner />
