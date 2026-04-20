@@ -2,25 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Bell, BellOff, Loader2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
-
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
-
-function getDeviceLabel() {
-  const ua = navigator.userAgent;
-  if (/iPhone/i.test(ua)) return 'iPhone';
-  if (/iPad/i.test(ua)) return 'iPad';
-  if (/Android/i.test(ua)) return 'Android';
-  return 'Desktop';
-}
+import { urlBase64ToUint8Array, getDeviceLabel, registerServiceWorker, isPushSupported } from '@/lib/pushUtils';
 
 export default function PushNotificationToggle() {
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -32,12 +14,12 @@ export default function PushNotificationToggle() {
   }, []);
 
   const checkSubscription = async () => {
+    if (!isPushSupported()) {
+      setLoading(false);
+      return;
+    }
     try {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        setLoading(false);
-        return;
-      }
-      const registration = await navigator.serviceWorker.getRegistration('/sw.js');
+      const registration = await navigator.serviceWorker.getRegistration();
       if (registration) {
         const subscription = await registration.pushManager.getSubscription();
         setIsSubscribed(!!subscription);
@@ -51,21 +33,21 @@ export default function PushNotificationToggle() {
   const subscribe = async () => {
     setToggling(true);
     try {
-      // Get VAPID public key from backend
       const keyRes = await base44.functions.invoke('getVapidPublicKey', {});
       const vapidPublicKey = keyRes.data.publicKey;
 
-      // Register service worker
-      const registration = await navigator.serviceWorker.register('/sw.js');
-      await navigator.serviceWorker.ready;
+      const registration = await registerServiceWorker();
+      if (!registration) {
+        toast.error('המכשיר לא תומך בהתראות');
+        setToggling(false);
+        return;
+      }
 
-      // Subscribe
       const subscription = await registration.pushManager.subscribe({
         userVisuallyIndicatesInterest: true,
         applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
       });
 
-      // Save to backend
       await base44.functions.invoke('subscribePush', {
         subscription: subscription.toJSON(),
         deviceLabel: getDeviceLabel()
@@ -76,9 +58,9 @@ export default function PushNotificationToggle() {
     } catch (err) {
       console.error('Push subscribe error:', err);
       if (Notification.permission === 'denied') {
-        toast.error('התראות חסומות בדפדפן. אנא הפעל אותן בהגדרות הדפדפן.');
+        toast.error('התראות חסומות בדפדפן. אנא הפעל בהגדרות.');
       } else {
-        toast.error('שגיאה בהפעלת התראות');
+        toast.error('שגיאה בהפעלת התראות: ' + err.message);
       }
     }
     setToggling(false);
@@ -87,7 +69,7 @@ export default function PushNotificationToggle() {
   const unsubscribe = async () => {
     setToggling(true);
     try {
-      const registration = await navigator.serviceWorker.getRegistration('/sw.js');
+      const registration = await navigator.serviceWorker.getRegistration();
       if (registration) {
         const subscription = await registration.pushManager.getSubscription();
         if (subscription) {
@@ -106,9 +88,8 @@ export default function PushNotificationToggle() {
     setToggling(false);
   };
 
-  // Don't show if push not supported
   if (loading) return null;
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+  if (!isPushSupported()) return null;
 
   return (
     <button

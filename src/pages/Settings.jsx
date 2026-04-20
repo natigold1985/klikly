@@ -288,7 +288,9 @@ export default function Settings() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-slate-600">
-            לחץ על הכפתור כדי לשלוח התראת בדיקה למכשיר שלך. ודא שהפעלת התראות בלחיצה על הפעמון 🔔 בתפריט העליון.
+            1. לחץ על הפעמון 🔔 בתפריט העליון כדי להפעיל התראות.<br/>
+            2. אם הדפדפן שואל - אשר קבלת התראות.<br/>
+            3. לחץ על "שלח התראת בדיקה" למטה.
           </p>
           <div className="flex justify-center">
             <Button
@@ -303,7 +305,7 @@ export default function Settings() {
                   if (res.data.sent > 0) {
                     toast.success(`התראה נשלחה בהצלחה (${res.data.sent} מכשירים)`);
                   } else {
-                    toast.error('לא נמצאו מנויים פעילים. לחץ על 🔔 בתפריט כדי להפעיל.');
+                    toast.error(`לא נמצאו מנויים פעילים. לחץ על 🔔 בתפריט כדי להפעיל. (${JSON.stringify(res.data)})`);
                   }
                 } catch (err) {
                   toast.error('שגיאה בשליחת התראה');
