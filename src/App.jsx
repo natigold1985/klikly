@@ -14,6 +14,7 @@ import Contacts from './pages/Contacts';
 import SubVendors from './pages/SubVendors';
 import Analytics from './pages/Analytics';
 import LeadImport from './pages/LeadImport';
+import RBACMatrix from './pages/RBACMatrix';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -82,6 +83,11 @@ const AuthenticatedApp = () => {
       <Route path="/LeadImport" element={
         <LayoutWrapper currentPageName="LeadImport">
           <LeadImport />
+        </LayoutWrapper>
+      } />
+      <Route path="/RBACMatrix" element={
+        <LayoutWrapper currentPageName="RBACMatrix">
+          <RBACMatrix />
         </LayoutWrapper>
       } />
       {Object.entries(Pages).map(([path, Page]) => (

@@ -57,7 +57,10 @@ export default function Layout({ children, currentPageName }) {
         { name: 'אחסון קבצים', icon: Folder, page: 'FileStorage' },
         { name: 'משימות', icon: CheckCircle2, page: 'Tasks' },
         { name: 'אנליטיקס', icon: BarChart3, page: 'Analytics' },
-        ...(isAdmin ? [{ name: 'משתמשים', icon: Shield, page: 'AdminUsers' }] : []),
+        ...(isAdmin ? [
+          { name: 'משתמשים', icon: Shield, page: 'AdminUsers' },
+          { name: 'מטריצת הרשאות', icon: Shield, page: 'RBACMatrix' },
+        ] : []),
         { name: 'הגדרות', icon: SettingsIcon, page: 'Settings' },
       ];
 
@@ -82,7 +85,7 @@ export default function Layout({ children, currentPageName }) {
     document.documentElement.classList.remove('dark');
     
     // Security Directive: BOLA Protection & Route Segregation
-    const protectedPages = ['Dashboard', 'Leads', 'Quotes', 'Projects', 'Tasks', 'AdminUsers', 'Settings', 'Contacts', 'SubVendors', 'Analytics', 'LeadImport'];
+    const protectedPages = ['Dashboard', 'Leads', 'Quotes', 'Projects', 'Tasks', 'AdminUsers', 'Settings', 'Contacts', 'SubVendors', 'Analytics', 'LeadImport', 'RBACMatrix'];
     
     if (isClient && protectedPages.includes(pageName)) {
       setAccessDenied(true);
