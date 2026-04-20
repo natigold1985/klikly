@@ -1,0 +1,91 @@
+{
+  "name": "Activity",
+  "type": "object",
+  "properties": {
+    "related_to_type": {
+      "type": "string",
+      "enum": [
+        "lead",
+        "project",
+        "quote"
+      ],
+      "description": "\u05e1\u05d5\u05d2 \u05d4\u05d9\u05e9\u05d5\u05ea"
+    },
+    "related_to_id": {
+      "type": "string",
+      "description": "ID \u05e9\u05dc \u05d4\u05d9\u05e9\u05d5\u05ea"
+    },
+    "activity_type": {
+      "type": "string",
+      "enum": [
+        "status_change",
+        "note_added",
+        "email_sent",
+        "call_made",
+        "meeting_scheduled",
+        "quote_sent",
+        "payment_received",
+        "photos_uploaded",
+        "selection_made"
+      ],
+      "description": "\u05e1\u05d5\u05d2 \u05d4\u05e4\u05e2\u05d9\u05dc\u05d5\u05ea"
+    },
+    "title": {
+      "type": "string",
+      "description": "\u05db\u05d5\u05ea\u05e8\u05ea \u05d4\u05e4\u05e2\u05d9\u05dc\u05d5\u05ea"
+    },
+    "description": {
+      "type": "string",
+      "description": "\u05ea\u05d9\u05d0\u05d5\u05e8 \u05de\u05e4\u05d5\u05e8\u05d8"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "\u05de\u05d9\u05d3\u05e2 \u05e0\u05d5\u05e1\u05e3 (JSON)"
+    }
+  },
+  "required": [
+    "related_to_type",
+    "related_to_id",
+    "activity_type",
+    "title"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

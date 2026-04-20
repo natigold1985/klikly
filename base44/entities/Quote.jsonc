@@ -1,0 +1,132 @@
+{
+  "name": "Quote",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "description": "ID \u05e9\u05dc \u05d4\u05dc\u05d9\u05d3"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "\u05e9\u05dd \u05d4\u05dc\u05e7\u05d5\u05d7"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "\u05d0\u05d9\u05de\u05d9\u05d9\u05dc \u05d4\u05dc\u05e7\u05d5\u05d7"
+    },
+    "template": {
+      "type": "string",
+      "enum": [
+        "minimalist",
+        "dark",
+        "elegant"
+      ],
+      "default": "minimalist",
+      "description": "\u05ea\u05d1\u05e0\u05d9\u05ea \u05d4\u05e2\u05d9\u05e6\u05d5\u05d1"
+    },
+    "package_name": {
+      "type": "string",
+      "description": "\u05e9\u05dd \u05d4\u05d7\u05d1\u05d9\u05dc\u05d4"
+    },
+    "package_description": {
+      "type": "string",
+      "description": "\u05ea\u05d9\u05d0\u05d5\u05e8 \u05d4\u05d7\u05d1\u05d9\u05dc\u05d4"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "price": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "\u05e4\u05e8\u05d9\u05d8\u05d9 \u05d4\u05d4\u05e6\u05e2\u05d4"
+    },
+    "total_price": {
+      "type": "number",
+      "description": "\u05de\u05d7\u05d9\u05e8 \u05e1\u05d5\u05e4\u05d9"
+    },
+    "terms": {
+      "type": "string",
+      "description": "\u05ea\u05e0\u05d0\u05d9\u05dd \u05d5\u05d4\u05e2\u05e8\u05d5\u05ea"
+    },
+    "valid_until": {
+      "type": "string",
+      "format": "date",
+      "description": "\u05ea\u05d5\u05e7\u05e3 \u05d4\u05d4\u05e6\u05e2\u05d4"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "sent",
+        "viewed",
+        "accepted",
+        "rejected"
+      ],
+      "default": "draft",
+      "description": "\u05e1\u05d8\u05d8\u05d5\u05e1 \u05d4\u05d4\u05e6\u05e2\u05d4"
+    },
+    "access_token": {
+      "type": "string",
+      "description": "\u05d8\u05d5\u05e7\u05df \u05d2\u05d9\u05e9\u05d4 \u05d9\u05d9\u05d7\u05d5\u05d3\u05d9 \u05dc\u05d4\u05e6\u05e2\u05d4"
+    },
+    "viewed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u05de\u05ea\u05d9 \u05d4\u05d4\u05e6\u05e2\u05d4 \u05e0\u05e6\u05e4\u05ea\u05d4"
+    }
+  },
+  "required": [
+    "client_name",
+    "client_email",
+    "total_price"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}
