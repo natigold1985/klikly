@@ -32,7 +32,7 @@ export default function PushNotificationToggle() {
     }
 
     try {
-      const registration = await navigator.serviceWorker.getRegistration('/sw.js');
+      const registration = await navigator.serviceWorker.getRegistration('/');
       if (registration) {
         const subscription = await registration.pushManager.getSubscription();
         setIsSubscribed(!!subscription);
@@ -49,7 +49,7 @@ export default function PushNotificationToggle() {
     try {
       if (isSubscribed) {
         // Unsubscribe
-        const registration = await navigator.serviceWorker.getRegistration('/sw.js');
+        const registration = await navigator.serviceWorker.getRegistration('/');
         if (registration) {
           const subscription = await registration.pushManager.getSubscription();
           if (subscription) {
@@ -76,11 +76,12 @@ export default function PushNotificationToggle() {
         const vapidPublicKey = data.vapidPublicKey;
 
         // Register service worker
-        let registration = await navigator.serviceWorker.getRegistration('/sw.js');
+        let registration = await navigator.serviceWorker.getRegistration('/');
         if (!registration) {
-          registration = await navigator.serviceWorker.register('/sw.js');
-          await navigator.serviceWorker.ready;
+          registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
         }
+        // Wait until SW is active
+        await navigator.serviceWorker.ready;
 
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,

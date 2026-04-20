@@ -8,7 +8,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
+    const vapidPublicKey = (Deno.env.get('VAPID_PUBLIC_KEY') || '').trim();
     if (!vapidPublicKey) {
       return Response.json({ error: 'VAPID public key not configured' }, { status: 500 });
     }

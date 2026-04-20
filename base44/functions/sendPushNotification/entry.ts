@@ -11,8 +11,8 @@ Deno.serve(async (req) => {
 
     const { target_email, title, body, url } = await req.json();
 
-    const vapidPublic = Deno.env.get('VAPID_PUBLIC_KEY');
-    const vapidPrivate = Deno.env.get('VAPID_PRIVATE_KEY');
+    const vapidPublic = (Deno.env.get('VAPID_PUBLIC_KEY') || '').trim();
+    const vapidPrivate = (Deno.env.get('VAPID_PRIVATE_KEY') || '').trim();
 
     if (!vapidPublic || !vapidPrivate) {
       return Response.json({ error: 'VAPID keys not configured' }, { status: 500 });
