@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Upload, Save, Camera, Building2, Calendar } from 'lucide-react';
+import { Upload, Save, Camera, Building2, Calendar, Bell } from 'lucide-react';
+import PushNotificationToggle from '@/components/PushNotificationToggle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -228,6 +229,22 @@ export default function Settings() {
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Push Notifications */}
+      <Card className="bg-white/60 backdrop-blur-sm border-white/20 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3">
+            <Bell className="w-5 h-5 text-[#FFD700]" />
+            התראות Push
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-slate-600 mb-4">
+            קבל התראות ישירות למכשיר שלך, גם כשהאתר סגור – על לידים חדשים, תזכורות ועוד.
+          </p>
+          <PushNotificationToggle />
         </CardContent>
       </Card>
 
