@@ -201,8 +201,8 @@ export default function Leads() {
   });
 
   const { data: leads = [], isLoading } = useQuery({
-    queryKey: ['leads'],
-    queryFn: () => base44.entities.Lead.filter({}, '-created_date', 200),
+    queryKey: ['leads', user?.email],
+    queryFn: () => base44.entities.Lead.filter({ created_by: user.email }, '-created_date', 200),
     enabled: !!user,
   });
 

@@ -27,14 +27,21 @@ export default function SubVendors() {
   const [form, setForm] = useState({ name: '', phone: '', email: '', specialty: 'second_shooter', rate_per_event: '', notes: '', bank_details: '', instagram: '' });
   const queryClient = useQueryClient();
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
   const { data: vendors = [], isLoading } = useQuery({
-    queryKey: ['subvendors'],
-    queryFn: () => base44.entities.SubVendor.filter({}, '-created_date', 200),
+    queryKey: ['subvendors', user?.email],
+    queryFn: () => base44.entities.SubVendor.filter({ created_by: user.email }, '-created_date', 200),
+    enabled: !!user,
   });
 
   const { data: assignments = [] } = useQuery({
-    queryKey: ['vendor_assignments'],
-    queryFn: () => base44.entities.VendorAssignment.filter({}, '-created_date', 500),
+    queryKey: ['vendor_assignments', user?.email],
+    queryFn: () => base44.entities.VendorAssignment.filter({ created_by: user.email }, '-created_date', 500),
+    enabled: !!user,
   });
 
   const createMutation = useMutation({

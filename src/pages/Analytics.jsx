@@ -8,24 +8,34 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pi
 const COLORS = ['#FFD700', '#C5A028', '#4F46E5', '#10B981', '#EF4444', '#8B5CF6', '#F59E0B', '#06B6D4'];
 
 export default function Analytics() {
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  // Data isolation: all queries scoped to current photographer
   const { data: leads = [] } = useQuery({
-    queryKey: ['analytics_leads'],
-    queryFn: () => base44.entities.Lead.filter({}, '-created_date', 1000),
+    queryKey: ['analytics_leads', user?.email],
+    queryFn: () => base44.entities.Lead.filter({ created_by: user.email }, '-created_date', 1000),
+    enabled: !!user,
   });
 
   const { data: projects = [] } = useQuery({
-    queryKey: ['analytics_projects'],
-    queryFn: () => base44.entities.Project.filter({}, '-created_date', 1000),
+    queryKey: ['analytics_projects', user?.email],
+    queryFn: () => base44.entities.Project.filter({ created_by: user.email }, '-created_date', 1000),
+    enabled: !!user,
   });
 
   const { data: deliveryLinks = [] } = useQuery({
-    queryKey: ['analytics_delivery'],
-    queryFn: () => base44.entities.DeliveryLink.filter({}, '-created_date', 500),
+    queryKey: ['analytics_delivery', user?.email],
+    queryFn: () => base44.entities.DeliveryLink.filter({ photographer_email: user.email }, '-created_date', 500),
+    enabled: !!user,
   });
 
   const { data: vendorAssignments = [] } = useQuery({
-    queryKey: ['analytics_assignments'],
-    queryFn: () => base44.entities.VendorAssignment.filter({}, '-created_date', 500),
+    queryKey: ['analytics_assignments', user?.email],
+    queryFn: () => base44.entities.VendorAssignment.filter({ created_by: user.email }, '-created_date', 500),
+    enabled: !!user,
   });
 
   // Conversion Rate

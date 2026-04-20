@@ -24,9 +24,15 @@ export default function Contacts() {
   const [form, setForm] = useState({ name: '', phone: '', email: '', type: 'client', address: '', notes: '', source: '', instagram: '' });
   const queryClient = useQueryClient();
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
   const { data: contacts = [], isLoading } = useQuery({
-    queryKey: ['contacts'],
-    queryFn: () => base44.entities.Contact.filter({}, '-created_date', 500),
+    queryKey: ['contacts', user?.email],
+    queryFn: () => base44.entities.Contact.filter({ created_by: user.email }, '-created_date', 500),
+    enabled: !!user,
   });
 
   const createMutation = useMutation({
