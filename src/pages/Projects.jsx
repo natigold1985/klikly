@@ -264,17 +264,19 @@ export default function Projects() {
                     <Button 
                       onClick={(e) => { 
                         e.stopPropagation(); 
-                        toast.loading("מפעיל אוטומציה ב-Airtable...", { id: 'wa-trigger-proj' });
-                        base44.functions.invoke('triggerAirtableWhatsApp', { 
-                          projectId: project.id, 
-                          templateName: 'Project Update'
-                        }).then(() => toast.success("הודעת WhatsApp נשלחה דרך Airtable", { id: 'wa-trigger-proj' }))
-                          .catch((err) => toast.error("שגיאה: " + err.message, { id: 'wa-trigger-proj' }));
+                        toast.loading("מייצר הודעה...", { id: `wa-${project.id}` });
+                        base44.functions.invoke('sendWhatsAppReminder', { 
+                          type: project.payment_status !== 'paid' ? 'payment_reminder' : 'delivery_notification',
+                          projectId: project.id
+                        }).then((res) => {
+                          toast.dismiss(`wa-${project.id}`);
+                          window.open(res.data.waLink, '_blank');
+                        }).catch((err) => toast.error("שגיאה: " + err.message, { id: `wa-${project.id}` }));
                       }}
                       className="flex items-center gap-1.5 bg-[#25D366] hover:bg-[#128C7E] text-white shadow-lg shadow-[#25D366]/20 px-3 py-1.5 h-8 transition-all duration-300 font-medium rounded-full text-xs"
                     >
                       <MessageCircle className="w-3.5 h-3.5" />
-                      <span className="font-bold">Airtable WA</span>
+                      <span className="font-bold">{project.payment_status !== 'paid' ? 'תזכורת תשלום' : 'הודעת משלוח'}</span>
                     </Button>
                   </div>
                 )}

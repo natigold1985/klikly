@@ -162,6 +162,16 @@ const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
                   תיעוד
                 </Button>
               </div>
+              {lead.status === 'quote_sent' && (
+                <Button 
+                  variant="ghost" 
+                  className="h-10 w-full rounded-xl bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border border-orange-500/20"
+                  onClick={(e) => { e.stopPropagation(); onAction('contract_reminder', lead); }}
+                >
+                  <Bell className="w-4 h-4 ml-2" />
+                  תזכורת חוזה
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -252,15 +262,16 @@ export default function Leads() {
       if (confirm('למחוק את הליד?')) {
         deleteLeadMutation.mutate(lead.id);
       }
-    } else if (action === 'trigger_airtable_whatsapp') {
-      toast.loading("מפעיל אוטומציה ב-Airtable...", { id: 'wa-trigger' });
-      base44.functions.invoke('triggerAirtableWhatsApp', { 
-        leadId: lead.id, 
-        templateName: 'Bronze Package'
-      }).then(() => {
-        toast.success("הודעת WhatsApp נשלחה דרך Airtable", { id: 'wa-trigger' });
+    } else if (action === 'contract_reminder') {
+      toast.loading("מייצר תזכורת חוזה...", { id: 'wa-contract' });
+      base44.functions.invoke('sendWhatsAppReminder', { 
+        type: 'contract_reminder',
+        leadId: lead.id
+      }).then((res) => {
+        toast.dismiss('wa-contract');
+        window.open(res.data.waLink, '_blank');
       }).catch((e) => {
-        toast.error("שגיאה בהפעלת Airtable: " + e.message, { id: 'wa-trigger' });
+        toast.error("שגיאה: " + e.message, { id: 'wa-contract' });
       });
     } else if (action === 'ai_assist') {
       setAiLead(lead);

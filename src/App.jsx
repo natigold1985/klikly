@@ -13,6 +13,7 @@ import ClientGallery from './pages/ClientGallery';
 import Contacts from './pages/Contacts';
 import SubVendors from './pages/SubVendors';
 import Analytics from './pages/Analytics';
+import LeadImport from './pages/LeadImport';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -76,6 +77,11 @@ const AuthenticatedApp = () => {
       <Route path="/Analytics" element={
         <LayoutWrapper currentPageName="Analytics">
           <Analytics />
+        </LayoutWrapper>
+      } />
+      <Route path="/LeadImport" element={
+        <LayoutWrapper currentPageName="LeadImport">
+          <LeadImport />
         </LayoutWrapper>
       } />
       {Object.entries(Pages).map(([path, Page]) => (
