@@ -8,7 +8,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    return Response.json({ publicKey: Deno.env.get('VAPID_PUBLIC_KEY') });
+    return Response.json({ publicKey: (Deno.env.get('VAPID_PUBLIC_KEY') || '').trim() });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import PWAInstallBanner from '@/components/PWAInstallBanner';
 import PushNotificationToggle from '@/components/PushNotificationToggle';
+import PushPermissionPrompt from '@/components/PushPermissionPrompt';
 import {
   LayoutDashboard,
   Users,
@@ -206,6 +207,9 @@ export default function Layout({ children, currentPageName }) {
           </div>
         </main>
       </div>
+
+      {/* ── Auto Push Permission ── */}
+      <PushPermissionPrompt />
 
       {/* ── PWA Install Banner ── */}
       <PWAInstallBanner />
