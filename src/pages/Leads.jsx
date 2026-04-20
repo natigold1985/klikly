@@ -6,7 +6,7 @@ import { createPageUrl } from '../utils';
 import { 
   Plus, Search, Filter, Phone, Mail, Calendar, Bell, Clock, 
   MessageCircle, FileText, Trash2, CheckSquare, MoreVertical,
-  Sparkles
+  Sparkles, LayoutGrid, List, Map
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,9 @@ import { toast } from 'sonner';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import SourceBadge from '@/components/leads/SourceBadge';
+import LeadTableView from '@/components/leads/LeadTableView';
+import DataActionsToolbar from '@/components/leads/DataActionsToolbar';
 
 // Fix leaflet icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -110,11 +113,8 @@ const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
                   </div>
                   {lead.phone}
                 </div>
-                <div className="flex items-center gap-3 text-sm text-slate-300">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#FFD700] to-[#C5A028] flex items-center justify-center shadow-[0_0_10px_rgba(255,215,0,0.4)] shrink-0">
-                    <Search className="w-4 h-4 text-white" />
-                  </div>
-                  {lead.source || 'מקור לא ידוע'}
+                <div className="flex items-center gap-3 text-sm">
+                  <SourceBadge source={lead.source} />
                 </div>
                 
                 <div className="flex items-center gap-3">
@@ -182,7 +182,7 @@ const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
 
 export default function Leads() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState('grid');
+  const [viewMode, setViewMode] = useState('table');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
   const [showFollowUpDialog, setShowFollowUpDialog] = useState(false);
@@ -363,15 +363,15 @@ export default function Leads() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-extrabold text-[#FFD700] drop-shadow-[0_0_10px_rgba(255,215,0,0.8)] tracking-wider">
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
             ניהול לידים
           </h1>
-          <p className="text-slate-400 mt-1">נהל את כל הלידים והפניות שלך במקום אחד</p>
+          <p className="text-slate-400 text-sm mt-0.5">מסד נתונים מרכזי לכל הלידים</p>
         </div>
         <Dialog open={showNewLeadDialog} onOpenChange={setShowNewLeadDialog}>
           <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-[#D4AF37] to-[#C5A028] hover:from-[#C5A028] hover:to-[#D4AF37] text-black shadow-lg">
-              <Plus className="w-5 h-5 ml-2" />
+            <Button size="sm" className="gap-1.5">
+              <Plus className="w-4 h-4" />
               ליד חדש
             </Button>
           </DialogTrigger>
@@ -538,68 +538,78 @@ export default function Leads() {
 
 
 
-      {/* Filters */}
-      <Card className="border shadow-lg">
+      {/* Data Actions Toolbar */}
+      <Card className="border shadow-sm">
         <CardContent className="p-4">
-          <div className="flex gap-4 flex-wrap">
-            <div className="flex bg-slate-100 p-1 rounded-lg">
-              <Button 
-                variant={viewMode === 'grid' ? 'default' : 'ghost'} 
-                size="sm" 
-                onClick={() => setViewMode('grid')}
-              >
-                רשימה
+          <div className="flex flex-col md:flex-row gap-3">
+            {/* View Switcher */}
+            <div className="flex bg-slate-100 p-1 rounded-lg shrink-0">
+              <Button variant={viewMode === 'table' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('table')} className="gap-1.5">
+                <List className="w-4 h-4" /> טבלה
               </Button>
-              <Button 
-                variant={viewMode === 'map' ? 'default' : 'ghost'} 
-                size="sm" 
-                onClick={() => setViewMode('map')}
-              >
-                מפה
+              <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('grid')} className="gap-1.5">
+                <LayoutGrid className="w-4 h-4" /> כרטיסים
+              </Button>
+              <Button variant={viewMode === 'map' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('map')} className="gap-1.5">
+                <Map className="w-4 h-4" /> מפה
               </Button>
             </div>
+
+            {/* Search */}
             <div className="flex-1 relative min-w-[200px]">
-              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
-              <Input
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="חיפוש..."
-                className="pr-10"
-              />
+              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+              <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="חיפוש שם, טלפון, אימייל..." className="pr-10 h-9" />
             </div>
+
+            {/* Status Filter */}
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-32 md:w-48 bg-[#1a1a1a] text-[#FFD700] border-[#FFD700]/30 font-bold">
+              <SelectTrigger className="w-32 md:w-40 h-9 text-xs font-bold">
                 <SelectValue placeholder="סטטוס" />
               </SelectTrigger>
-              <SelectContent className="bg-[#1a1a1a] text-white border-[#FFD700]/30">
+              <SelectContent dir="rtl">
                 <SelectItem value="all">הכל</SelectItem>
                 <SelectItem value="new">חדש</SelectItem>
                 <SelectItem value="in_progress">בטיפול</SelectItem>
                 <SelectItem value="follow_up">מעקב</SelectItem>
                 <SelectItem value="quote_sent">הצעה</SelectItem>
-                <SelectItem value="closed_won">סגור</SelectItem>
+                <SelectItem value="closed_won">נסגר</SelectItem>
+                <SelectItem value="closed_lost">נכשל</SelectItem>
               </SelectContent>
             </Select>
+
+            {/* Data Actions */}
+            <DataActionsToolbar leads={leads} />
           </div>
         </CardContent>
       </Card>
 
-      {/* Leads Grid */}
+      {/* Lead Count */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-slate-500">{filteredLeads.length} לידים</p>
+      </div>
+
+      {/* Leads Display */}
       {isLoading ? (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#FFD700]"></div>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#D4AF37]"></div>
         </div>
       ) : filteredLeads.length === 0 ? (
-        <Card className="border shadow-lg">
+        <Card className="border shadow-sm">
           <CardContent className="p-12 text-center">
-            <p className="text-slate-500">לא נמצאו לידים</p>
+            <p className="text-slate-400">לא נמצאו לידים</p>
           </CardContent>
         </Card>
+      ) : viewMode === 'table' ? (
+        <LeadTableView 
+          leads={filteredLeads} 
+          onStatusChange={(id, status) => updateLeadMutation.mutate({ id, data: { status } })}
+          onDelete={(id) => { if (confirm('למחוק את הליד?')) deleteLeadMutation.mutate(id); }}
+        />
       ) : viewMode === 'map' ? (
-        <Card className="border shadow-lg overflow-hidden h-[600px] relative z-0">
+        <Card className="border shadow-sm overflow-hidden h-[600px] relative z-0">
           <MapContainer center={[31.0461, 34.8516]} zoom={7} style={{ height: '100%', width: '100%', zIndex: 1 }}>
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            {filteredLeads.map((lead, i) => (
+            {filteredLeads.map((lead) => (
               lead.address ? (
                 <Marker key={lead.id} position={[31.0461 + (Math.random() - 0.5) * 2, 34.8516 + (Math.random() - 0.5) * 2]}>
                   <Popup>
