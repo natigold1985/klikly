@@ -68,7 +68,7 @@ const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
   return (
     <div className="relative overflow-hidden rounded-xl h-full">
       {/* Background Actions */}
-      <div className="absolute inset-0 flex items-center justify-between pointer-events-none">
+      <div className="absolute inset-0 flex items-center justify-between pointer-events-none rounded-xl overflow-hidden">
         <div className="h-full w-1/2 bg-red-500 flex items-center justify-start pl-6 text-white">
           <Trash2 className="w-6 h-6" />
         </div>
@@ -84,32 +84,32 @@ const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
         dragElastic={0.2}
         onDragEnd={handleDragEnd}
         animate={controls}
-        className="bg-black relative h-full z-10 rounded-xl border border-[#FFD700] shadow-[0_0_15px_rgba(255,215,0,0.15)] w-full max-w-full box-border"
+        className="bg-white relative h-full z-10 rounded-xl border border-slate-200 shadow-sm w-full max-w-full box-border"
       >
-        <Card className="hover:border-[#FFD700]/50 transition-all duration-300 h-full border-none shadow-none bg-transparent">
+        <Card className="hover:border-[#C5A028]/50 hover:shadow-md transition-all duration-300 h-full border-none shadow-none bg-transparent">
           <CardContent className="p-5">
             <Link to={createPageUrl(`LeadDetails?id=${lead.id}`)} className="block hover:opacity-80">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-bold text-white hover:underline">
+                  <h3 className="text-lg font-bold text-slate-900 hover:underline">
                     {lead.name}
                   </h3>
                   {lead.shooting_type && (
-                    <p className="text-xs text-slate-400">{lead.shooting_type}</p>
+                    <p className="text-xs text-slate-500">{lead.shooting_type}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
                   {getStatusBadge(lead.status)}
-                  <Button variant="ghost" size="icon" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAction('delete', lead); }} className="h-8 w-8 text-[#FFD700] hover:bg-[#FFD700]/20 hover:text-[#FFD700]">
+                  <Button variant="ghost" size="icon" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAction('delete', lead); }} className="h-8 w-8 text-red-400 hover:bg-red-50 hover:text-red-600">
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
 
               <div className="space-y-3 mb-5">
-                <div className="flex items-center gap-3 text-sm text-slate-300">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#FFD700] to-[#C5A028] flex items-center justify-center shadow-[0_0_10px_rgba(255,215,0,0.4)] shrink-0">
-                    <Phone className="w-4 h-4 text-white" />
+                <div className="flex items-center gap-3 text-sm text-slate-600">
+                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                    <Phone className="w-4 h-4 text-slate-500" />
                   </div>
                   {lead.phone}
                 </div>
@@ -119,7 +119,7 @@ const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
                 
                 <div className="flex items-center gap-3">
                   <div 
-                    className="inline-flex items-center gap-3 text-xs font-bold text-[#FFD700] bg-[#1a1a1a] p-2 rounded-lg cursor-pointer hover:bg-[#2a2a2a] transition-colors border border-[#FFD700]/30" 
+                    className="inline-flex items-center gap-3 text-xs font-bold text-[#C5A028] bg-[#FFD700]/10 p-2 rounded-lg cursor-pointer hover:bg-[#FFD700]/20 transition-colors border border-[#C5A028]/20" 
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAction('ai_assist', lead); }}
                   >
                     <Sparkles className="w-4 h-4" />
@@ -128,9 +128,9 @@ const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
                 </div>
                 
                 {lead.next_follow_up_date && (
-                  <div className="flex items-center gap-3 text-sm text-amber-500 font-bold bg-[#1a1a1a] p-2 rounded-lg border border-amber-500/30">
-                    <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
-                      <Clock className="w-3.5 h-3.5 text-amber-500" />
+                  <div className="flex items-center gap-3 text-sm text-amber-700 font-bold bg-amber-50 p-2 rounded-lg border border-amber-200">
+                    <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                      <Clock className="w-3.5 h-3.5 text-amber-600" />
                     </div>
                     פולו-אפ: {new Date(lead.next_follow_up_date).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' })}
                   </div>
@@ -139,25 +139,25 @@ const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
             </Link>
 
             {/* Quick Actions Row */}
-            <div className="flex flex-col gap-3 pt-4 border-t border-white/10 w-full">
+            <div className="flex flex-col gap-3 pt-4 border-t border-slate-100 w-full">
               <a 
                 href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`היי ${lead.name}, זה נתי גולד, קיבלתי את הפנייה שלך...`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => { e.stopPropagation(); onAction('log_whatsapp', lead); }}
-                className="flex items-center justify-center gap-3 bg-[#FFD700] hover:bg-[#e6c200] text-black shadow-[0_0_15px_rgba(255,215,0,0.3)] px-6 py-2 h-11 transition-all duration-300 font-bold rounded-xl w-full"
+                className="flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#128C7E] text-white shadow-sm px-6 py-2 h-11 transition-all duration-300 font-bold rounded-xl w-full"
               >
-                <MessageCircle className="w-5 h-5 text-black" />
+                <MessageCircle className="w-5 h-5" />
                 <span className="text-sm font-bold tracking-wide">WhatsApp</span>
               </a>
               <div className="flex justify-between w-full">
                 <a href={`tel:${lead.phone}`} onClick={(e) => { e.stopPropagation(); onAction('log_call', lead); }} className="flex-1 mr-2">
-                  <Button variant="ghost" className="h-10 w-full rounded-xl bg-[#1a1a1a] text-slate-300 hover:bg-[#2a2a2a] hover:text-[#FFD700] border border-white/5">
+                  <Button variant="ghost" className="h-10 w-full rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200">
                     <Phone className="w-4 h-4 ml-2" />
                     התקשר
                   </Button>
                 </a>
-                <Button variant="ghost" className="h-10 flex-1 ml-2 rounded-xl bg-[#1a1a1a] text-slate-300 hover:bg-[#2a2a2a] hover:text-[#FFD700] border border-white/5" onClick={(e) => { e.stopPropagation(); onAction('log_manual', lead); }}>
+                <Button variant="ghost" className="h-10 flex-1 ml-2 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200" onClick={(e) => { e.stopPropagation(); onAction('log_manual', lead); }}>
                   <FileText className="w-4 h-4 ml-2" />
                   תיעוד
                 </Button>
@@ -165,7 +165,7 @@ const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
               {lead.status === 'quote_sent' && (
                 <Button 
                   variant="ghost" 
-                  className="h-10 w-full rounded-xl bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border border-orange-500/20"
+                  className="h-10 w-full rounded-xl bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-200"
                   onClick={(e) => { e.stopPropagation(); onAction('contract_reminder', lead); }}
                 >
                   <Bell className="w-4 h-4 ml-2" />
@@ -337,24 +337,18 @@ export default function Leads() {
 
   const getStatusBadge = (status) => {
     const statusMap = {
-      new: { label: 'חדש', icon: Search },
-      in_progress: { label: 'בטיפול', icon: Clock },
-      follow_up: { label: 'מעקב', icon: Phone },
-      quote_sent: { label: 'הצעה נשלחה', icon: FileText },
-      closed_won: { label: 'נסגר בהצלחה', icon: CheckSquare },
-      closed_lost: { label: 'נכשל', icon: Trash2 },
+      new: { label: 'חדש', color: 'bg-blue-100 text-blue-700' },
+      in_progress: { label: 'בטיפול', color: 'bg-yellow-100 text-yellow-700' },
+      follow_up: { label: 'מעקב', color: 'bg-purple-100 text-purple-700' },
+      quote_sent: { label: 'הצעה נשלחה', color: 'bg-indigo-100 text-indigo-700' },
+      closed_won: { label: 'נסגר בהצלחה', color: 'bg-green-100 text-green-700' },
+      closed_lost: { label: 'נכשל', color: 'bg-red-100 text-red-700' },
     };
-    const badge = statusMap[status] || { label: status, icon: Search };
-    const Icon = badge.icon;
+    const badge = statusMap[status] || { label: status, color: 'bg-slate-100 text-slate-700' };
     return (
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#FFD700] to-[#C5A028] flex items-center justify-center shadow-[0_0_10px_rgba(255,215,0,0.4)] shrink-0">
-          <Icon className="w-4 h-4 text-white" />
-        </div>
-        <span className="text-xs font-bold text-[#FFD700] tracking-wide">
-          {badge.label}
-        </span>
-      </div>
+      <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${badge.color}`}>
+        {badge.label}
+      </span>
     );
   };
 
@@ -483,27 +477,27 @@ export default function Leads() {
               מודיעין לפי נייד
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 mt-4 bg-slate-950 p-4 rounded-lg border border-slate-800 text-slate-300">
-            <p className="text-sm font-medium text-white">
+          <div className="space-y-4 mt-4 bg-slate-50 p-4 rounded-lg border border-slate-200 text-slate-600">
+            <p className="text-sm font-medium text-slate-800">
               מזהה מתקשר אוטומטי עבור: {aiLead?.phone}
             </p>
             <div className="space-y-3 text-sm">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                <span>זיהוי משוער: <strong className="text-white">קשור לקול צעקה / עמותות</strong></span>
+                <span>זיהוי משוער: <strong className="text-slate-800">קשור לקול צעקה / עמותות</strong></span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                <span>פניות עבר: <strong className="text-white">לא נמצאו רישומים קודמים</strong></span>
+                <span>פניות עבר: <strong className="text-slate-800">לא נמצאו רישומים קודמים</strong></span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#FFD700]"></span>
-                <span>המלצת AI: <strong className="text-[#FFD700]">מומלץ לבדוק תקציב בתחילת השיחה</strong></span>
+                <span className="w-2 h-2 rounded-full bg-[#C5A028]"></span>
+                <span>המלצת AI: <strong className="text-[#C5A028]">מומלץ לבדוק תקציב בתחילת השיחה</strong></span>
               </div>
             </div>
             <Button 
               onClick={() => setShowAiAssist(false)} 
-              className="w-full bg-[#FFD700] hover:bg-[#e6c200] text-black mt-4"
+              className="w-full mt-4"
             >
               הבנתי, סגור
             </Button>

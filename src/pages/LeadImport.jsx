@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Upload, FileSpreadsheet, MessageCircle, Instagram, Facebook, Mail, Loader2, CheckCircle2 } from 'lucide-react';
+import { Upload, FileSpreadsheet, MessageCircle, Instagram, Facebook, Mail, Loader2, CheckCircle2, Linkedin } from 'lucide-react';
 import { toast } from 'sonner';
 
 const CHANNELS = [
@@ -13,7 +13,8 @@ const CHANNELS = [
   { id: 'whatsapp', label: 'WhatsApp', desc: 'לידים מתוויות/תגיות', icon: MessageCircle, color: 'bg-[#25D366]', available: false },
   { id: 'facebook', label: 'Facebook Ads', desc: 'סנכרון ישיר מ-Lead Ads', icon: Facebook, color: 'bg-blue-600', available: false },
   { id: 'instagram', label: 'Instagram', desc: 'טפסי לידים באינסטגרם', icon: Instagram, color: 'bg-gradient-to-tr from-purple-500 to-pink-500', available: false },
-  { id: 'email', label: 'Email', desc: 'ניתוח אוטומטי של טפסי "צור קשר"', icon: Mail, color: 'bg-red-500', available: false },
+  { id: 'email', label: 'Gmail', desc: 'ניתוח אוטומטי של טפסי "צור קשר"', icon: Mail, color: 'bg-red-500', available: false },
+  { id: 'linkedin', label: 'LinkedIn', desc: 'לידים מקמפיינים ופרופילים', icon: Linkedin, color: 'bg-[#0A66C2]', available: false },
   { id: 'csv', label: 'העלאת קובץ CSV', desc: 'ייבוא ידני מקובץ', icon: Upload, color: 'bg-slate-700', available: true },
 ];
 
@@ -72,17 +73,51 @@ export default function LeadImport() {
       });
 
       if (extracted.status === 'success' && extracted.output?.leads) {
-        const leads = extracted.output.leads.filter(l => l.name && l.phone);
-        if (leads.length > 0) {
-          await base44.entities.Lead.bulkCreate(leads.map(l => ({
-            ...l,
-            status: 'new',
-            source: l.source || 'CSV Import',
-            last_contact_date: new Date().toISOString(),
-          })));
-          setImportResult({ success: true, count: leads.length });
+        const rawLeads = extracted.output.leads.filter(l => l.name && l.phone);
+        if (rawLeads.length > 0) {
+          // Upsert: check for existing leads by phone/email
+          const existingLeads = await base44.entities.Lead.list('-created_date', 500);
+          const existingPhones = new Set(existingLeads.map(l => l.phone?.replace(/[^0-9]/g, '')));
+          const existingEmails = new Set(existingLeads.filter(l => l.email).map(l => l.email.toLowerCase()));
+          
+          const newLeads = [];
+          let updatedCount = 0;
+          
+          for (const l of rawLeads) {
+            const normalizedPhone = l.phone?.replace(/[^0-9]/g, '');
+            const normalizedEmail = l.email?.toLowerCase();
+            const existingByPhone = existingLeads.find(ex => ex.phone?.replace(/[^0-9]/g, '') === normalizedPhone);
+            const existingByEmail = normalizedEmail && existingLeads.find(ex => ex.email?.toLowerCase() === normalizedEmail);
+            const existing = existingByPhone || existingByEmail;
+            
+            if (existing) {
+              // Update existing lead with new data (only non-empty fields)
+              const updateData = {};
+              if (l.shooting_type && !existing.shooting_type) updateData.shooting_type = l.shooting_type;
+              if (l.source && !existing.source) updateData.source = l.source;
+              if (l.notes) updateData.notes = [existing.notes, l.notes].filter(Boolean).join(' | ');
+              if (l.email && !existing.email) updateData.email = l.email;
+              if (Object.keys(updateData).length > 0) {
+                await base44.entities.Lead.update(existing.id, updateData);
+                updatedCount++;
+              }
+            } else {
+              newLeads.push(l);
+            }
+          }
+          
+          if (newLeads.length > 0) {
+            await base44.entities.Lead.bulkCreate(newLeads.map(l => ({
+              ...l,
+              status: 'new',
+              source: l.source || 'CSV Import',
+              last_contact_date: new Date().toISOString(),
+            })));
+          }
+          
+          setImportResult({ success: true, count: newLeads.length, updated: updatedCount });
           queryClient.invalidateQueries({ queryKey: ['leads'] });
-          toast.success(`${leads.length} לידים יובאו בהצלחה`);
+          toast.success(`${newLeads.length} חדשים, ${updatedCount} עודכנו`);
         } else {
           setImportResult({ success: false, error: 'לא נמצאו לידים עם שם וטלפון' });
         }
@@ -100,7 +135,7 @@ export default function LeadImport() {
   return (
     <div className="space-y-6 pb-20" dir="rtl">
       <div>
-        <h1 className="text-3xl font-extrabold text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.4)]">ייבוא לידים</h1>
+        <h1 className="text-3xl font-extrabold text-slate-900">ייבוא לידים</h1>
         <p className="text-slate-500 mt-1">קלוט לידים מכל ערוץ — במקום אחד</p>
       </div>
 
@@ -155,7 +190,10 @@ export default function LeadImport() {
             {importResult && (
               <div className={`p-3 rounded-lg text-sm ${importResult.success ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
                 {importResult.success ? (
-                  <span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" />{importResult.count} לידים יובאו</span>
+                  <span className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4" />
+                    {importResult.count} חדשים{importResult.updated > 0 ? `, ${importResult.updated} עודכנו` : ' יובאו'}
+                  </span>
                 ) : importResult.error}
               </div>
             )}
@@ -203,7 +241,10 @@ export default function LeadImport() {
             {importResult && (
               <div className={`p-3 rounded-lg text-sm ${importResult.success ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
                 {importResult.success ? (
-                  <span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" />{importResult.count} לידים יובאו</span>
+                  <span className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4" />
+                    {importResult.count} חדשים{importResult.updated > 0 ? `, ${importResult.updated} עודכנו` : ''}
+                  </span>
                 ) : importResult.error}
               </div>
             )}
