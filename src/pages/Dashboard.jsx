@@ -152,12 +152,12 @@ export default function Dashboard() {
         {urgentLeads.length > 0 && (() => {
           const oldest = [...urgentLeads].sort((a,b) => new Date(a.created_date) - new Date(b.created_date))[0];
           return (
-            <div className="bg-[#1a1a1a] border border-[#FFD700]/30 shadow-[0_0_15px_rgba(255,215,0,0.15)] rounded-xl p-4 flex items-center justify-between">
+            <div className="bg-red-50 border border-red-200 shadow-sm rounded-xl p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center"><AlertCircle className="w-6 h-6 text-red-500" /></div>
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center"><AlertCircle className="w-6 h-6 text-red-500" /></div>
                 <div>
-                  <h3 className="font-bold text-[#FFD700]">דורש טיפול דחוף</h3>
-                  <p className="text-sm text-slate-300">{urgentLeads.length} לידים ממתינים 24+ שעות</p>
+                  <h3 className="font-bold text-red-700">דורש טיפול דחוף</h3>
+                  <p className="text-sm text-red-500">{urgentLeads.length} לידים ממתינים 24+ שעות</p>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -172,7 +172,7 @@ export default function Dashboard() {
 
         {/* Header */}
         <div className="mb-4 mt-4">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-[#FFD700] mb-1 animate-glow">לוח ניהול</h1>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-1">לוח ניהול</h1>
           <p className="text-sm md:text-base text-slate-500">סקירה מהירה — {user?.full_name || 'Klikly'}</p>
         </div>
 
@@ -182,14 +182,14 @@ export default function Dashboard() {
             const Icon = stat.icon;
             return (
               <Link key={i} to={createPageUrl(stat.link)}>
-                <Card className="bg-[#0a0a0a] border-white/10 hover:border-[#FFD700]/30 transition-all cursor-pointer group rounded-2xl active:scale-[0.98] h-full">
+                <Card className="border border-slate-200 hover:border-[#C5A028] hover:shadow-md transition-all cursor-pointer group rounded-2xl active:scale-[0.98] h-full">
                   <CardContent className="p-4 md:p-5 flex items-center justify-between h-full">
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium text-white/50 truncate">{stat.title}</p>
-                      <p className="text-2xl md:text-3xl font-bold text-white truncate">{stat.value}</p>
+                      <p className="text-xs font-medium text-slate-500 truncate">{stat.title}</p>
+                      <p className="text-2xl md:text-3xl font-bold text-slate-900 truncate">{stat.value}</p>
                     </div>
-                    <div className="w-11 h-11 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-[#FFD700]/10 transition-all flex-shrink-0">
-                      <Icon className="w-5 h-5 text-[#FFD700]" />
+                    <div className="w-11 h-11 rounded-xl bg-[#FFD700]/10 border border-[#FFD700]/20 flex items-center justify-center group-hover:bg-[#FFD700]/20 transition-all flex-shrink-0">
+                      <Icon className="w-5 h-5 text-[#C5A028]" />
                     </div>
                   </CardContent>
                 </Card>
@@ -252,22 +252,22 @@ export default function Dashboard() {
           </Card>
 
           {/* Recent Leads */}
-          <Card className="bg-[#0a0a0a] border-white/10 rounded-2xl">
-            <CardHeader className="border-b border-white/5 pb-3">
-              <CardTitle className="flex items-center gap-2 text-white text-base"><Users className="w-4 h-4 text-[#FFD700]" />לידים אחרונים</CardTitle>
+          <Card className="border rounded-2xl">
+            <CardHeader className="border-b pb-3">
+              <CardTitle className="flex items-center gap-2 text-base"><Users className="w-4 h-4 text-[#C5A028]" />לידים אחרונים</CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
               {recentLeads.length === 0 ? (
-                <p className="text-white/40 text-center py-6 text-sm">אין לידים</p>
+                <p className="text-slate-400 text-center py-6 text-sm">אין לידים</p>
               ) : (
                 <div className="space-y-3">
                   {recentLeads.map(lead => (
                     <Link key={lead.id} to={createPageUrl(`LeadDetails?id=${lead.id}`)}>
-                      <div className="p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all">
+                      <div className="p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-all">
                         <div className="flex items-center justify-between">
                           <div>
-                            <h4 className="font-semibold text-white text-sm">{lead.name}</h4>
-                            <p className="text-xs text-white/40">{lead.shooting_type || lead.source || lead.phone}</p>
+                            <h4 className="font-semibold text-slate-800 text-sm">{lead.name}</h4>
+                            <p className="text-xs text-slate-400">{lead.shooting_type || lead.source || lead.phone}</p>
                           </div>
                           {getStatusBadge(lead.status)}
                         </div>
@@ -277,36 +277,36 @@ export default function Dashboard() {
                 </div>
               )}
               <Link to={createPageUrl('Leads')}>
-                <Button variant="ghost" className="w-full mt-4 text-xs text-[#FFD700] hover:bg-[#FFD700]/10 border border-dashed border-[#FFD700]/30 rounded-lg">כל הלידים ←</Button>
+                <Button variant="ghost" className="w-full mt-4 text-xs text-[#C5A028] hover:bg-[#FFD700]/10 border border-dashed border-[#C5A028]/30 rounded-lg">כל הלידים ←</Button>
               </Link>
             </CardContent>
           </Card>
 
           {/* Upcoming Tasks */}
-          <Card className="bg-[#0a0a0a] border-white/10 rounded-2xl">
-            <CardHeader className="border-b border-white/5 pb-3">
-              <CardTitle className="flex items-center gap-2 text-white text-base"><CheckCircle2 className="w-4 h-4 text-[#FFD700]" />משימות קרובות</CardTitle>
+          <Card className="border rounded-2xl">
+            <CardHeader className="border-b pb-3">
+              <CardTitle className="flex items-center gap-2 text-base"><CheckCircle2 className="w-4 h-4 text-[#C5A028]" />משימות קרובות</CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
               {upcomingTasks.length === 0 ? (
-                <p className="text-white/40 text-center py-6 text-sm">אין משימות</p>
+                <p className="text-slate-400 text-center py-6 text-sm">אין משימות</p>
               ) : (
                 <div className="space-y-3">
                   {upcomingTasks.map(task => (
-                    <div key={task.id} className="p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all">
+                    <div key={task.id} className="p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-all">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-semibold text-white text-sm truncate flex-1">{task.title}</h4>
+                        <h4 className="font-semibold text-slate-800 text-sm truncate flex-1">{task.title}</h4>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          task.priority === 'high' ? 'bg-red-500/20 text-red-400' : task.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400'
+                          task.priority === 'high' ? 'bg-red-100 text-red-600' : task.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-600'
                         }`}>{task.priority === 'high' ? 'דחוף' : task.priority === 'medium' ? 'בינוני' : 'נמוך'}</span>
                       </div>
-                      {task.due_date && <p className="text-xs text-white/40 mt-1 flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(task.due_date).toLocaleDateString('he-IL')}</p>}
+                      {task.due_date && <p className="text-xs text-slate-400 mt-1 flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(task.due_date).toLocaleDateString('he-IL')}</p>}
                     </div>
                   ))}
                 </div>
               )}
               <Link to={createPageUrl('Tasks')}>
-                <Button variant="ghost" className="w-full mt-4 text-xs text-[#FFD700] hover:bg-[#FFD700]/10 border border-dashed border-[#FFD700]/30 rounded-lg">כל המשימות ←</Button>
+                <Button variant="ghost" className="w-full mt-4 text-xs text-[#C5A028] hover:bg-[#FFD700]/10 border border-dashed border-[#C5A028]/30 rounded-lg">כל המשימות ←</Button>
               </Link>
             </CardContent>
           </Card>

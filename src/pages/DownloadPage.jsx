@@ -94,9 +94,19 @@ export default function DownloadPage() {
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="relative z-10 text-center px-4"
       >
-        <div className="w-16 h-16 mx-auto mb-8 rounded-full border border-[#FFD700]/30 bg-black flex items-center justify-center shadow-[0_0_30px_rgba(255,215,0,0.15)]">
-          <Camera className="w-6 h-6 text-[#FFD700]" />
-        </div>
+        {linkData?.cover_image_url ? (
+          <div className="w-32 h-32 md:w-40 md:h-40 mx-auto mb-8 rounded-2xl overflow-hidden border border-[#FFD700]/30 shadow-[0_0_30px_rgba(255,215,0,0.15)]">
+            <img src={linkData.cover_image_url} alt="" className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          <div className="w-16 h-16 mx-auto mb-8 rounded-full border border-[#FFD700]/30 bg-black flex items-center justify-center shadow-[0_0_30px_rgba(255,215,0,0.15)]">
+            <Camera className="w-6 h-6 text-[#FFD700]" />
+          </div>
+        )}
+        
+        {linkData?.client_name && (
+          <p className="text-white/50 text-sm mb-2 tracking-widest uppercase">{linkData.client_name}</p>
+        )}
         
         <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-[#FFD700] mb-4 drop-shadow-[0_0_15px_rgba(255,215,0,0.4)]">
           {linkData?.project_title}

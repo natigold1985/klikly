@@ -14,7 +14,6 @@ import {
   Menu,
   Shield,
   FileText,
-  Camera,
   BookUser,
   UserCog,
   BarChart3
@@ -65,16 +64,16 @@ export default function Layout({ children, currentPageName }) {
         { name: 'הגדרות', icon: SettingsIcon, page: 'Settings' },
       ];
 
-  // Mobile Bottom Navigation Items (Fixed as requested: Dashboard, Leads, Projects, Settings)
+  // Mobile Bottom Navigation Items
   const mobileNavItems = isClient
     ? [
         { name: 'קבצים', icon: Folder, page: 'FileStorage' },
       ]
     : [
-        { name: 'לוח', icon: LayoutDashboard, page: 'Dashboard' },
         { name: 'לידים', icon: Users, page: 'Leads' },
         { name: 'פרויקטים', icon: Briefcase, page: 'Projects' },
-        { name: 'הגדרות', icon: SettingsIcon, page: 'Settings' },
+        { name: 'אחסון', icon: Folder, page: 'FileStorage' },
+        { name: 'משימות', icon: CheckCircle2, page: 'Tasks' },
       ];
 
   // Pages that should render without any nav
@@ -208,28 +207,9 @@ export default function Layout({ children, currentPageName }) {
         className="md:hidden fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-2xl border-t border-white/10 z-50 flex items-stretch shadow-[0_-10px_30px_rgba(0,0,0,0.8)] px-2"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)', height: 'calc(72px + env(safe-area-inset-bottom))' }}
       >
-        {mobileNavItems.map((item, index) => {
+        {mobileNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = pageName === item.page;
-          const isCenter = index === Math.floor(mobileNavItems.length / 2);
-          
-          if (isCenter) {
-            return (
-              <Link
-                key={item.name}
-                to={createPageUrl(item.page)}
-                className="flex-1 flex flex-col items-center justify-center -mt-6 active:scale-95 transition-transform duration-200"
-              >
-                <div className="relative w-14 h-14 rounded-full bg-gradient-to-tr from-[#FFD700] to-[#C5A028] flex items-center justify-center shadow-[0_0_20px_rgba(255,215,0,0.4)] border-4 border-black">
-                  <Camera className="w-6 h-6 text-black" strokeWidth={2.5} />
-                </div>
-                <span className="text-[10px] font-bold tracking-wide text-[#FFD700] mt-1.5">
-                  {item.name}
-                </span>
-              </Link>
-            );
-          }
-
           return (
             <Link
               key={item.name}
