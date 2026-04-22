@@ -8,7 +8,23 @@ Deno.serve(async (req) => {
         
         const { accessToken } = await base44.asServiceRole.connectors.getConnection("googlesheets");
         
-        const spreadsheetId = '1Acz_kFz4d2oGyJflAWyrY4yiAAlbvWVqR7UNgKHCdD4';
+        const body = await req.json();
+        const sheetUrl = body.sheetUrl;
+        
+        // Extract spreadsheet ID from URL or use directly
+        let spreadsheetId;
+        if (sheetUrl && sheetUrl.includes('/spreadsheets/d/')) {
+            const match = sheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+            spreadsheetId = match ? match[1] : null;
+        } else if (sheetUrl && !sheetUrl.includes('/')) {
+            spreadsheetId = sheetUrl; // Direct ID
+        }
+        
+        if (!spreadsheetId) {
+            // Fallback to default sheet
+            spreadsheetId = '1Acz_kFz4d2oGyJflAWyrY4yiAAlbvWVqR7UNgKHCdD4';
+        }
+        
         const range = 'A:Z';
 
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}`;

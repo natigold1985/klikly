@@ -4,9 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { 
-  Plus, Search, Filter, Phone, Mail, Calendar, Bell, Clock, 
-  MessageCircle, FileText, Trash2, CheckSquare, MoreVertical,
-  Sparkles, LayoutGrid, List, Map
+  Plus, Search, Phone, Bell, Clock, 
+  Trash2, Sparkles, LayoutGrid, List, Map
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +32,7 @@ import L from 'leaflet';
 import SourceBadge from '@/components/leads/SourceBadge';
 import LeadTableView from '@/components/leads/LeadTableView';
 import DataActionsToolbar from '@/components/leads/DataActionsToolbar';
+import OutreachActions from '@/components/leads/OutreachActions';
 
 // Fix leaflet icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -139,40 +139,17 @@ const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
             </Link>
 
             {/* Quick Actions Row */}
-            <div className="flex flex-col gap-3 pt-4 border-t border-slate-100 w-full">
-              <a 
-                href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`היי ${lead.name}, זה נתי גולד, קיבלתי את הפנייה שלך...`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => { e.stopPropagation(); onAction('log_whatsapp', lead); }}
-                className="flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#128C7E] text-white shadow-sm px-6 py-2 h-11 transition-all duration-300 font-bold rounded-xl w-full"
+            <OutreachActions lead={lead} onLog={onAction} />
+            {lead.status === 'quote_sent' && (
+              <Button 
+                variant="ghost" 
+                className="h-10 w-full mt-2 rounded-xl bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-200"
+                onClick={(e) => { e.stopPropagation(); onAction('contract_reminder', lead); }}
               >
-                <MessageCircle className="w-5 h-5" />
-                <span className="text-sm font-bold tracking-wide">WhatsApp</span>
-              </a>
-              <div className="flex justify-between w-full">
-                <a href={`tel:${lead.phone}`} onClick={(e) => { e.stopPropagation(); onAction('log_call', lead); }} className="flex-1 mr-2">
-                  <Button variant="ghost" className="h-10 w-full rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200">
-                    <Phone className="w-4 h-4 ml-2" />
-                    התקשר
-                  </Button>
-                </a>
-                <Button variant="ghost" className="h-10 flex-1 ml-2 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200" onClick={(e) => { e.stopPropagation(); onAction('log_manual', lead); }}>
-                  <FileText className="w-4 h-4 ml-2" />
-                  תיעוד
-                </Button>
-              </div>
-              {lead.status === 'quote_sent' && (
-                <Button 
-                  variant="ghost" 
-                  className="h-10 w-full rounded-xl bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-200"
-                  onClick={(e) => { e.stopPropagation(); onAction('contract_reminder', lead); }}
-                >
-                  <Bell className="w-4 h-4 ml-2" />
-                  תזכורת חוזה
-                </Button>
-              )}
-            </div>
+                <Bell className="w-4 h-4 ml-2" />
+                תזכורת חוזה
+              </Button>
+            )}
           </CardContent>
         </Card>
       </motion.div>

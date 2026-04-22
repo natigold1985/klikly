@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Upload, FileSpreadsheet, MessageCircle, Instagram, Facebook, Mail, Loader2, CheckCircle2, Linkedin } from 'lucide-react';
+import { Upload, FileSpreadsheet, MessageCircle, Instagram, Facebook, Mail, Loader2, CheckCircle2, Linkedin, RefreshCw, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
 const CHANNELS = [
@@ -23,7 +23,32 @@ export default function LeadImport() {
   const [sheetUrl, setSheetUrl] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
+  const [syncStatus, setSyncStatus] = useState({});
+  const [syncingChannel, setSyncingChannel] = useState(null);
   const queryClient = useQueryClient();
+
+  // Load last sync timestamps from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('leadImport_syncStatus');
+    if (saved) setSyncStatus(JSON.parse(saved));
+  }, []);
+
+  const updateSyncStatus = (channelId) => {
+    const updated = { ...syncStatus, [channelId]: new Date().toISOString() };
+    setSyncStatus(updated);
+    localStorage.setItem('leadImport_syncStatus', JSON.stringify(updated));
+  };
+
+  const formatLastSync = (iso) => {
+    if (!iso) return null;
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'עכשיו';
+    if (mins < 60) return `לפני ${mins} דק׳`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `לפני ${hours} שעות`;
+    return `לפני ${Math.floor(hours / 24)} ימים`;
+  };
 
   const handleSheetsImport = async () => {
     if (!sheetUrl) return;
@@ -31,9 +56,10 @@ export default function LeadImport() {
     setImportResult(null);
     try {
       const res = await base44.functions.invoke('syncFromGoogleSheets', { sheetUrl });
-      setImportResult({ success: true, count: res.data?.imported || 0 });
+      setImportResult({ success: true, count: res.data?.added || 0, updated: res.data?.updated || 0 });
+      updateSyncStatus('sheets');
       queryClient.invalidateQueries({ queryKey: ['leads'] });
-      toast.success(`${res.data?.imported || 0} לידים יובאו בהצלחה`);
+      toast.success(`${res.data?.added || 0} חדשים, ${res.data?.updated || 0} עודכנו`);
     } catch (e) {
       setImportResult({ success: false, error: e.message });
       toast.error('שגיאה בייבוא: ' + e.message);
@@ -116,6 +142,7 @@ export default function LeadImport() {
           }
           
           setImportResult({ success: true, count: newLeads.length, updated: updatedCount });
+          updateSyncStatus('csv');
           queryClient.invalidateQueries({ queryKey: ['leads'] });
           toast.success(`${newLeads.length} חדשים, ${updatedCount} עודכנו`);
         } else {
@@ -143,14 +170,16 @@ export default function LeadImport() {
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {CHANNELS.map(ch => {
           const Icon = ch.icon;
+          const lastSync = syncStatus[ch.id];
+          const lastSyncLabel = formatLastSync(lastSync);
           return (
             <Card
               key={ch.id}
               className={`border rounded-2xl transition-all cursor-pointer group ${
                 ch.available
-                  ? 'hover:border-[#FFD700]/40 hover:shadow-lg active:scale-[0.98]'
+                  ? 'hover:border-[#C5A028]/40 hover:shadow-lg active:scale-[0.98]'
                   : 'opacity-50 cursor-not-allowed'
-              } ${activeChannel === ch.id ? 'border-[#FFD700] shadow-[0_0_15px_rgba(255,215,0,0.15)]' : ''}`}
+              } ${activeChannel === ch.id ? 'border-[#C5A028] shadow-md' : ''}`}
               onClick={() => ch.available && setActiveChannel(ch.id)}
             >
               <CardContent className="p-5 flex flex-col items-center text-center gap-3">
@@ -161,7 +190,17 @@ export default function LeadImport() {
                   <p className="font-bold text-sm text-slate-800">{ch.label}</p>
                   <p className="text-xs text-slate-500 mt-0.5">{ch.desc}</p>
                 </div>
-                {!ch.available && (
+                {ch.available && lastSyncLabel ? (
+                  <span className="text-[10px] bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    סונכרן {lastSyncLabel}
+                  </span>
+                ) : ch.available ? (
+                  <span className="text-[10px] bg-blue-50 text-blue-600 border border-blue-200 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                    <RefreshCw className="w-3 h-3" />
+                    סנכרן עכשיו
+                  </span>
+                ) : (
                   <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium">בקרוב</span>
                 )}
               </CardContent>
