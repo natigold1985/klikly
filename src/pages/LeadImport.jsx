@@ -5,16 +5,32 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Upload, FileSpreadsheet, MessageCircle, Instagram, Facebook, Mail, Loader2, CheckCircle2, Linkedin, RefreshCw, Clock } from 'lucide-react';
+import { Upload, FileSpreadsheet, MessageCircle, Instagram, Facebook, Mail, Loader2, CheckCircle2, Linkedin, RefreshCw, Clock, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+
+const AI_CHANNELS = ['facebook', 'instagram', 'whatsapp', 'email', 'linkedin'];
+const AI_CHANNEL_LABELS = {
+  facebook: 'Facebook',
+  instagram: 'Instagram',
+  whatsapp: 'WhatsApp',
+  email: 'Gmail',
+  linkedin: 'LinkedIn',
+};
+const AI_CHANNEL_HINTS = {
+  facebook: 'הדבק כאן טקסט מ-Lead Ads, הודעות פייסבוק, או פוסטים שכוללים פרטי לקוחות',
+  instagram: 'הדבק כאן הודעות DM, תגובות, או טפסי לידים מאינסטגרם',
+  whatsapp: 'הדבק כאן שיחות ווטסאפ, או רשימת שמות ומספרים מקבוצות',
+  email: 'הדבק כאן תוכן מיילים, טפסי "צור קשר", או רשימות מנויים',
+  linkedin: 'הדבק כאן הודעות InMail, פניות, או פרופילים מ-LinkedIn',
+};
 
 const CHANNELS = [
   { id: 'sheets', label: 'Google Sheets', desc: 'ייבוא גורף מגיליון', icon: FileSpreadsheet, color: 'bg-green-500', available: true },
-  { id: 'whatsapp', label: 'WhatsApp', desc: 'לידים מתוויות/תגיות', icon: MessageCircle, color: 'bg-[#25D366]', available: false },
-  { id: 'facebook', label: 'Facebook Ads', desc: 'סנכרון ישיר מ-Lead Ads', icon: Facebook, color: 'bg-blue-600', available: false },
-  { id: 'instagram', label: 'Instagram', desc: 'טפסי לידים באינסטגרם', icon: Instagram, color: 'bg-gradient-to-tr from-purple-500 to-pink-500', available: false },
-  { id: 'email', label: 'Gmail', desc: 'ניתוח אוטומטי של טפסי "צור קשר"', icon: Mail, color: 'bg-red-500', available: false },
-  { id: 'linkedin', label: 'LinkedIn', desc: 'לידים מקמפיינים ופרופילים', icon: Linkedin, color: 'bg-[#0A66C2]', available: false },
+  { id: 'facebook', label: 'Facebook Ads', desc: 'הדבק טקסט מ-Lead Ads / פוסטים', icon: Facebook, color: 'bg-blue-600', available: true },
+  { id: 'instagram', label: 'Instagram', desc: 'הדבק הודעות / DMs מאינסטגרם', icon: Instagram, color: 'bg-gradient-to-tr from-purple-500 to-pink-500', available: true },
+  { id: 'whatsapp', label: 'WhatsApp', desc: 'הדבק שיחות ווטסאפ עם לידים', icon: MessageCircle, color: 'bg-[#25D366]', available: true },
+  { id: 'email', label: 'Gmail', desc: 'הדבק טפסי "צור קשר" מהמייל', icon: Mail, color: 'bg-red-500', available: true },
+  { id: 'linkedin', label: 'LinkedIn', desc: 'הדבק הודעות / InMail', icon: Linkedin, color: 'bg-[#0A66C2]', available: true },
   { id: 'csv', label: 'העלאת קובץ CSV', desc: 'ייבוא ידני מקובץ', icon: Upload, color: 'bg-slate-700', available: true },
 ];
 
@@ -159,6 +175,90 @@ export default function LeadImport() {
     }
   };
 
+  const [pasteText, setPasteText] = useState('');
+
+  const handleAiImport = async (channelId) => {
+    if (!pasteText.trim()) return;
+    setIsImporting(true);
+    setImportResult(null);
+    try {
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `Extract leads from this ${AI_CHANNEL_LABELS[channelId]} content. Find names, phone numbers, emails, and any context about what photography service they need.
+        
+Content:
+${pasteText}
+
+Return ONLY valid leads that have at least a name AND a phone number.`,
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            leads: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  phone: { type: 'string' },
+                  email: { type: 'string' },
+                  shooting_type: { type: 'string' },
+                  notes: { type: 'string' },
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const leads = (result.leads || []).filter(l => l.name && l.phone);
+      if (leads.length === 0) {
+        setImportResult({ success: false, error: 'לא נמצאו לידים עם שם וטלפון בטקסט' });
+        return;
+      }
+
+      // Upsert logic
+      const existingLeads = await base44.entities.Lead.list('-created_date', 500);
+      const newLeads = [];
+      let updatedCount = 0;
+
+      for (const l of leads) {
+        const normalizedPhone = l.phone?.replace(/[^0-9]/g, '');
+        const existing = existingLeads.find(ex => ex.phone?.replace(/[^0-9]/g, '') === normalizedPhone);
+        if (existing) {
+          const updateData = {};
+          if (l.shooting_type && !existing.shooting_type) updateData.shooting_type = l.shooting_type;
+          if (l.notes) updateData.notes = [existing.notes, l.notes].filter(Boolean).join(' | ');
+          if (l.email && !existing.email) updateData.email = l.email;
+          if (Object.keys(updateData).length > 0) {
+            await base44.entities.Lead.update(existing.id, updateData);
+            updatedCount++;
+          }
+        } else {
+          newLeads.push(l);
+        }
+      }
+
+      if (newLeads.length > 0) {
+        await base44.entities.Lead.bulkCreate(newLeads.map(l => ({
+          ...l,
+          status: 'new',
+          source: AI_CHANNEL_LABELS[channelId],
+          last_contact_date: new Date().toISOString(),
+        })));
+      }
+
+      setImportResult({ success: true, count: newLeads.length, updated: updatedCount });
+      updateSyncStatus(channelId);
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      toast.success(`${newLeads.length} חדשים, ${updatedCount} עודכנו`);
+      setPasteText('');
+    } catch (e) {
+      setImportResult({ success: false, error: e.message });
+      toast.error('שגיאה בעיבוד: ' + e.message);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-20" dir="rtl">
       <div>
@@ -290,6 +390,43 @@ export default function LeadImport() {
           </div>
         </DialogContent>
       </Dialog>
+      {/* AI Paste Import Dialog (for Facebook, Instagram, WhatsApp, Gmail, LinkedIn) */}
+      {AI_CHANNELS.map(chId => (
+        <Dialog key={chId} open={activeChannel === chId} onOpenChange={(open) => { if (!open) { setActiveChannel(null); setImportResult(null); } }}>
+          <DialogContent className="sm:max-w-[520px]" dir="rtl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-[#C5A028]" />
+                ייבוא AI מ-{AI_CHANNEL_LABELS[chId]}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-2">
+              <p className="text-sm text-slate-600">{AI_CHANNEL_HINTS[chId]}</p>
+              <textarea
+                value={pasteText}
+                onChange={(e) => setPasteText(e.target.value)}
+                placeholder="הדבק טקסט כאן..."
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-[#FFD700] focus:outline-none min-h-[160px] resize-y"
+                dir="auto"
+              />
+              {importResult && (
+                <div className={`p-3 rounded-lg text-sm ${importResult.success ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                  {importResult.success ? (
+                    <span className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4" />
+                      {importResult.count} חדשים{importResult.updated > 0 ? `, ${importResult.updated} עודכנו` : ''}
+                    </span>
+                  ) : importResult.error}
+                </div>
+              )}
+              <Button onClick={() => handleAiImport(chId)} disabled={!pasteText.trim() || isImporting} className="w-full gap-2">
+                {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                נתח וייבא לידים
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      ))}
     </div>
   );
 }

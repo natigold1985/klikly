@@ -123,17 +123,17 @@ export default function FileStorage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="bg-slate-100 p-1 grid grid-cols-5 gap-1">
+        <TabsList className="bg-slate-100 p-1 flex flex-wrap gap-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <TabsTrigger
                 key={tab.id}
                 value={tab.id}
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#D4AF37] data-[state=active]:to-[#C5A028] data-[state=active]:text-black"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#D4AF37] data-[state=active]:to-[#C5A028] data-[state=active]:text-black flex-1 min-w-[calc(50%-4px)] sm:min-w-0 text-xs sm:text-sm"
               >
-                <Icon className="w-4 h-4 ml-2" />
-                {tab.label}
+                <Icon className="w-4 h-4 ml-1 sm:ml-2 shrink-0" />
+                <span className="truncate">{tab.label}</span>
               </TabsTrigger>
             );
           })}
