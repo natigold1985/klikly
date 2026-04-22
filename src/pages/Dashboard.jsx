@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import LeadRadarWidget from '@/components/dashboard/LeadRadarWidget';
 
 export default function Dashboard() {
   const { data: user } = useQuery({
@@ -228,6 +229,9 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* AI Lead Radar */}
+        <LeadRadarWidget />
 
         {/* Mini Chart + Lists */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

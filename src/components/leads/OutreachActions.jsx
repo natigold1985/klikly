@@ -7,6 +7,7 @@ const TEMPLATES = {
     facebook: (name, type) => `היי ${name}, ראיתי שפנית אלינו דרך פייסבוק בנושא ${type || 'צילום'}. אשמח לשמוע עוד ולשלוח לך הצעת מחיר 📸`,
     instagram: (name, type) => `היי ${name} 👋 תודה שפנית דרך אינסטגרם! אשמח לדבר על ${type || 'הצילום'} שמעניין אותך`,
     google: (name, type) => `היי ${name}, קיבלתי את הפנייה שלך. אשמח לעזור עם ${type || 'צילום'}. מתי נוח לשיחה קצרה?`,
+    linkedin: (name, type) => `היי ${name}, ראיתי את הפנייה שלך דרך LinkedIn בנוגע ל${type || 'צילום'}. אשמח לדבר ולשלוח הצעה מותאמת 📷`,
     default: (name, type) => `היי ${name}, קיבלתי את הפנייה שלך בנוגע ל${type || 'צילום'}. אשמח לחזור אליך עם פרטים נוספים 📸`,
   },
   email: {
@@ -21,6 +22,7 @@ function getSourceKey(source) {
   if (lower.includes('facebook') || lower.includes('fb') || lower.includes('פייסבוק')) return 'facebook';
   if (lower.includes('instagram') || lower.includes('ig') || lower.includes('אינסטגרם')) return 'instagram';
   if (lower.includes('google') || lower.includes('sheets') || lower.includes('גוגל')) return 'google';
+  if (lower.includes('linkedin') || lower.includes('לינקדאין')) return 'linkedin';
   return 'default';
 }
 

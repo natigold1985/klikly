@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileSpreadsheet, MessageCircle, Instagram, Facebook, Mail, Globe, User } from 'lucide-react';
+import { FileSpreadsheet, MessageCircle, Instagram, Facebook, Mail, Globe, User, Linkedin } from 'lucide-react';
 
 const SOURCE_CONFIG = {
   google: { icon: FileSpreadsheet, label: 'Google', color: 'bg-green-500' },
@@ -12,6 +12,7 @@ const SOURCE_CONFIG = {
   wa: { icon: MessageCircle, label: 'WhatsApp', color: 'bg-[#25D366]' },
   email: { icon: Mail, label: 'Email', color: 'bg-red-500' },
   csv: { icon: FileSpreadsheet, label: 'CSV', color: 'bg-slate-600' },
+  linkedin: { icon: Linkedin, label: 'LinkedIn', color: 'bg-[#0A66C2]' },
   website: { icon: Globe, label: 'אתר', color: 'bg-indigo-500' },
   referral: { icon: User, label: 'המלצה', color: 'bg-amber-500' },
 };
@@ -27,6 +28,7 @@ function getSourceKey(source) {
   if (lower.includes('פייסבוק')) return 'facebook';
   if (lower.includes('אינסטגרם')) return 'instagram';
   if (lower.includes('ווטסאפ')) return 'whatsapp';
+  if (lower.includes('לינקדאין')) return 'linkedin';
   return null;
 }
 
