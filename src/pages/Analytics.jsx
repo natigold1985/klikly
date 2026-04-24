@@ -119,12 +119,26 @@ export default function Analytics() {
     { title: 'פרויקטים פעילים', value: projects.filter(p => !['completed'].includes(p.status)).length, subtitle: `סה"כ: ${projects.length}`, icon: Briefcase, color: 'from-teal-500 to-green-500' },
   ];
 
+  const hasData = totalLeads > 0 || projects.length > 0;
+
   return (
     <div className="space-y-6 pb-20" dir="rtl">
       <div>
-        <h1 className="text-3xl font-extrabold text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.4)]">אנליטיקס</h1>
-        <p className="text-slate-500 mt-1">ביצועי העסק שלך בזמן אמת</p>
+        <h1 className="text-3xl font-extrabold text-slate-900">אנליטיקס</h1>
+        <p className="text-slate-500 mt-1">ביצועי העסק שלך — מבוסס על הלידים, הפרויקטים והמסירות שלך במערכת</p>
       </div>
+      
+      {!hasData && (
+        <Card className="border border-amber-200 bg-amber-50 rounded-2xl">
+          <CardContent className="p-5 flex items-center gap-3">
+            <Target className="w-8 h-8 text-amber-600 shrink-0" />
+            <div>
+              <p className="font-bold text-amber-800 text-sm">אין עדיין מספיק נתונים</p>
+              <p className="text-xs text-amber-600">הגרפים יתמלאו אוטומטית ברגע שתוסיף לידים, פרויקטים, ותשלח גלריות ללקוחות. כל הנתונים נלקחים מהמידע שאתה מזין במערכת.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

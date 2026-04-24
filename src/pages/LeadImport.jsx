@@ -286,8 +286,19 @@ Return ONLY valid leads that have at least a name AND a phone number.`,
     <div className="space-y-6 pb-20" dir="rtl">
       <div>
         <h1 className="text-3xl font-extrabold text-slate-900">ייבוא לידים</h1>
-        <p className="text-slate-500 mt-1">קלוט לידים מכל ערוץ — במקום אחד</p>
+        <p className="text-slate-500 mt-1">בחר ערוץ, הדבק טקסט או חבר חשבון — ה-AI מחלץ את הלידים אוטומטית</p>
       </div>
+      <Card className="border border-blue-100 bg-blue-50/50 rounded-2xl">
+        <CardContent className="p-4 flex items-start gap-3">
+          <Sparkles className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+          <div className="text-xs text-blue-700">
+            <p className="font-bold text-sm text-blue-800 mb-1">איך זה עובד?</p>
+            <p><strong>Gmail סריקה חיה</strong> — מחובר ל-Gmail שלך, סורק מיילים חדשים אוטומטית ומזהה פניות צילום.</p>
+            <p><strong>Google Sheets</strong> — מתחבר לגיליון ומייבא שורות אוטומטית (צריך URL של גיליון).</p>
+            <p><strong>הערוצים האחרים</strong> — הדבק טקסט מכל מקור (פייסבוק, ווטסאפ, אינסטגרם, LinkedIn) וה-AI יחלץ ממנו שמות, טלפונים ומיילים.</p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Channel Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">

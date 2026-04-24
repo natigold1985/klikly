@@ -104,10 +104,10 @@ export default function Tasks() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.4)] tracking-wider">
+          <h1 className="text-2xl font-extrabold text-slate-900">
             משימות
           </h1>
-          <p className="text-slate-600 mt-1">נהל את המשימות וה-Follow up שלך</p>
+          <p className="text-slate-500 text-sm mt-0.5">נהל משימות ו-Follow Up — מסודר לפי תאריך ודחיפות</p>
         </div>
         <Dialog open={showNewTaskDialog} onOpenChange={setShowNewTaskDialog}>
           <DialogTrigger asChild>

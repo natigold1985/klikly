@@ -124,11 +124,31 @@ export default function Quotes() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900">הצעות מחיר</h1>
-          <p className="text-slate-500 text-sm mt-0.5">צור, ערוך ושלח הצעות מחיר ללקוחות</p>
+          <p className="text-slate-500 text-sm mt-0.5">צור, ערוך ושלח הצעות מחיר — הלקוח מקבל קישור לאישור ישיר</p>
         </div>
         <Button size="sm" className="gap-1.5" onClick={() => { setEditingQuote(null); setShowEditor(true); }}>
           <Plus className="w-4 h-4" /> הצעה חדשה
         </Button>
+      </div>
+      
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
+          <p className="text-xs text-blue-600 font-medium">נשלחו</p>
+          <p className="text-xl font-bold text-blue-800">{quotes.filter(q => q.status === 'sent').length}</p>
+        </div>
+        <div className="bg-purple-50 border border-purple-100 rounded-xl p-3 text-center">
+          <p className="text-xs text-purple-600 font-medium">נצפו</p>
+          <p className="text-xl font-bold text-purple-800">{quotes.filter(q => q.status === 'viewed').length}</p>
+        </div>
+        <div className="bg-green-50 border border-green-100 rounded-xl p-3 text-center">
+          <p className="text-xs text-green-600 font-medium">אושרו</p>
+          <p className="text-xl font-bold text-green-800">{quotes.filter(q => q.status === 'accepted').length}</p>
+        </div>
+        <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-center">
+          <p className="text-xs text-amber-600 font-medium">סה"כ שווי</p>
+          <p className="text-xl font-bold text-amber-800">₪{quotes.reduce((s, q) => s + (q.total_price || 0), 0).toLocaleString()}</p>
+        </div>
       </div>
 
       <div className="relative">

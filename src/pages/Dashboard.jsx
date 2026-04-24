@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import LeadRadarWidget from '@/components/dashboard/LeadRadarWidget';
+import TaskBoard from '@/components/dashboard/TaskBoard';
 
 export default function Dashboard() {
   const { data: user } = useQuery({
@@ -53,7 +54,7 @@ export default function Dashboard() {
 
   const { data: tasks = [] } = useQuery({
     queryKey: ['dashboard_tasks', user?.email],
-    queryFn: () => base44.entities.Task.filter({ status: 'pending' }, '-due_date', 50),
+    queryFn: () => base44.entities.Task.list('-due_date', 100),
     enabled: !!user && !isClient,
   });
 
@@ -230,11 +231,14 @@ export default function Dashboard() {
           </Card>
         </div>
 
+        {/* Task Board — front and center */}
+        <TaskBoard tasks={tasks} />
+
         {/* AI Lead Radar */}
         <LeadRadarWidget />
 
-        {/* Mini Chart + Lists */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Mini Chart + Recent Leads */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Weekly Leads Chart */}
           <Card className="border rounded-2xl">
             <CardHeader className="pb-2">
@@ -282,35 +286,6 @@ export default function Dashboard() {
               )}
               <Link to={createPageUrl('Leads')}>
                 <Button variant="ghost" className="w-full mt-4 text-xs text-[#C5A028] hover:bg-[#FFD700]/10 border border-dashed border-[#C5A028]/30 rounded-lg">כל הלידים ←</Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          {/* Upcoming Tasks */}
-          <Card className="border rounded-2xl">
-            <CardHeader className="border-b pb-3">
-              <CardTitle className="flex items-center gap-2 text-base"><CheckCircle2 className="w-4 h-4 text-[#C5A028]" />משימות קרובות</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              {upcomingTasks.length === 0 ? (
-                <p className="text-slate-400 text-center py-6 text-sm">אין משימות</p>
-              ) : (
-                <div className="space-y-3">
-                  {upcomingTasks.map(task => (
-                    <div key={task.id} className="p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-all">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-semibold text-slate-800 text-sm truncate flex-1">{task.title}</h4>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          task.priority === 'high' ? 'bg-red-100 text-red-600' : task.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-600'
-                        }`}>{task.priority === 'high' ? 'דחוף' : task.priority === 'medium' ? 'בינוני' : 'נמוך'}</span>
-                      </div>
-                      {task.due_date && <p className="text-xs text-slate-400 mt-1 flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(task.due_date).toLocaleDateString('he-IL')}</p>}
-                    </div>
-                  ))}
-                </div>
-              )}
-              <Link to={createPageUrl('Tasks')}>
-                <Button variant="ghost" className="w-full mt-4 text-xs text-[#C5A028] hover:bg-[#FFD700]/10 border border-dashed border-[#C5A028]/30 rounded-lg">כל המשימות ←</Button>
               </Link>
             </CardContent>
           </Card>

@@ -51,16 +51,21 @@ export default function LeadRadarWidget() {
   return (
     <Card className="border rounded-2xl border-[#C5A028]/30 bg-gradient-to-br from-[#FFD700]/5 to-white">
       <CardHeader className="pb-3 flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Radar className="w-5 h-5 text-[#C5A028]" />
-          רדאר לידים AI
-        </CardTitle>
+        <div>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Radar className="w-5 h-5 text-[#C5A028]" />
+            רדאר לידים AI
+          </CardTitle>
+          <p className="text-[11px] text-slate-400 mt-1">
+            סורק פורומים, קבוצות פייסבוק, לוחות דרושים ורשתות חברתיות — אוטומטית פעמיים ביום (09:00 ו-21:00)
+          </p>
+        </div>
         <Button
           size="sm"
           variant="outline"
           onClick={handleScan}
           disabled={isScanning}
-          className="gap-1.5 border-[#C5A028]/30 text-[#C5A028] hover:bg-[#FFD700]/10"
+          className="gap-1.5 border-[#C5A028]/30 text-[#C5A028] hover:bg-[#FFD700]/10 shrink-0"
         >
           {isScanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
           סרוק עכשיו
@@ -70,7 +75,8 @@ export default function LeadRadarWidget() {
         {potentialLeads.length === 0 ? (
           <div className="text-center py-6 text-slate-400 text-sm">
             <Radar className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-            <p>לחץ "סרוק עכשיו" כדי לחפש לידים פוטנציאליים ברשת</p>
+            <p>הרדאר סורק אוטומטית את הרשת בחיפוש אנשים שמחפשים צלם.</p>
+            <p className="text-xs mt-1">תוצאות חדשות יופיעו כאן. אפשר גם ללחוץ "סרוק עכשיו".</p>
           </div>
         ) : (
           <div className="space-y-3">

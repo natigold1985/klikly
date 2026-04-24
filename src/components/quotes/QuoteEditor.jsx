@@ -3,7 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2, Save } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Trash2, Save, UserCheck } from 'lucide-react';
 
 export default function QuoteEditor({ quote, onSave, onCancel }) {
   const { data: settings } = useQuery({
@@ -13,6 +14,11 @@ export default function QuoteEditor({ quote, onSave, onCancel }) {
       return all[0] || null;
     },
     staleTime: 1000 * 60 * 5,
+  });
+
+  const { data: leads = [] } = useQuery({
+    queryKey: ['quoteEditorLeads'],
+    queryFn: () => base44.entities.Lead.list('-created_date', 100),
   });
 
   const [form, setForm] = useState({
@@ -61,6 +67,38 @@ export default function QuoteEditor({ quote, onSave, onCancel }) {
             <p className="font-bold text-slate-800">{settings.business_name}</p>
             <p className="text-xs text-slate-500">{settings.phone} • {settings.email}</p>
           </div>
+        </div>
+      )}
+
+      {/* Quick Lead Select */}
+      {!quote && leads.length > 0 && (
+        <div>
+          <label className="text-sm font-medium text-slate-700 mb-1 flex items-center gap-1.5">
+            <UserCheck className="w-4 h-4 text-[#C5A028]" />
+            מלא מליד קיים (אופציונלי)
+          </label>
+          <Select onValueChange={(leadId) => {
+            const lead = leads.find(l => l.id === leadId);
+            if (lead) {
+              setForm(prev => ({
+                ...prev,
+                client_name: lead.name || prev.client_name,
+                client_email: lead.email || prev.client_email,
+                package_name: lead.shooting_type ? `חבילת ${lead.shooting_type}` : prev.package_name,
+              }));
+            }
+          }}>
+            <SelectTrigger className="text-sm">
+              <SelectValue placeholder="בחר ליד..." />
+            </SelectTrigger>
+            <SelectContent dir="rtl">
+              {leads.map(lead => (
+                <SelectItem key={lead.id} value={lead.id}>
+                  {lead.name} — {lead.phone} {lead.shooting_type ? `(${lead.shooting_type})` : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       )}
 
