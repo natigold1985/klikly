@@ -25,11 +25,12 @@ const AI_CHANNEL_HINTS = {
 };
 
 const CHANNELS = [
+  { id: 'gmail_auto', label: 'Gmail סריקה חיה', desc: 'סריקת AI אוטומטית של תיבת המייל', icon: Mail, color: 'bg-red-600', available: true },
   { id: 'sheets', label: 'Google Sheets', desc: 'ייבוא גורף מגיליון', icon: FileSpreadsheet, color: 'bg-green-500', available: true },
   { id: 'facebook', label: 'Facebook Ads', desc: 'הדבק טקסט מ-Lead Ads / פוסטים', icon: Facebook, color: 'bg-blue-600', available: true },
   { id: 'instagram', label: 'Instagram', desc: 'הדבק הודעות / DMs מאינסטגרם', icon: Instagram, color: 'bg-gradient-to-tr from-purple-500 to-pink-500', available: true },
   { id: 'whatsapp', label: 'WhatsApp', desc: 'הדבק שיחות ווטסאפ עם לידים', icon: MessageCircle, color: 'bg-[#25D366]', available: true },
-  { id: 'email', label: 'Gmail', desc: 'הדבק טפסי "צור קשר" מהמייל', icon: Mail, color: 'bg-red-500', available: true },
+  { id: 'email', label: 'Gmail (ידני)', desc: 'הדבק טפסי "צור קשר" מהמייל', icon: Mail, color: 'bg-red-500', available: true },
   { id: 'linkedin', label: 'LinkedIn', desc: 'הדבק הודעות / InMail', icon: Linkedin, color: 'bg-[#0A66C2]', available: true },
   { id: 'csv', label: 'העלאת קובץ CSV', desc: 'ייבוא ידני מקובץ', icon: Upload, color: 'bg-slate-700', available: true },
 ];
@@ -176,6 +177,28 @@ export default function LeadImport() {
   };
 
   const [pasteText, setPasteText] = useState('');
+  const [gmailScanning, setGmailScanning] = useState(false);
+
+  const handleGmailScan = async () => {
+    setGmailScanning(true);
+    setImportResult(null);
+    try {
+      const res = await base44.functions.invoke('scanGmailLeads', {});
+      setImportResult({ 
+        success: true, 
+        count: res.data?.saved || 0, 
+        updated: res.data?.updated || 0 
+      });
+      updateSyncStatus('gmail_auto');
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      toast.success(`נסרקו ${res.data?.found || 0} מיילים — ${res.data?.saved || 0} לידים חדשים`);
+    } catch (e) {
+      setImportResult({ success: false, error: e.message });
+      toast.error('שגיאה בסריקת Gmail');
+    } finally {
+      setGmailScanning(false);
+    }
+  };
 
   const handleAiImport = async (channelId) => {
     if (!pasteText.trim()) return;
@@ -308,6 +331,42 @@ Return ONLY valid leads that have at least a name AND a phone number.`,
           );
         })}
       </div>
+
+      {/* Gmail Auto Scan */}
+      <Dialog open={activeChannel === 'gmail_auto'} onOpenChange={(open) => !open && setActiveChannel(null)}>
+        <DialogContent className="sm:max-w-[480px]" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5 text-red-600" />
+              סריקת Gmail חיה (AI)
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <p className="text-sm text-slate-600">
+              סריקה אוטומטית של תיבת Gmail שלך לזיהוי פניות צילום, טפסי "צור קשר", והרשמות.
+              הסריקה גם רצה אוטומטית כל פעם שנכנס מייל חדש.
+            </p>
+            <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-sm text-green-700 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              Gmail מחובר — סריקה אוטומטית פעילה
+            </div>
+            {importResult && (
+              <div className={`p-3 rounded-lg text-sm ${importResult.success ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                {importResult.success ? (
+                  <span className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4" />
+                    {importResult.count} חדשים{importResult.updated > 0 ? `, ${importResult.updated} עודכנו` : ''}
+                  </span>
+                ) : importResult.error}
+              </div>
+            )}
+            <Button onClick={handleGmailScan} disabled={gmailScanning} className="w-full gap-2">
+              {gmailScanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              סרוק עכשיו
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Google Sheets Import */}
       <Dialog open={activeChannel === 'sheets'} onOpenChange={(open) => !open && setActiveChannel(null)}>

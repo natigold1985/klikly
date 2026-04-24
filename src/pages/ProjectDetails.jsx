@@ -6,7 +6,7 @@ import { createPageUrl } from '@/utils';
 import { 
   ArrowRight, Phone, Mail, Calendar, MapPin, 
   DollarSign, CheckCircle2, ListTodo, Download, Eye, Upload,
-  Link as LinkIcon, Copy, Lock, RefreshCw
+  Link as LinkIcon, Copy, Lock, RefreshCw, FolderPlus, ExternalLink, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,6 +50,19 @@ export default function ProjectDetails() {
     const url = `${window.location.origin}/gallery/${projectId}${project.gallery_pin ? `?pin=${project.gallery_pin}` : ''}`;
     navigator.clipboard.writeText(url);
     toast.success('קישור לגלריה הועתק');
+  };
+
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const handleCreateDriveFolder = async () => {
+    setCreatingFolder(true);
+    const res = await base44.functions.invoke('createDriveFolder', { project_id: projectId });
+    if (res.data?.success) {
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      toast.success('תיקיית Drive נוצרה בהצלחה!');
+    } else {
+      toast.error(res.data?.error || 'שגיאה ביצירת התיקייה');
+    }
+    setCreatingFolder(false);
   };
 
   if (isLoading) return <div className="p-8 text-center text-white/50">טוען...</div>;
@@ -187,6 +200,30 @@ export default function ProjectDetails() {
               </CardContent>
             </Card>
           </Link>
+
+          {/* Google Drive Folder */}
+          <Card className="bg-white border-slate-200 shadow-sm">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 bg-blue-50 rounded-lg">
+                  <FolderPlus className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="font-semibold text-slate-800">Google Drive</div>
+              </div>
+              {project.drive_folder_url ? (
+                <a href={project.drive_folder_url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium">
+                  <ExternalLink className="w-4 h-4" />
+                  פתח תיקיית Drive
+                </a>
+              ) : (
+                <Button size="sm" variant="outline" className="w-full gap-2" onClick={handleCreateDriveFolder} disabled={creatingFolder}>
+                  {creatingFolder ? <Loader2 className="w-4 h-4 animate-spin" /> : <FolderPlus className="w-4 h-4" />}
+                  צור תיקייה ב-Drive
+                </Button>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Client Gallery Access Card */}
           <Card className="bg-[#0a0a0a] border-white/10 shadow-xl overflow-hidden rounded-2xl">

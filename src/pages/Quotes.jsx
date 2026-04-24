@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { FileText, Send, Plus, Search, Trash2, Edit, Mail } from 'lucide-react';
+import { FileText, Send, Plus, Search, Trash2, Edit, Mail, Link2, Copy } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,17 +59,47 @@ export default function Quotes() {
     },
   });
 
+  const generateToken = () => {
+    return Math.random().toString(36).substring(2) + Date.now().toString(36);
+  };
+
   const handleSave = (formData) => {
     if (editingQuote) {
       updateQuoteMutation.mutate({ id: editingQuote.id, data: { ...formData, status: editingQuote.status } });
     } else {
-      createQuoteMutation.mutate({ ...formData, status: 'draft' });
+      createQuoteMutation.mutate({ ...formData, status: 'draft', access_token: generateToken() });
     }
   };
 
-  const handleSendWhatsApp = (quote) => {
+  const getQuoteLink = (quote) => {
+    return `${window.location.origin}/quote/view?token=${quote.access_token}`;
+  };
+
+  const handleCopyLink = (quote) => {
+    if (!quote.access_token) {
+      const token = generateToken();
+      base44.entities.Quote.update(quote.id, { access_token: token }).then(() => {
+        queryClient.invalidateQueries({ queryKey: ['quotes'] });
+        navigator.clipboard.writeText(`${window.location.origin}/quote/view?token=${token}`);
+        toast.success('קישור הועתק!');
+      });
+    } else {
+      navigator.clipboard.writeText(getQuoteLink(quote));
+      toast.success('קישור הועתק!');
+    }
+  };
+
+  const handleSendWhatsApp = async (quote) => {
+    // Ensure quote has an access token for the link
+    let token = quote.access_token;
+    if (!token) {
+      token = generateToken();
+      await base44.entities.Quote.update(quote.id, { access_token: token });
+      queryClient.invalidateQueries({ queryKey: ['quotes'] });
+    }
+    const link = `${window.location.origin}/quote/view?token=${token}`;
     const itemsList = quote.items?.map(i => `• ${i.description} — ₪${i.price * i.quantity}`).join('\n') || '';
-    const text = `היי ${quote.client_name},\n\nמצורפת הצעת המחיר:\n${quote.package_name ? `📦 ${quote.package_name}\n` : ''}${itemsList ? `\n${itemsList}\n` : ''}\n💰 סה"כ: ₪${quote.total_price}\n\nבתוקף עד: ${quote.valid_until || 'לא הוגדר'}\n\nנשמח לענות על כל שאלה!`;
+    const text = `היי ${quote.client_name},\n\nמצורפת הצעת המחיר:\n${quote.package_name ? `📦 ${quote.package_name}\n` : ''}${itemsList ? `\n${itemsList}\n` : ''}\n💰 סה"כ: ₪${quote.total_price}\n\nבתוקף עד: ${quote.valid_until || 'לא הוגדר'}\n\n📋 לצפייה ואישור:\n${link}\n\nנשמח לענות על כל שאלה!`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     base44.entities.Quote.update(quote.id, { status: 'sent' }).then(() => {
       queryClient.invalidateQueries({ queryKey: ['quotes'] });
@@ -170,6 +200,9 @@ export default function Quotes() {
                         <Mail className="w-3.5 h-3.5" />
                       </Button>
                     )}
+                    <Button size="sm" variant="outline" className="h-9 gap-1" title="העתק קישור לקוח" onClick={() => handleCopyLink(quote)}>
+                      <Link2 className="w-3.5 h-3.5" />
+                    </Button>
                     <Button size="sm" variant="outline" className="h-9 gap-1" onClick={() => { setEditingQuote(quote); setShowEditor(true); }}>
                       <Edit className="w-3.5 h-3.5" />
                     </Button>
