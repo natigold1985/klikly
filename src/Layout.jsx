@@ -16,13 +16,14 @@ import {
   FileText,
   BookUser,
   UserCog,
-  BarChart3
+  BarChart3,
+  X
 } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
-  // Fallback for currentPageName if not provided
   const pageName = currentPageName || location.pathname.split('/').pop() || 'Home';
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -136,9 +137,63 @@ export default function Layout({ children, currentPageName }) {
           className="h-10 object-contain drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]" 
         />
 
-        {/* Placeholder for right side balance or menu trigger if needed */}
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 w-9"></div>
+        {/* Hamburger Menu Button */}
+        <button 
+          className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors"
+          onClick={() => setMobileMenuOpen(true)}
+        >
+          <Menu className="w-5 h-5 text-white" />
+        </button>
       </header>
+
+      {/* ── Mobile Drawer Menu ── */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
+          <div className="absolute top-0 right-0 bottom-0 w-72 bg-black border-l border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
+            <div className="h-16 flex items-center justify-between px-5 border-b border-white/10">
+              <span className="text-white font-bold text-sm">תפריט</span>
+              <button onClick={() => setMobileMenuOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/10">
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+            <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+              {sidebarNavigation.map((item) => {
+                const Icon = item.icon;
+                const isActive = pageName === item.page;
+                return (
+                  <Link
+                    key={item.name}
+                    to={createPageUrl(item.page)}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                      isActive
+                        ? 'bg-gradient-to-r from-[#D4AF37] to-[#C5A028] text-black font-bold'
+                        : 'text-white/70 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-black' : 'text-white/50'}`} />
+                    <span className="text-sm">{item.name}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+            {user && (
+              <div className="p-4 border-t border-white/10">
+                <div className="flex items-center gap-3 p-2 rounded-lg bg-white/5">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#b38f2d] flex items-center justify-center text-white font-bold text-sm">
+                    {user.full_name?.[0] || '?'}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-white truncate">{user.full_name}</p>
+                    <p className="text-xs text-white/40 truncate">{isAdmin ? 'מנהל' : 'משתמש'}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Desktop Sidebar (Hidden on Mobile) ── */}
       <aside className="hidden md:flex flex-col w-72 bg-black text-white flex-shrink-0 h-full border-l border-white/5 transition-all duration-300">

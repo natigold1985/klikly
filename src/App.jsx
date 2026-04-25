@@ -16,6 +16,7 @@ import Analytics from './pages/Analytics';
 import LeadImport from './pages/LeadImport';
 import RBACMatrix from './pages/RBACMatrix';
 import QuoteView from './pages/QuoteView';
+import PublicLeadForm from './pages/PublicLeadForm';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -118,6 +119,7 @@ function App() {
           <Routes>
             <Route path="/gallery/:id" element={<ClientGallery />} />
             <Route path="/quote/view" element={<QuoteView />} />
+            <Route path="/contact" element={<PublicLeadForm />} />
             <Route path="*" element={<AuthenticatedApp />} />
           </Routes>
         </Router>

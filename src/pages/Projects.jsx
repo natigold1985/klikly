@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import DeliveryLinkButton from '../components/DeliveryLinkButton';
 import FileUploader from '../components/FileUploader';
+import ProductionStatusTracker from '../components/projects/ProductionStatusTracker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -215,28 +216,10 @@ export default function Projects() {
                   </div>
                 </Link>
 
-                {(project.raw_photos_count > 0 || project.selected_photos_count > 0 || project.final_photos_count > 0) && (
-                  <div className="flex items-center gap-3 pt-4 border-t border-slate-200 text-xs text-slate-600">
-                    {project.raw_photos_count > 0 && (
-                      <div className="flex items-center gap-1">
-                        <Upload className="w-3 h-3" />
-                        <span>{project.raw_photos_count} גולמיות</span>
-                      </div>
-                    )}
-                    {project.selected_photos_count > 0 && (
-                      <div className="flex items-center gap-1">
-                        <Eye className="w-3 h-3" />
-                        <span>{project.selected_photos_count} נבחרו</span>
-                      </div>
-                    )}
-                    {project.final_photos_count > 0 && (
-                      <div className="flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" />
-                        <span>{project.final_photos_count} ערוכות</span>
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* Production Status Tracker */}
+                <div className="pt-4 border-t border-slate-200">
+                  <ProductionStatusTracker status={project.status} />
+                </div>
 
                 {!isClient && (
                   <div className="pt-4 mt-3 border-t border-slate-800 flex items-center justify-between gap-2 flex-wrap">
