@@ -21,13 +21,17 @@ Deno.serve(async (req) => {
         // Simulating the WhatsApp message via logging (as requested in efficiency prompt)
         console.log(`[WhatsApp API Simulated 019] to ${lead.phone}: היי ${lead.name}, ראינו שהתעניינת. מעבירים אליך פרטים.`);
 
-        // Sending actual email if email exists
-        if (lead.email) {
-            await base44.asServiceRole.integrations.Core.SendEmail({
-                to: lead.email,
-                subject: 'קיבלנו את הפנייה שלך!',
-                body: `היי ${lead.name}, תודה שפנית אלינו בנוגע ל${lead.shooting_type || 'צילום'}. נחזור אליך בהקדם האפשרי.`
-            });
+        // Send notification email to the photographer (app user), not the lead
+        if (lead.created_by) {
+            try {
+                await base44.asServiceRole.integrations.Core.SendEmail({
+                    to: lead.created_by,
+                    subject: `ליד חדש: ${lead.name}`,
+                    body: `ליד חדש נוסף למערכת!\n\nשם: ${lead.name}\nטלפון: ${lead.phone}\nאימייל: ${lead.email || 'לא צוין'}\nסוג צילום: ${lead.shooting_type || 'לא צוין'}\nמקור: ${lead.source || 'לא צוין'}`
+                });
+            } catch (emailErr) {
+                console.warn("Could not send notification email:", emailErr.message);
+            }
         }
 
         return Response.json({ success: true, message: 'Automations triggered successfully' });
