@@ -3,12 +3,20 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
-        const user = await base44.auth.me();
-        if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        
+        // Support both user-initiated and scheduled automation calls
+        let userEmail = null;
+        try {
+            const user = await base44.auth.me();
+            userEmail = user?.email;
+        } catch (_) {
+            // Scheduled automation — no user context, that's OK
+        }
         
         const { accessToken } = await base44.asServiceRole.connectors.getConnection("googlesheets");
         
-        const body = await req.json();
+        let body = {};
+        try { body = await req.json(); } catch (_) { /* no body for scheduled calls */ }
         const sheetUrl = body.sheetUrl;
         
         // Extract spreadsheet ID from URL or use directly
@@ -57,8 +65,9 @@ Deno.serve(async (req) => {
             return Response.json({ error: "Required columns (Name, Phone) not found", headers }, { status: 400 });
         }
 
-        // Fetch existing leads for upsert (scoped to user)
-        const existing = await base44.entities.Lead.filter({ created_by: user.email }, '-created_date', 500);
+        // Fetch existing leads for upsert
+        const filterQuery = userEmail ? { created_by: userEmail } : {};
+        const existing = await base44.asServiceRole.entities.Lead.filter(filterQuery, '-created_date', 500);
         const phoneMap = {};
         for (const lead of existing) {
             if (lead.phone) phoneMap[lead.phone.replace(/[^0-9]/g, '')] = lead;
@@ -91,11 +100,11 @@ Deno.serve(async (req) => {
                 if (name && name !== match.name) updates.name = name;
 
                 if (Object.keys(updates).length > 0) {
-                    await base44.entities.Lead.update(match.id, updates);
+                    await base44.asServiceRole.entities.Lead.update(match.id, updates);
                     updated++;
                 }
             } else {
-                await base44.entities.Lead.create({
+                await base44.asServiceRole.entities.Lead.create({
                     name,
                     phone,
                     email: email || undefined,
