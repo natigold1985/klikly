@@ -1,12 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
-import { Shield, User, Mail, Calendar } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Shield, User, Mail, Phone, UserPlus, Calendar, Camera, Users as UsersIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import AddUserDialog from '../components/admin/AddUserDialog';
 
 export default function AdminUsers() {
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const queryClient = useQueryClient();
+
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
@@ -19,9 +25,9 @@ export default function AdminUsers() {
     queryFn: async () => {
       try {
         const res = await base44.functions.invoke('getAllUsers', {});
-        return res.data.users || [];
-      } catch (err) {
-        toast.error("אין לך הרשאות לצפות ברשימת המשתמשים או שהתרחשה שגיאה.");
+        return res.data?.users || [];
+      } catch {
+        toast.error('שגיאה בטעינת משתמשים');
         return [];
       }
     },
@@ -40,59 +46,113 @@ export default function AdminUsers() {
     );
   }
 
+  const photographers = allUsers.filter(u => u.role !== 'client');
+  const clients = allUsers.filter(u => u.role === 'client');
+
   return (
-    <div className="space-y-6 pb-20">
-      <div>
-        <h1 className="text-3xl font-extrabold text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.4)] tracking-wider mb-2">ניהול משתמשים</h1>
-        <p className="text-slate-600">צפה בכל המשתמשים והלקוחות הרשומים למערכת</p>
+    <div className="space-y-6 pb-20" dir="rtl">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-3xl font-extrabold text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.4)] tracking-wider mb-1">ניהול משתמשים</h1>
+          <p className="text-slate-600 text-sm">צלמים ולקוחות במערכת</p>
+        </div>
+        <Button onClick={() => setShowAddDialog(true)} className="gap-2">
+          <UserPlus className="w-4 h-4" />
+          משתמש חדש
+        </Button>
       </div>
 
       {isLoading ? (
         <div className="flex justify-center py-12">
-          <div className="w-8 h-8 border-4 border-slate-200 border-t-[#FFD700] rounded-full animate-spin"></div>
+          <div className="w-8 h-8 border-4 border-slate-200 border-t-[#FFD700] rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {allUsers.map((u) => {
-            const isUserAdmin = u.role === 'admin' || u.email === 'natigold04@gmail.com';
-            
-            return (
-              <Card key={u.id} className="hover:shadow-lg transition-all duration-300 border-white/20 bg-white/60 backdrop-blur-sm group">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-200 shadow-sm flex-shrink-0 group-hover:scale-105 group-hover:border-[#FFD700]/50 transition-all">
-                      {isUserAdmin ? (
-                        <Shield className="w-7 h-7 text-[#FFD700]" />
-                      ) : (
-                        <User className="w-7 h-7 text-slate-400 group-hover:text-[#FFD700] transition-colors" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-slate-800 truncate" title={u.full_name}>
-                        {u.full_name || 'משתמש ללא שם'}
-                      </h3>
-                      <div className="flex items-center gap-1.5 text-sm text-slate-500 mt-1">
-                        <Mail className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span className="truncate" title={u.email}>{u.email}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
-                    <Badge className={isUserAdmin ? 'bg-[#FFD700] text-black font-bold hover:bg-[#e6c200]' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}>
-                      {isUserAdmin ? 'מנהל מערכת' : 'לקוח'}
-                    </Badge>
-                    <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                      <Calendar className="w-3 h-3" />
-                      <span>{new Date(u.created_date).toLocaleDateString('he-IL')}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        <Tabs defaultValue="photographers" className="space-y-4">
+          <TabsList className="bg-slate-100">
+            <TabsTrigger value="photographers" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#D4AF37] data-[state=active]:to-[#C5A028] data-[state=active]:text-black">
+              <Camera className="w-4 h-4" /> צלמים ({photographers.length})
+            </TabsTrigger>
+            <TabsTrigger value="clients" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#D4AF37] data-[state=active]:to-[#C5A028] data-[state=active]:text-black">
+              <UsersIcon className="w-4 h-4" /> לקוחות ({clients.length})
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="photographers">
+            <UserGrid users={photographers} type="photographer" />
+          </TabsContent>
+          <TabsContent value="clients">
+            <UserGrid users={clients} type="client" />
+          </TabsContent>
+        </Tabs>
       )}
+
+      <AddUserDialog
+        open={showAddDialog}
+        onOpenChange={setShowAddDialog}
+        onCreated={() => queryClient.invalidateQueries({ queryKey: ['adminAllUsers'] })}
+      />
+    </div>
+  );
+}
+
+function UserGrid({ users, type }) {
+  if (users.length === 0) {
+    return (
+      <Card className="border-dashed">
+        <CardContent className="p-12 text-center text-slate-500">
+          {type === 'client' ? 'אין לקוחות במערכת' : 'אין צלמים נוספים'}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {users.map((u) => {
+        const isUserAdmin = u.role === 'admin' || u.email === 'natigold04@gmail.com';
+        return (
+          <Card key={u.id} className="hover:shadow-lg transition-all border-slate-200">
+            <CardContent className="p-5">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-200 flex-shrink-0">
+                  {isUserAdmin ? <Shield className="w-6 h-6 text-[#FFD700]" /> : <User className="w-6 h-6 text-slate-400" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-slate-800 truncate">{u.full_name || 'ללא שם'}</h3>
+                  <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
+                    <Mail className="w-3 h-3" />
+                    <span className="truncate">{u.email}</span>
+                  </div>
+                  {u.phone && (
+                    <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
+                      <Phone className="w-3 h-3" />
+                      <span>{u.phone}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                <Badge className={
+                  isUserAdmin ? 'bg-[#FFD700] text-black hover:bg-[#e6c200]' :
+                  u.role === 'client' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' :
+                  'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                }>
+                  {isUserAdmin ? 'מנהל מערכת' : u.role === 'client' ? 'לקוח' : 'צלם'}
+                </Badge>
+                <div className="flex items-center gap-1 text-xs text-slate-400">
+                  <Calendar className="w-3 h-3" />
+                  <span>{new Date(u.created_date).toLocaleDateString('he-IL')}</span>
+                </div>
+              </div>
+              {type === 'client' && u.assigned_photographer_email && (
+                <div className="mt-2 text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded">
+                  משויך לצלם: <span className="font-medium text-slate-700">{u.assigned_photographer_email}</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }

@@ -1,267 +1,237 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, Image, Video, FileImage, Film, Trash2, Download, MessageSquare, CheckCircle2, Clock } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { UserPlus, Search, ArrowRight, Trash2, Download, FileImage, Video, Upload, MessageSquare } from 'lucide-react';
 import FileUploader from '../components/FileUploader';
+import CreateClientDialog from '../components/storage/CreateClientDialog';
+import ClientCard from '../components/storage/ClientCard';
 import { toast } from 'sonner';
 
 export default function FileStorage() {
-  const [activeTab, setActiveTab] = useState('raw');
-  
-  const urlParams = new URLSearchParams(window.location.search);
-  const projectId = urlParams.get('projectId');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [search, setSearch] = useState('');
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
   });
-  
+
   const isClient = user?.role === 'client';
+  const isAdmin = user?.role === 'admin' || user?.email === 'natigold04@gmail.com';
 
-  const { data: photos = [], isLoading: isLoadingPhotos } = useQuery({
-    queryKey: ['photos', projectId, activeTab, isClient, user?.email],
+  // Fetch clients (for photographers/admin)
+  const { data: clients = [], isLoading: loadingClients } = useQuery({
+    queryKey: ['myClients', user?.email],
     queryFn: async () => {
-      let query = {};
-      
-      if (isClient) {
-        // If client, fetch only photos from projects associated with their email
-        const clientProjects = await base44.entities.Project.filter({ client_email: user.email });
-        const projectIds = clientProjects.map(p => p.id);
-        
-        if (projectIds.length === 0) return [];
-        
-        // If they requested a specific project, ensure it's one of theirs
-        if (projectId) {
-          if (!projectIds.includes(projectId)) return [];
-          query.project_id = projectId;
-        } else {
-          query.project_id = { $in: projectIds };
-        }
-      } else {
-        if (projectId) query.project_id = projectId;
-      }
-      
-      if (activeTab.includes('raw')) query.type = 'raw';
-      else if (activeTab.includes('edited') || activeTab.includes('final')) query.type = 'edited';
-      else query.type = 'raw';
-
-      return base44.entities.Photo.filter(query, '-created_date', 100);
+      const res = await base44.functions.invoke('getMyClients', {});
+      return res.data?.clients || [];
     },
-    enabled: !!user
+    enabled: !!user && !isClient,
+  });
+
+  // Fetch photos: for client => own photos, for photographer => selected client's photos
+  const photosClientEmail = isClient ? user?.email : selectedClient?.email;
+  const { data: photos = [], isLoading: loadingPhotos } = useQuery({
+    queryKey: ['clientPhotos', photosClientEmail],
+    queryFn: () => base44.entities.Photo.filter({ client_email: photosClientEmail }, '-created_date', 500),
+    enabled: !!photosClientEmail,
   });
 
   const handleUploadComplete = async (uploadedFiles) => {
-    if (uploadedFiles && uploadedFiles.length > 0) {
-      try {
-        let type = 'raw';
-        if (activeTab.includes('edited') || activeTab.includes('final')) type = 'edited';
-        
-        const photoPromises = uploadedFiles.map(file => 
-          base44.entities.Photo.create({
-            project_id: projectId || 'general',
-            type: type,
-            file_url: file.file_url,
-            file_name: file.file_name,
-            file_size: file.file_size
-          })
-        );
-        await Promise.all(photoPromises);
-        
-        queryClient.invalidateQueries({ queryKey: ['photos'] });
-        toast.success("הקבצים הועלו ונשמרו בהצלחה");
-      } catch (err) {
-        console.error("Error creating photo records", err);
-        toast.error("שגיאה בשמירת פרטי הקבצים");
-      }
+    if (!uploadedFiles?.length || !selectedClient) return;
+    try {
+      const photoPromises = uploadedFiles.map(file =>
+        base44.entities.Photo.create({
+          client_email: selectedClient.email,
+          type: 'edited',
+          file_url: file.file_url,
+          file_name: file.file_name,
+          file_size: file.file_size,
+        })
+      );
+      await Promise.all(photoPromises);
+
+      // Notify client
+      base44.functions.invoke('notifyClientNewFiles', {
+        client_email: selectedClient.email,
+        file_count: uploadedFiles.length,
+      }).catch(console.error);
+
+      queryClient.invalidateQueries({ queryKey: ['clientPhotos', selectedClient.email] });
+      queryClient.invalidateQueries({ queryKey: ['myClients'] });
+      toast.success('הקבצים הועלו והלקוח קיבל התראה');
+    } catch (e) {
+      toast.error('שגיאה בהעלאה');
     }
   };
 
   const deletePhoto = async (id) => {
-    if(confirm('למחוק את הקובץ?')) {
-      try {
-        await base44.entities.Photo.delete(id);
-        queryClient.invalidateQueries({ queryKey: ['photos'] });
-        toast.success("הקובץ נמחק");
-      } catch(e) {
-        toast.error("שגיאה במחיקת הקובץ");
-      }
-    }
+    if (!confirm('למחוק את הקובץ?')) return;
+    await base44.entities.Photo.delete(id);
+    queryClient.invalidateQueries({ queryKey: ['clientPhotos'] });
+    toast.success('הקובץ נמחק');
   };
 
-  const updatePhotoStatus = async (id, status) => {
-    try {
-      await base44.entities.Photo.update(id, { editing_status: status });
-      queryClient.invalidateQueries({ queryKey: ['photos'] });
-      toast.success("סטטוס העריכה עודכן");
-    } catch(e) {
-      toast.error("שגיאה בעדכון הסטטוס");
-    }
-  };
+  const filteredClients = clients.filter(c =>
+    !search ||
+    c.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+    c.email?.toLowerCase().includes(search.toLowerCase())
+  );
 
-  const tabs = [
-    { id: 'raw', label: 'חומר גלם', icon: FileImage },
-    { id: 'editing', label: 'תמונות לעריכה', icon: Image },
-    { id: 'edited', label: 'תמונות לאחר עריכה', icon: Image },
-    { id: 'video-raw', label: 'קובצי וידאו חומר גלם', icon: Video },
-    { id: 'video-final', label: 'סרטונים מוכנים', icon: Film },
-  ];
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">
-          אחסון קבצים
-        </h1>
-        <p className="text-slate-600">ניהול כל קבצי הפרויקטים שלך במקום אחד</p>
+  // CLIENT VIEW – show their files directly
+  if (isClient) {
+    return (
+      <div className="space-y-6 pb-20" dir="rtl">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">הקבצים שלי</h1>
+          <p className="text-slate-600 text-sm">הקבצים זמינים להורדה למשך 3 חודשים</p>
+        </div>
+        <PhotoGrid photos={photos} loading={loadingPhotos} canDelete={false} />
       </div>
+    );
+  }
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="bg-slate-100 p-1 flex flex-wrap gap-1">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <TabsTrigger
-                key={tab.id}
-                value={tab.id}
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#D4AF37] data-[state=active]:to-[#C5A028] data-[state=active]:text-black flex-1 min-w-[calc(50%-4px)] sm:min-w-0 text-xs sm:text-sm"
-              >
-                <Icon className="w-4 h-4 ml-1 sm:ml-2 shrink-0" />
-                <span className="truncate">{tab.label}</span>
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
+  // PHOTOGRAPHER/ADMIN VIEW
+  return (
+    <div className="space-y-6 pb-20" dir="rtl">
+      {!selectedClient ? (
+        <>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900 mb-1">אחסון קבצים</h1>
+              <p className="text-slate-600 text-sm">תיקייה אישית לכל לקוח</p>
+            </div>
+            <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
+              <UserPlus className="w-4 h-4" />
+              לקוח חדש
+            </Button>
+          </div>
 
-        {tabs.map((tab) => (
-          <TabsContent key={tab.id} value={tab.id}>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <tab.icon className="w-5 h-5 text-[#D4AF37]" />
-                  {tab.label}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                {!isClient && (
-                  <div className="mb-8">
-                    <FileUploader 
-                      projectId={projectId} 
-                      onUploadComplete={handleUploadComplete} 
-                      acceptedTypes={tab.id.includes('video') ? 'video/*' : 'image/*'}
-                    />
-                  </div>
-                )}
+          <div className="relative max-w-md">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="חיפוש לקוח..."
+              className="pr-10"
+            />
+          </div>
 
-                {isLoadingPhotos ? (
-                  <div className="flex justify-center py-12">
-                    <div className="w-8 h-8 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin"></div>
-                  </div>
-                ) : photos.length === 0 ? (
-                  <div className="text-center py-16 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                    <tab.icon className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                    <p className="text-slate-500 font-medium">אין קבצים ב{tab.label}</p>
-                    <p className="text-sm text-slate-400 mt-1">העלה קבצים כדי לראות אותם כאן</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {photos.map((photo) => (
-                      <div key={photo.id} className="group relative aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm hover:shadow-md transition-all">
-                        {photo.file_url.match(/\.(mp4|webm|mov|avi)$/i) ? (
-                          <div className="relative z-10 w-full h-full flex flex-col items-center justify-center bg-slate-800 text-white">
-                            <Video className="w-8 h-8 mb-2 opacity-70" />
-                            <span className="text-xs max-w-[90%] truncate px-2">{photo.file_name}</span>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 bg-slate-100 z-0">
-                              <FileImage className="w-8 h-8 mb-2 opacity-50" />
-                              <span className="text-xs max-w-[90%] truncate px-2" title={photo.file_name}>{photo.file_name}</span>
-                            </div>
-                            <img 
-                              src={photo.file_url} 
-                              alt={photo.file_name} 
-                              className="relative z-10 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 text-transparent"
-                              loading="lazy"
-                              onError={(e) => {
-                                e.target.style.opacity = 0;
-                              }}
-                            />
-                          </>
-                        )}
-                        
-                        {/* Client Comment Badge */}
-                        {photo.client_comment && (
-                          <div className="absolute top-2 right-2 bg-black/80 backdrop-blur-md px-2 py-1.5 rounded-lg flex items-start gap-2 z-30 max-w-[90%] border border-[#FFD700]/30 shadow-xl">
-                            <MessageSquare className="w-3.5 h-3.5 text-[#FFD700] shrink-0 mt-0.5" />
-                            <p className="text-[10px] text-white font-medium leading-tight line-clamp-3">
-                              {photo.client_comment}
-                            </p>
-                          </div>
-                        )}
-
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-colors duration-200 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 gap-3 z-20">
-                          
-                          {!isClient && photo.is_selected && (
-                            <div className="flex gap-2 mb-2" onClick={e => e.stopPropagation()}>
-                              <button 
-                                onClick={() => updatePhotoStatus(photo.id, 'in_progress')}
-                                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${photo.editing_status === 'in_progress' ? 'bg-blue-500 text-white shadow-lg' : 'bg-white/20 text-white hover:bg-blue-500'}`}
-                              >
-                                <Clock className="w-3.5 h-3.5" />
-                                בטיפול
-                              </button>
-                              <button 
-                                onClick={() => updatePhotoStatus(photo.id, 'finalized')}
-                                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${photo.editing_status === 'finalized' ? 'bg-green-500 text-white shadow-lg' : 'bg-white/20 text-white hover:bg-green-500'}`}
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                ערוך
-                              </button>
-                            </div>
-                          )}
-
-                          <div className="flex items-center gap-2">
-                          <a 
-                            href={photo.file_url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="w-8 h-8 rounded-full bg-white/20 hover:bg-white text-white hover:text-slate-900 flex items-center justify-center backdrop-blur-sm transition-all"
-                          >
-                            <Download className="w-4 h-4" />
-                          </a>
-                          {!isClient && (
-                            <button 
-                              onClick={() => deletePhoto(photo.id)}
-                              className="w-8 h-8 rounded-full bg-[#FFD700]/80 hover:bg-[#FFD700] text-black flex items-center justify-center backdrop-blur-sm transition-all"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                          </div>
-                        </div>
-                        
-                        {/* File Name overlay */}
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 pt-6 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                          <p className="text-xs text-white truncate drop-shadow-md">
-                            {photo.file_name}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+          {loadingClients ? (
+            <div className="flex justify-center py-12">
+              <div className="w-8 h-8 border-4 border-slate-200 border-t-[#FFD700] rounded-full animate-spin" />
+            </div>
+          ) : filteredClients.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="p-12 text-center">
+                <UserPlus className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <p className="text-slate-600 font-medium">אין עדיין לקוחות</p>
+                <p className="text-sm text-slate-400 mt-1">לחץ על "לקוח חדש" כדי להתחיל</p>
               </CardContent>
             </Card>
-          </TabsContent>
-        ))}
-      </Tabs>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredClients.map((c) => (
+                <ClientCard
+                  key={c.id}
+                  client={c}
+                  fileCount={c.file_count}
+                  onClick={() => setSelectedClient(c)}
+                />
+              ))}
+            </div>
+          )}
+
+          <CreateClientDialog
+            open={showCreateDialog}
+            onOpenChange={setShowCreateDialog}
+            onCreated={() => queryClient.invalidateQueries({ queryKey: ['myClients'] })}
+          />
+        </>
+      ) : (
+        <>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="sm" onClick={() => setSelectedClient(null)} className="gap-1.5">
+                <ArrowRight className="w-4 h-4" />
+                חזרה
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900">{selectedClient.full_name}</h1>
+                <p className="text-xs text-slate-500">{selectedClient.email}</p>
+              </div>
+            </div>
+          </div>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="mb-6">
+                <FileUploader onUploadComplete={handleUploadComplete} />
+              </div>
+              <PhotoGrid photos={photos} loading={loadingPhotos} canDelete={true} onDelete={deletePhoto} />
+            </CardContent>
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}
+
+function PhotoGrid({ photos, loading, canDelete, onDelete }) {
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="w-8 h-8 border-4 border-slate-200 border-t-[#FFD700] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (photos.length === 0) {
+    return (
+      <div className="text-center py-16 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+        <FileImage className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+        <p className="text-slate-500 font-medium">אין קבצים</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      {photos.map((photo) => (
+        <div key={photo.id} className="group relative aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm hover:shadow-md transition-all">
+          {photo.file_url.match(/\.(mp4|webm|mov|avi)$/i) ? (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800 text-white">
+              <Video className="w-8 h-8 mb-2 opacity-70" />
+              <span className="text-xs max-w-[90%] truncate px-2">{photo.file_name}</span>
+            </div>
+          ) : (
+            <img
+              src={photo.file_url}
+              alt={photo.file_name}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              loading="lazy"
+            />
+          )}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 gap-2 z-20">
+            <a href={photo.file_url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white text-slate-900 flex items-center justify-center">
+              <Download className="w-4 h-4" />
+            </a>
+            {canDelete && (
+              <button onClick={() => onDelete(photo.id)} className="w-9 h-9 rounded-full bg-[#FFD700] text-black flex items-center justify-center">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 pt-4 opacity-0 group-hover:opacity-100 transition-opacity">
+            <p className="text-xs text-white truncate">{photo.file_name}</p>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
