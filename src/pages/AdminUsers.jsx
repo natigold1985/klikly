@@ -5,15 +5,43 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Shield, User, Mail, Phone, UserPlus, Calendar, Camera, Users as UsersIcon, Pencil, Clock } from 'lucide-react';
+import { Shield, User, Mail, Phone, UserPlus, Calendar, Camera, Users as UsersIcon, Pencil, Clock, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import AddUserDialog from '../components/admin/AddUserDialog';
 import EditUserRoleDialog from '../components/admin/EditUserRoleDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function AdminUsers() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [deletingUser, setDeletingUser] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
+
+  const handleDeleteUser = async () => {
+    if (!deletingUser) return;
+    setIsDeleting(true);
+    try {
+      const res = await base44.functions.invoke('deleteUser', { user_id: deletingUser.id });
+      if (res.data?.error) throw new Error(res.data.error);
+      toast.success('המשתמש נמחק מהמערכת');
+      queryClient.invalidateQueries({ queryKey: ['adminAllUsers'] });
+      setDeletingUser(null);
+    } catch (e) {
+      toast.error(e.message || 'שגיאה במחיקה');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -87,13 +115,13 @@ export default function AdminUsers() {
           </TabsList>
 
           <TabsContent value="photographers">
-            <UserGrid users={photographers} type="photographer" onEdit={setEditingUser} />
+            <UserGrid users={photographers} type="photographer" onEdit={setEditingUser} onDelete={setDeletingUser} currentUserId={user?.id} />
           </TabsContent>
           <TabsContent value="clients">
-            <UserGrid users={clients} type="client" onEdit={setEditingUser} />
+            <UserGrid users={clients} type="client" onEdit={setEditingUser} onDelete={setDeletingUser} currentUserId={user?.id} />
           </TabsContent>
           <TabsContent value="pending">
-            <UserGrid users={pending} type="pending" onEdit={setEditingUser} />
+            <UserGrid users={pending} type="pending" onEdit={setEditingUser} onDelete={setDeletingUser} currentUserId={user?.id} />
           </TabsContent>
         </Tabs>
       )}
@@ -111,11 +139,28 @@ export default function AdminUsers() {
         photographers={photographers}
         onSaved={() => queryClient.invalidateQueries({ queryKey: ['adminAllUsers'] })}
       />
+
+      <AlertDialog open={!!deletingUser} onOpenChange={(o) => !o && !isDeleting && setDeletingUser(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>למחוק את המשתמש?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{deletingUser?.full_name || deletingUser?.email}</strong> יוסר לחלוטין מהמערכת ולא יוכל להיכנס יותר. ניתן להזמין אותו שוב בעתיד.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel disabled={isDeleting}>ביטול</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteUser} disabled={isDeleting} className="bg-red-600 hover:bg-red-700 text-white">
+              {isDeleting ? 'מוחק...' : 'מחק לצמיתות'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
 
-function UserGrid({ users, type, onEdit }) {
+function UserGrid({ users, type, onEdit, onDelete, currentUserId }) {
   if (users.length === 0) {
     return (
       <Card className="border-dashed">
@@ -132,13 +177,24 @@ function UserGrid({ users, type, onEdit }) {
         const isUserAdmin = u.role === 'admin' || u.email === 'natigold04@gmail.com';
         return (
           <Card key={u.id} className="hover:shadow-lg transition-all border-slate-200 relative group">
-            <button
-              onClick={() => onEdit?.(u)}
-              className="absolute top-3 left-3 w-8 h-8 rounded-lg bg-slate-100 hover:bg-[#FFD700] hover:text-black text-slate-600 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 z-10"
-              title="ערוך תפקיד"
-            >
-              <Pencil className="w-3.5 h-3.5" />
-            </button>
+            <div className="absolute top-3 left-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-10">
+              <button
+                onClick={() => onEdit?.(u)}
+                className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-[#FFD700] hover:text-black text-slate-600 flex items-center justify-center transition-colors"
+                title="ערוך תפקיד"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+              {u.id !== currentUserId && u.email !== 'natigold04@gmail.com' && (
+                <button
+                  onClick={() => onDelete?.(u)}
+                  className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-red-500 hover:text-white text-slate-600 flex items-center justify-center transition-colors"
+                  title="מחק משתמש"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
             <CardContent className="p-5">
               <div className="flex items-start gap-3 mb-4">
                 <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-200 flex-shrink-0">

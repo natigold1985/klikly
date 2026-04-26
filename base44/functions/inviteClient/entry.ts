@@ -25,6 +25,7 @@ Deno.serve(async (req) => {
           assigned_photographer_email: photographer.email,
           phone: phone || existing.phone,
           role: 'client',
+          is_invited: true,
         });
       }
       return Response.json({ success: true, user: existing, alreadyExisted: true });
@@ -42,6 +43,7 @@ Deno.serve(async (req) => {
         phone: phone || '',
         assigned_photographer_email: photographer.email,
         role: 'client',
+        is_invited: true,
       });
     }
 

@@ -35,6 +35,7 @@ Deno.serve(async (req) => {
         full_name,
         phone: phone || '',
         role,
+        is_invited: true,
       });
     }
 

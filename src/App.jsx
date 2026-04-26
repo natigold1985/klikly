@@ -30,11 +30,12 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user } = useAuth();
 
-  // Closed-system gate: only allow admin / user (photographer) / client roles.
-  // Anyone else (e.g., role === 'pending' or undefined) is blocked.
+  // Closed-system gate: only users explicitly invited via the admin "Users" tab can enter.
+  // Even if a user has a valid role, they must have is_invited=true to access the app.
   const ALLOWED_ROLES = ['admin', 'user', 'client'];
   const isAllowedUser = user && (
-    ALLOWED_ROLES.includes(user.role) || user.email === 'natigold04@gmail.com'
+    user.email === 'natigold04@gmail.com' ||
+    (ALLOWED_ROLES.includes(user.role) && user.is_invited === true)
   );
 
   // Show loading spinner while checking app public settings or auth
