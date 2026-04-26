@@ -17,7 +17,8 @@ import {
   BookUser,
   UserCog,
   BarChart3,
-  X
+  X,
+  LogOut
 } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
@@ -179,7 +180,7 @@ export default function Layout({ children, currentPageName }) {
               })}
             </nav>
             {user && (
-              <div className="p-4 border-t border-white/10">
+              <div className="p-4 border-t border-white/10 space-y-2">
                 <div className="flex items-center gap-3 p-2 rounded-lg bg-white/5">
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#b38f2d] flex items-center justify-center text-white font-bold text-sm">
                     {user.full_name?.[0] || '?'}
@@ -189,6 +190,13 @@ export default function Layout({ children, currentPageName }) {
                     <p className="text-xs text-white/40 truncate">{isAdmin ? 'מנהל' : 'משתמש'}</p>
                   </div>
                 </div>
+                <button
+                  onClick={() => base44.auth.logout()}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 transition-all text-sm font-medium"
+                >
+                  <LogOut className="w-4 h-4" />
+                  התנתקות
+                </button>
               </div>
             )}
           </div>
@@ -230,7 +238,7 @@ export default function Layout({ children, currentPageName }) {
 
         {/* User Footer */}
         {user && (
-          <div className="p-6 border-t border-white/10 bg-[#050505]">
+          <div className="p-6 border-t border-white/10 bg-[#050505] space-y-3">
             <div className="flex items-center gap-3 p-2 rounded-lg bg-white/5 border border-white/5">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#b38f2d] flex items-center justify-center text-white font-bold text-sm shadow-md">
                 {user.full_name?.[0] || '?'}
@@ -240,6 +248,13 @@ export default function Layout({ children, currentPageName }) {
                 <p className="text-xs text-white/40 truncate">{isAdmin ? 'מנהל מערכת' : 'לקוח'}</p>
               </div>
             </div>
+            <button
+              onClick={() => base44.auth.logout()}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 transition-all text-sm font-medium"
+            >
+              <LogOut className="w-4 h-4" />
+              התנתקות
+            </button>
           </div>
         )}
       </aside>
