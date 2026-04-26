@@ -25,13 +25,13 @@ const AI_CHANNEL_HINTS = {
 };
 
 const CHANNELS = [
-  { id: 'gmail_auto', label: 'Gmail סריקה חיה', desc: 'סריקת AI אוטומטית של תיבת המייל', icon: Mail, color: 'bg-red-600', available: true },
-  { id: 'sheets', label: 'Google Sheets', desc: 'ייבוא גורף מגיליון', icon: FileSpreadsheet, color: 'bg-green-500', available: true },
-  { id: 'facebook', label: 'Facebook Ads', desc: 'הדבק טקסט מ-Lead Ads / פוסטים', icon: Facebook, color: 'bg-blue-600', available: true },
-  { id: 'instagram', label: 'Instagram', desc: 'הדבק הודעות / DMs מאינסטגרם', icon: Instagram, color: 'bg-gradient-to-tr from-purple-500 to-pink-500', available: true },
-  { id: 'whatsapp', label: 'WhatsApp', desc: 'הדבק שיחות ווטסאפ עם לידים', icon: MessageCircle, color: 'bg-[#25D366]', available: true },
+  { id: 'gmail_auto', label: 'Gmail סריקה חיה', desc: 'סריקה אוטומטית פעמיים ביום (08:00 / 17:00)', icon: Mail, color: 'bg-red-600', available: true },
+  { id: 'sheets', label: 'Google Sheets', desc: 'סנכרון אוטומטי פעמיים ביום (08:00 / 17:00)', icon: FileSpreadsheet, color: 'bg-green-500', available: true },
+  { id: 'facebook', label: 'Facebook Ads', desc: 'בקרוב - דורש Meta Business API', icon: Facebook, color: 'bg-blue-600', available: false },
+  { id: 'instagram', label: 'Instagram', desc: 'בקרוב - דורש Meta API', icon: Instagram, color: 'bg-gradient-to-tr from-purple-500 to-pink-500', available: false },
+  { id: 'whatsapp', label: 'WhatsApp', desc: 'בקרוב - דורש WhatsApp Business API', icon: MessageCircle, color: 'bg-[#25D366]', available: false },
   { id: 'email', label: 'Gmail (ידני)', desc: 'הדבק טפסי "צור קשר" מהמייל', icon: Mail, color: 'bg-red-500', available: true },
-  { id: 'linkedin', label: 'LinkedIn', desc: 'הדבק הודעות / InMail', icon: Linkedin, color: 'bg-[#0A66C2]', available: true },
+  { id: 'linkedin', label: 'LinkedIn', desc: 'בקרוב - אין API פתוח', icon: Linkedin, color: 'bg-[#0A66C2]', available: false },
   { id: 'csv', label: 'העלאת קובץ CSV', desc: 'ייבוא ידני מקובץ', icon: Upload, color: 'bg-slate-700', available: true },
 ];
 

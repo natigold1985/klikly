@@ -13,9 +13,10 @@ Deno.serve(async (req) => {
 
     let idsToProcess = messageIds;
 
-    // If no webhook message IDs, fetch recent emails (manual trigger)
+    // If no webhook message IDs, fetch recent emails (manual trigger / scheduled)
     if (idsToProcess.length === 0) {
-      const query = encodeURIComponent('is:unread newer_than:1d (צילום OR חתונה OR צלם OR אירוע OR "בר מצווה" OR photographer OR wedding OR "contact form" OR "צור קשר")');
+      // Focus on natigold.com WordPress contact form notifications + general photography inquiries
+      const query = encodeURIComponent('newer_than:1d (from:natigold.com OR "נתי גולד צילום" OR "הודעה חדשה מאת" OR צילום OR חתונה OR צלם OR אירוע OR "בר מצווה" OR "צור קשר")');
       const listRes = await fetch(
         `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20&q=${query}`,
         { headers: authHeader }
@@ -69,24 +70,35 @@ Deno.serve(async (req) => {
     ).join('\n');
 
     const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
-      prompt: `You are a lead extraction assistant for a professional photographer in Israel.
-Analyze these emails and extract potential photography leads (people inquiring about photography services).
+      prompt: `You are a lead extraction assistant for "Nati Gold Photography" (נתי גולד צילום) - a professional photographer in Israel.
+The website natigold.com has a WordPress contact form that emails leads in Hebrew with this typical structure:
+שם: [name]
+אימייל: [email]
+טלפון: [phone]
+תאריך: [event date]
+שעה: [event time]
+URL מקור: https://natigold.com/event-photography/#contact
+(Browser/IP info follows - ignore those)
 
-Look for:
-- Contact form submissions mentioning photography
-- Inquiries about weddings, events, bar/bat mitzvahs, portraits
-- Newsletter signups that mention photography interest
-- Direct messages asking for photography services
+The sender appears as "נתי גולד צילום" or from a domain like "natigold.com" / "main-hosting.eu".
 
-For each lead found, extract:
-- name: the person's name
-- phone: phone number if available
-- email: their email address
-- shooting_type: what type of photography they need
-- notes: brief context about the inquiry
+Analyze these emails and extract photography leads.
 
-IMPORTANT: Only extract REAL leads - people genuinely looking for photography services.
-Do NOT extract spam, marketing emails, or unrelated correspondence.
+For each lead extract:
+- name: the person's full name (from "שם:" line)
+- phone: phone number (from "טלפון:" line) - keep Israeli format
+- email: their email (from "אימייל:" line, NOT the sender)
+- shooting_type: type of photography if mentioned
+- notes: combine event date/time/source page if available (e.g. "תאריך: 26/04/2026 19:15, מקור: event-photography")
+
+ALSO look for:
+- Other inquiries about weddings, events, bar/bat mitzvahs, portraits
+- Replies/forwards that contain client contact details
+
+IMPORTANT: 
+- Only extract REAL leads with at least name + phone OR email
+- Skip spam, marketing emails, automated notifications without contact details
+- Skip the photographer's own outgoing replies
 
 Emails:
 ${emailSummary}`,
@@ -154,7 +166,7 @@ ${emailSummary}`,
         shooting_type: l.shooting_type || '',
         notes: l.notes || '',
         status: 'new',
-        source: 'Gmail',
+        source: 'natigold.com (Gmail)',
         last_contact_date: new Date().toISOString(),
       })));
     }
