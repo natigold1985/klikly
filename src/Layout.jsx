@@ -138,13 +138,22 @@ export default function Layout({ children, currentPageName }) {
           className="h-10 object-contain drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]" 
         />
 
-        {/* Hamburger Menu Button */}
-        <button 
-          className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors"
-          onClick={() => setMobileMenuOpen(true)}
-        >
-          <Menu className="w-5 h-5 text-white" />
-        </button>
+        {/* Right Side: Logout + Hamburger */}
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          <button
+            onClick={() => base44.auth.logout()}
+            className="w-10 h-10 flex items-center justify-center rounded-lg bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 transition-colors"
+            title="התנתקות"
+          >
+            <LogOut className="w-5 h-5 text-red-400" />
+          </button>
+          <button 
+            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors"
+            onClick={() => setMobileMenuOpen(true)}
+          >
+            <Menu className="w-5 h-5 text-white" />
+          </button>
+        </div>
       </header>
 
       {/* ── Mobile Drawer Menu ── */}
@@ -192,9 +201,9 @@ export default function Layout({ children, currentPageName }) {
                 </div>
                 <button
                   onClick={() => base44.auth.logout()}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 transition-all text-sm font-medium"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white border border-red-400 shadow-lg shadow-red-500/30 transition-all text-sm font-bold"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="w-5 h-5" />
                   התנתקות
                 </button>
               </div>
