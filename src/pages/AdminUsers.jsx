@@ -5,12 +5,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Shield, User, Mail, Phone, UserPlus, Calendar, Camera, Users as UsersIcon } from 'lucide-react';
+import { Shield, User, Mail, Phone, UserPlus, Calendar, Camera, Users as UsersIcon, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import AddUserDialog from '../components/admin/AddUserDialog';
+import EditUserRoleDialog from '../components/admin/EditUserRoleDialog';
 
 export default function AdminUsers() {
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
@@ -78,10 +80,10 @@ export default function AdminUsers() {
           </TabsList>
 
           <TabsContent value="photographers">
-            <UserGrid users={photographers} type="photographer" />
+            <UserGrid users={photographers} type="photographer" onEdit={setEditingUser} />
           </TabsContent>
           <TabsContent value="clients">
-            <UserGrid users={clients} type="client" />
+            <UserGrid users={clients} type="client" onEdit={setEditingUser} />
           </TabsContent>
         </Tabs>
       )}
@@ -91,11 +93,19 @@ export default function AdminUsers() {
         onOpenChange={setShowAddDialog}
         onCreated={() => queryClient.invalidateQueries({ queryKey: ['adminAllUsers'] })}
       />
+
+      <EditUserRoleDialog
+        open={!!editingUser}
+        onOpenChange={(o) => !o && setEditingUser(null)}
+        user={editingUser}
+        photographers={photographers}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ['adminAllUsers'] })}
+      />
     </div>
   );
 }
 
-function UserGrid({ users, type }) {
+function UserGrid({ users, type, onEdit }) {
   if (users.length === 0) {
     return (
       <Card className="border-dashed">
@@ -111,7 +121,14 @@ function UserGrid({ users, type }) {
       {users.map((u) => {
         const isUserAdmin = u.role === 'admin' || u.email === 'natigold04@gmail.com';
         return (
-          <Card key={u.id} className="hover:shadow-lg transition-all border-slate-200">
+          <Card key={u.id} className="hover:shadow-lg transition-all border-slate-200 relative group">
+            <button
+              onClick={() => onEdit?.(u)}
+              className="absolute top-3 left-3 w-8 h-8 rounded-lg bg-slate-100 hover:bg-[#FFD700] hover:text-black text-slate-600 flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 z-10"
+              title="ערוך תפקיד"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
             <CardContent className="p-5">
               <div className="flex items-start gap-3 mb-4">
                 <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-200 flex-shrink-0">
