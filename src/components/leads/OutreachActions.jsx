@@ -2,23 +2,70 @@ import React from 'react';
 import { MessageCircle, Mail, Phone, Instagram, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+// Friendly greeting that handles missing/placeholder names gracefully
+function greet(name) {
+  if (!name) return 'היי 👋';
+  const clean = String(name).trim();
+  if (!clean || /ללא שם|לא ידוע|unknown/i.test(clean)) return 'היי 👋';
+  return `היי ${clean}`;
+}
+
+// Personalized line based on shooting type
+function typeContext(type) {
+  if (!type) return null;
+  const t = type.toLowerCase();
+  if (t.includes('חתונה')) return 'בנושא צילום החתונה שלך';
+  if (t.includes('בר') || t.includes('בת מצווה')) return 'בנושא צילום בר/בת המצווה';
+  if (t.includes('אירוע')) return 'בנושא צילום האירוע שלך';
+  if (t.includes('היריון') || t.includes('הריון')) return 'בנושא צילומי הריון';
+  if (t.includes('משפח')) return 'בנושא צילומי המשפחה';
+  if (t.includes('עסק') || t.includes('מוצר') || t.includes('תדמית')) return 'בנושא צילומי תדמית/עסקים';
+  if (t.includes('סטילס') || t.includes('סטודיו')) return 'בנושא צילומי הסטודיו';
+  if (t.includes('דרושים') || t.includes('גיוס')) return null; // not a real lead
+  return `בנושא ${type}`;
+}
+
 const TEMPLATES = {
   whatsapp: {
-    facebook: (name, type) => `היי ${name}, ראיתי שפנית אלינו דרך פייסבוק בנושא ${type || 'צילום'}. אשמח לשמוע עוד ולשלוח לך הצעת מחיר 📸`,
-    instagram: (name, type) => `היי ${name} 👋 תודה שפנית דרך אינסטגרם! אשמח לדבר על ${type || 'הצילום'} שמעניין אותך`,
-    google: (name, type) => `היי ${name}, קיבלתי את הפנייה שלך. אשמח לעזור עם ${type || 'צילום'}. מתי נוח לשיחה קצרה?`,
-    linkedin: (name, type) => `היי ${name}, ראיתי את הפנייה שלך דרך LinkedIn בנוגע ל${type || 'צילום'}. אשמח לדבר ולשלוח הצעה מותאמת 📷`,
-    default: (name, type) => `היי ${name}, קיבלתי את הפנייה שלך בנוגע ל${type || 'צילום'}. אשמח לחזור אליך עם פרטים נוספים 📸`,
+    natigold: (name, type) => {
+      const ctx = typeContext(type);
+      return `${greet(name)} 🙏\nתודה רבה שפנית אליי דרך האתר natigold.com${ctx ? ` ${ctx}` : ''}.\nאשמח לשמוע עוד פרטים — תאריך, מיקום ומה חשוב לך — ולחזור אליך עם הצעה מותאמת 📸`;
+    },
+    facebook: (name, type) => {
+      const ctx = typeContext(type);
+      return `${greet(name)} 👋\nראיתי את הפנייה שלך בפייסבוק${ctx ? ` ${ctx}` : ''}.\nאני נתי גולד, צלם מקצועי — אשמח לשמוע עוד ולשלוח הצעה מותאמת 📷`;
+    },
+    instagram: (name, type) => {
+      const ctx = typeContext(type);
+      return `${greet(name)} 👋\nתודה שפנית באינסטגרם${ctx ? ` ${ctx}` : ''}.\nאשמח לשמוע יותר על מה שמעניין אותך ולחזור עם פרטים 📸`;
+    },
+    google: (name, type) => {
+      const ctx = typeContext(type);
+      return `${greet(name)} 🙏\nקיבלתי את הפנייה שלך${ctx ? ` ${ctx}` : ''}.\nמתי נוח לך לשיחה קצרה כדי להבין מה אתה מחפש?`;
+    },
+    linkedin: (name, type) => {
+      const ctx = typeContext(type);
+      return `${greet(name)} 👋\nראיתי את הפנייה שלך ב-LinkedIn${ctx ? ` ${ctx}` : ''}.\nאשמח לדבר ולשלוח הצעה מותאמת 📷`;
+    },
+    default: (name, type) => {
+      const ctx = typeContext(type);
+      return `${greet(name)} 🙏\nאני נתי גולד, צלם מקצועי. קיבלתי את הפנייה שלך${ctx ? ` ${ctx}` : ''}.\nאשמח לשמוע עוד פרטים ולחזור אליך עם הצעה מותאמת 📸\nאתר: natigold.com`;
+    },
   },
   email: {
-    subject: (name) => `תודה על פנייתך, ${name}!`,
-    body: (name, type) => `שלום ${name},\n\nתודה שפנית אלינו בנוגע ל${type || 'צילום'}.\nאשמח לקבוע שיחה קצרה כדי להבין את הצרכים שלך ולשלוח הצעת מחיר מותאמת.\n\nבברכה`,
+    subject: (name) => name && !/ללא שם|לא ידוע/i.test(name) ? `תודה על פנייתך, ${name}!` : 'תודה על פנייתך!',
+    body: (name, type) => {
+      const ctx = typeContext(type);
+      const greeting = name && !/ללא שם|לא ידוע/i.test(name) ? `שלום ${name},` : 'שלום,';
+      return `${greeting}\n\nתודה שפנית אליי${ctx ? ` ${ctx}` : ''}.\nאשמח לקבוע שיחה קצרה כדי להבין את הצרכים שלך ולשלוח הצעת מחיר מותאמת.\n\nבברכה,\nנתי גולד\nnatigold.com`;
+    },
   },
 };
 
 function getSourceKey(source) {
   if (!source) return 'default';
   const lower = source.toLowerCase();
+  if (lower.includes('natigold') || lower.includes('נתי גולד')) return 'natigold';
   if (lower.includes('facebook') || lower.includes('fb') || lower.includes('פייסבוק')) return 'facebook';
   if (lower.includes('instagram') || lower.includes('ig') || lower.includes('אינסטגרם')) return 'instagram';
   if (lower.includes('google') || lower.includes('sheets') || lower.includes('גוגל')) return 'google';
