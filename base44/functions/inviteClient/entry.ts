@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     }
 
     // Invite the user via base44 (sends Google login email)
-    await base44.users.inviteUser(normalizedEmail, 'client');
+    await base44.users.inviteUser(normalizedEmail, 'user');
 
     // Wait briefly and find the newly created user record
     await new Promise(r => setTimeout(r, 500));

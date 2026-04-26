@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Shield, User, Mail, Phone, UserPlus, Calendar, Camera, Users as UsersIcon, Pencil } from 'lucide-react';
+import { Shield, User, Mail, Phone, UserPlus, Calendar, Camera, Users as UsersIcon, Pencil, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import AddUserDialog from '../components/admin/AddUserDialog';
 import EditUserRoleDialog from '../components/admin/EditUserRoleDialog';
@@ -48,8 +48,9 @@ export default function AdminUsers() {
     );
   }
 
-  const photographers = allUsers.filter(u => u.role !== 'client');
+  const photographers = allUsers.filter(u => u.role === 'admin' || u.role === 'user' || u.email === 'natigold04@gmail.com');
   const clients = allUsers.filter(u => u.role === 'client');
+  const pending = allUsers.filter(u => u.role === 'pending' || (!u.role && u.email !== 'natigold04@gmail.com'));
 
   return (
     <div className="space-y-6 pb-20" dir="rtl">
@@ -69,13 +70,19 @@ export default function AdminUsers() {
           <div className="w-8 h-8 border-4 border-slate-200 border-t-[#FFD700] rounded-full animate-spin" />
         </div>
       ) : (
-        <Tabs defaultValue="photographers" className="space-y-4">
+        <Tabs defaultValue={pending.length > 0 ? 'pending' : 'photographers'} className="space-y-4">
           <TabsList className="bg-slate-100">
             <TabsTrigger value="photographers" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#D4AF37] data-[state=active]:to-[#C5A028] data-[state=active]:text-black">
               <Camera className="w-4 h-4" /> צלמים ({photographers.length})
             </TabsTrigger>
             <TabsTrigger value="clients" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#D4AF37] data-[state=active]:to-[#C5A028] data-[state=active]:text-black">
               <UsersIcon className="w-4 h-4" /> לקוחות ({clients.length})
+            </TabsTrigger>
+            <TabsTrigger value="pending" className="gap-2 data-[state=active]:bg-orange-500 data-[state=active]:text-white relative">
+              <Clock className="w-4 h-4" /> ממתינים ({pending.length})
+              {pending.length > 0 && (
+                <span className="absolute -top-1 -left-1 w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse" />
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -84,6 +91,9 @@ export default function AdminUsers() {
           </TabsContent>
           <TabsContent value="clients">
             <UserGrid users={clients} type="client" onEdit={setEditingUser} />
+          </TabsContent>
+          <TabsContent value="pending">
+            <UserGrid users={pending} type="pending" onEdit={setEditingUser} />
           </TabsContent>
         </Tabs>
       )}
@@ -110,7 +120,7 @@ function UserGrid({ users, type, onEdit }) {
     return (
       <Card className="border-dashed">
         <CardContent className="p-12 text-center text-slate-500">
-          {type === 'client' ? 'אין לקוחות במערכת' : 'אין צלמים נוספים'}
+          {type === 'client' ? 'אין לקוחות במערכת' : type === 'pending' ? 'אין משתמשים ממתינים לאישור' : 'אין צלמים נוספים'}
         </CardContent>
       </Card>
     );
@@ -152,9 +162,10 @@ function UserGrid({ users, type, onEdit }) {
                 <Badge className={
                   isUserAdmin ? 'bg-[#FFD700] text-black hover:bg-[#e6c200]' :
                   u.role === 'client' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' :
+                  u.role === 'pending' || !u.role ? 'bg-orange-100 text-orange-700 hover:bg-orange-200' :
                   'bg-slate-200 text-slate-700 hover:bg-slate-300'
                 }>
-                  {isUserAdmin ? 'מנהל מערכת' : u.role === 'client' ? 'לקוח' : 'צלם'}
+                  {isUserAdmin ? 'מנהל מערכת' : u.role === 'client' ? 'לקוח' : (u.role === 'pending' || !u.role) ? 'ממתין לאישור' : 'צלם'}
                 </Badge>
                 <div className="flex items-center gap-1 text-xs text-slate-400">
                   <Calendar className="w-3 h-3" />

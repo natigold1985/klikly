@@ -63,6 +63,7 @@ export default function EditUserRoleDialog({ open, onOpenChange, user, photograp
                 <SelectItem value="admin">מנהל מערכת</SelectItem>
                 <SelectItem value="user">צלם</SelectItem>
                 <SelectItem value="client">לקוח</SelectItem>
+                <SelectItem value="pending">ממתין לאישור / חסום</SelectItem>
               </SelectContent>
             </Select>
           </div>

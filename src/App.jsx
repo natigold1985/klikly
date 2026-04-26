@@ -7,6 +7,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import AccessDeniedScreen from '@/components/AccessDeniedScreen';
 import AdminUsers from './pages/AdminUsers';
 import Quotes from './pages/Quotes';
 import ClientGallery from './pages/ClientGallery';
@@ -27,7 +28,14 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   : <>{children}</>;
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user } = useAuth();
+
+  // Closed-system gate: only allow admin / user (photographer) / client roles.
+  // Anyone else (e.g., role === 'pending' or undefined) is blocked.
+  const ALLOWED_ROLES = ['admin', 'user', 'client'];
+  const isAllowedUser = user && (
+    ALLOWED_ROLES.includes(user.role) || user.email === 'natigold04@gmail.com'
+  );
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -47,6 +55,11 @@ const AuthenticatedApp = () => {
       navigateToLogin();
       return null;
     }
+  }
+
+  // Block users without an allowed role
+  if (user && !isAllowedUser) {
+    return <AccessDeniedScreen user={user} />;
   }
 
   // Render the main app

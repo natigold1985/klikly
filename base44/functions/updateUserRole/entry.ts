@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
     if (!user_id || !role) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
-    if (!['admin', 'user', 'client'].includes(role)) {
+    if (!['admin', 'user', 'client', 'pending'].includes(role)) {
       return Response.json({ error: 'Invalid role' }, { status: 400 });
     }
 
