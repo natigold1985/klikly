@@ -7,7 +7,7 @@ const STATUS_OPTIONS = [
   { value: 'follow_up', label: 'מעקב', color: 'bg-purple-500' },
   { value: 'quote_sent', label: 'הצעה נשלחה', color: 'bg-orange-500' },
   { value: 'closed_won', label: 'נסגר ✓', color: 'bg-green-500' },
-  { value: 'closed_lost', label: 'נכשל', color: 'bg-red-500' },
+  { value: 'closed_lost', label: 'לא מעוניין', color: 'bg-red-500' },
 ];
 
 export default function StatusSelect({ value, onChange }) {

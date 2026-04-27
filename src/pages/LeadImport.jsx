@@ -25,8 +25,8 @@ const AI_CHANNEL_HINTS = {
 };
 
 const CHANNELS = [
-  { id: 'gmail_auto', label: 'Gmail סריקה חיה', desc: 'סריקה אוטומטית פעמיים ביום (08:00 / 17:00)', icon: Mail, color: 'bg-red-600', available: true },
-  { id: 'sheets', label: 'Google Sheets', desc: 'סנכרון אוטומטי פעמיים ביום (08:00 / 17:00)', icon: FileSpreadsheet, color: 'bg-green-500', available: true },
+  { id: 'gmail_auto', label: 'Gmail סריקה חיה', desc: 'סריקה אוטומטית פעמיים ביום (09:00 / 21:00)', icon: Mail, color: 'bg-red-600', available: true },
+  { id: 'sheets', label: 'Google Sheets', desc: 'סנכרון אוטומטי פעמיים ביום (09:00 / 21:00)', icon: FileSpreadsheet, color: 'bg-green-500', available: true },
   { id: 'facebook', label: 'Facebook Ads', desc: 'בקרוב - דורש Meta Business API', icon: Facebook, color: 'bg-blue-600', available: false },
   { id: 'instagram', label: 'Instagram', desc: 'בקרוב - דורש Meta API', icon: Instagram, color: 'bg-gradient-to-tr from-purple-500 to-pink-500', available: false },
   { id: 'whatsapp', label: 'WhatsApp', desc: 'בקרוב - דורש WhatsApp Business API', icon: MessageCircle, color: 'bg-[#25D366]', available: false },
