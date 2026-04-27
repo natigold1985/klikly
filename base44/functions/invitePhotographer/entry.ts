@@ -28,30 +28,15 @@ Deno.serve(async (req) => {
     const inviteRole = role === 'admin' ? 'admin' : 'user';
     await base44.users.inviteUser(normalizedEmail, inviteRole);
 
-    // Retry up to 5 times to find the newly created user record (race condition)
-    let created = [];
-    for (let attempt = 0; attempt < 5; attempt++) {
-      await new Promise(r => setTimeout(r, 600));
-      created = await base44.asServiceRole.entities.User.filter({ email: normalizedEmail });
-      if (created.length > 0) break;
-    }
-
-    if (created.length === 0) {
-      return Response.json({ error: 'המשתמש נוצר אך לא נמצא לאחר ההזמנה. נסה שוב בעוד דקה.' }, { status: 500 });
-    }
-
-    await base44.asServiceRole.entities.User.update(created[0].id, {
-      full_name,
-      phone: phone || '',
-      role,
-      is_invited: true,
-    });
-
-    // Verify the update actually persisted
-    const verified = await base44.asServiceRole.entities.User.filter({ email: normalizedEmail });
-    if (!verified[0]?.is_invited) {
-      console.error('is_invited did not persist for', normalizedEmail);
-      return Response.json({ error: 'המשתמש נוצר אך הגישה לא הופעלה. נסה לרענן ולאשר שוב.' }, { status: 500 });
+    await new Promise(r => setTimeout(r, 800));
+    const created = await base44.asServiceRole.entities.User.filter({ email: normalizedEmail });
+    if (created.length > 0) {
+      await base44.asServiceRole.entities.User.update(created[0].id, {
+        full_name,
+        phone: phone || '',
+        role,
+        is_invited: true,
+      });
     }
 
     return Response.json({ success: true, email: normalizedEmail });
