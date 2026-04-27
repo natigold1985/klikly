@@ -91,7 +91,19 @@ export const AuthProvider = ({ children }) => {
     try {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
+      let currentUser = await base44.auth.me();
+
+      // Auto-approve: any authenticated user who isn't yet marked as invited
+      // gets immediate access (open registration via Google login).
+      if (currentUser && currentUser.is_invited !== true) {
+        try {
+          await base44.functions.invoke('autoApproveNewUser', {});
+          currentUser = await base44.auth.me();
+        } catch (e) {
+          console.error('Auto-approve failed:', e);
+        }
+      }
+
       setUser(currentUser);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
