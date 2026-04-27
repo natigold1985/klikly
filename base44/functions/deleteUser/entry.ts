@@ -13,12 +13,16 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing user_id' }, { status: 400 });
     }
 
-    // Prevent deleting yourself
-    if (user_id === admin.id) {
+    // Fetch the TeamMember to prevent self-deletion and to protect natigold
+    const member = await base44.asServiceRole.entities.TeamMember.get(user_id).catch(() => null);
+    if (member?.email === admin.email) {
       return Response.json({ error: 'לא ניתן למחוק את עצמך' }, { status: 400 });
     }
+    if (member?.email === 'natigold04@gmail.com') {
+      return Response.json({ error: 'לא ניתן למחוק את מנהל המערכת הראשי' }, { status: 400 });
+    }
 
-    await base44.asServiceRole.entities.User.delete(user_id);
+    await base44.asServiceRole.entities.TeamMember.delete(user_id);
     return Response.json({ success: true });
   } catch (error) {
     console.error('deleteUser error:', error);

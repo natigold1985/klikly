@@ -1,20 +1,18 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 Deno.serve(async (req) => {
-    try {
-        const base44 = createClientFromRequest(req);
-        const user = await base44.auth.me();
-        
-        // מוודא שהמשתמש הוא אדמין או המייל הספציפי שהוגדר
-        if (!user || (user.role !== 'admin' && user.email !== 'natigold04@gmail.com')) {
-            return Response.json({ error: 'Unauthorized' }, { status: 403 });
-        }
+  try {
+    const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
 
-        // שליפת כלל המשתמשים במערכת בעזרת הרשאת מערכת
-        const allUsers = await base44.asServiceRole.entities.User.list();
-
-        return Response.json({ users: allUsers });
-    } catch (error) {
-        return Response.json({ error: error.message }, { status: 500 });
+    if (!user || (user.role !== 'admin' && user.email !== 'natigold04@gmail.com')) {
+      return Response.json({ error: 'Unauthorized' }, { status: 403 });
     }
+
+    // Return TeamMember records — these are the source of truth for access
+    const teamMembers = await base44.asServiceRole.entities.TeamMember.list('-created_date', 500);
+    return Response.json({ users: teamMembers });
+  } catch (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
 });

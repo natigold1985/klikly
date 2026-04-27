@@ -6,6 +6,8 @@ import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import AccessDeniedScreen from '@/components/AccessDeniedScreen';
 import AdminUsers from './pages/AdminUsers';
@@ -30,16 +32,24 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user } = useAuth();
 
-  // Closed-system gate: only users explicitly invited via the admin "Users" tab can enter.
-  // Even if a user has a valid role, they must have is_invited=true to access the app.
-  const ALLOWED_ROLES = ['admin', 'user', 'client'];
+  // Closed-system gate: only users whose email exists in the TeamMember table can enter.
+  const { data: teamMember, isLoading: isLoadingTeamMember } = useQuery({
+    queryKey: ['teamMemberAccess', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return null;
+      const list = await base44.entities.TeamMember.filter({ email: user.email.toLowerCase() });
+      return list[0] || null;
+    },
+    enabled: !!user?.email,
+  });
+
   const isAllowedUser = user && (
     user.email === 'natigold04@gmail.com' ||
-    (ALLOWED_ROLES.includes(user.role) && user.is_invited === true)
+    (teamMember && teamMember.is_active !== false)
   );
 
-  // Show loading spinner while checking app public settings or auth
-  if (isLoadingPublicSettings || isLoadingAuth) {
+  // Show loading spinner while checking app public settings, auth, or team membership
+  if (isLoadingPublicSettings || isLoadingAuth || (user && isLoadingTeamMember)) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>

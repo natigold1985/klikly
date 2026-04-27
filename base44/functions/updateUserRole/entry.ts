@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
     if (!user_id || !role) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
-    if (!['admin', 'user', 'client', 'pending'].includes(role)) {
+    if (!['admin', 'user', 'client'].includes(role)) {
       return Response.json({ error: 'Invalid role' }, { status: 400 });
     }
 
@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
       updateData.assigned_photographer_email = null;
     }
 
-    await base44.asServiceRole.entities.User.update(user_id, updateData);
+    await base44.asServiceRole.entities.TeamMember.update(user_id, updateData);
     return Response.json({ success: true });
   } catch (error) {
     console.error('updateUserRole error:', error);
