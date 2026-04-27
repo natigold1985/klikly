@@ -33,12 +33,24 @@ const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, user } = useAuth();
 
   // Closed-system gate: only users whose email exists in the TeamMember table can enter.
+  // Also syncs the User.role from TeamMember.role so client/admin/user views work correctly.
   const { data: teamMember, isLoading: isLoadingTeamMember } = useQuery({
     queryKey: ['teamMemberAccess', user?.email],
     queryFn: async () => {
       if (!user?.email) return null;
       const list = await base44.entities.TeamMember.filter({ email: user.email.toLowerCase() });
-      return list[0] || null;
+      const member = list[0] || null;
+      // Sync role from TeamMember -> User entity so the rest of the app (Layout, FileStorage, etc.)
+      // sees the correct role (e.g. 'client').
+      if (member && member.role && member.role !== user.role) {
+        try {
+          await base44.auth.updateMe({ role: member.role });
+          window.location.reload();
+        } catch (e) {
+          console.error('role sync failed', e);
+        }
+      }
+      return member;
     },
     enabled: !!user?.email,
   });
