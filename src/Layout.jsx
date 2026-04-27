@@ -117,6 +117,27 @@ export default function Layout({ children, currentPageName }) {
     return children;
   }
 
+  // ── Client view: minimal UI — no sidebar, no nav, no header. Just content + tiny logout button.
+  if (isClient) {
+    return (
+      <div className="min-h-screen bg-white text-slate-900" dir="rtl">
+        <div className="absolute top-4 left-4 z-50">
+          <button
+            onClick={() => base44.auth.logout()}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium transition-colors"
+            title="התנתקות"
+          >
+            <LogOut className="w-4 h-4" />
+            יציאה
+          </button>
+        </div>
+        <main className="px-4 md:px-8 py-12 max-w-6xl mx-auto">
+          {children}
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden text-slate-900 dark:text-slate-50 transition-colors duration-300" dir="rtl">
       

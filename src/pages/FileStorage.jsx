@@ -34,11 +34,15 @@ export default function FileStorage() {
     enabled: !!user && !isClient,
   });
 
-  // Fetch photos: for client => own photos, for photographer => selected client's photos
+  // Fetch photos: for client => own edited photos only, for photographer => selected client's photos
   const photosClientEmail = isClient ? user?.email : selectedClient?.email;
   const { data: photos = [], isLoading: loadingPhotos } = useQuery({
-    queryKey: ['clientPhotos', photosClientEmail],
-    queryFn: () => base44.entities.Photo.filter({ client_email: photosClientEmail }, '-created_date', 500),
+    queryKey: ['clientPhotos', photosClientEmail, isClient],
+    queryFn: () => {
+      const filter = { client_email: photosClientEmail };
+      if (isClient) filter.type = 'edited';
+      return base44.entities.Photo.filter(filter, '-created_date', 500);
+    },
     enabled: !!photosClientEmail,
   });
 
