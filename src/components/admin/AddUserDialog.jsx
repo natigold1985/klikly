@@ -19,14 +19,15 @@ export default function AddUserDialog({ open, onOpenChange, onCreated }) {
     setLoading(true);
     try {
       const res = await base44.functions.invoke('invitePhotographer', form);
-      if (res.data?.success) {
-        toast.success('המשתמש הוזמן בהצלחה — מייל הזמנה נשלח');
-        setForm({ full_name: '', email: '', phone: '', role: 'user' });
-        onCreated?.();
-        onOpenChange(false);
-      } else {
-        toast.error(res.data?.error || 'שגיאה ביצירת המשתמש');
+      if (res.data?.error) {
+        toast.error(res.data.error);
+        setLoading(false);
+        return;
       }
+      toast.success('המשתמש הוזמן בהצלחה — מייל הזמנה נשלח');
+      setForm({ full_name: '', email: '', phone: '', role: 'user' });
+      onCreated?.();
+      onOpenChange(false);
     } catch (e) {
       toast.error(e?.response?.data?.error || e.message || 'שגיאה ביצירת המשתמש');
     } finally {
