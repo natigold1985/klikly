@@ -48,16 +48,9 @@ export default function Projects() {
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ['projects', searchTerm, statusFilter, user?.email],
-    queryFn: async () => {
+    queryFn: () => {
       if (isClient) {
-        // Client only sees projects created by their assigned photographer
-        const teamMembers = await base44.entities.TeamMember.filter({ email: user.email.toLowerCase() });
-        const assignedPhotographer = teamMembers[0]?.assigned_photographer_email;
-        if (!assignedPhotographer) return [];
-        return base44.entities.Project.filter({
-          client_email: user.email,
-          created_by: assignedPhotographer,
-        }, '-created_date', 200);
+        return base44.entities.Project.filter({ client_email: user.email }, '-created_date', 200);
       }
       return base44.entities.Project.filter({ created_by: user.email }, '-created_date', 200);
     },
