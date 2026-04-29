@@ -19,13 +19,20 @@ Deno.serve(async (req) => {
         try { body = await req.json(); } catch (_) { /* no body for scheduled calls */ }
         const sheetUrl = body.sheetUrl;
         
-        // Extract spreadsheet ID from URL or use directly
-        let spreadsheetId;
-        if (sheetUrl && sheetUrl.includes('/spreadsheets/d/')) {
-            const match = sheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-            spreadsheetId = match ? match[1] : null;
-        } else if (sheetUrl && !sheetUrl.includes('/')) {
-            spreadsheetId = sheetUrl; // Direct ID
+        // Extract spreadsheet ID from URL or use directly.
+        // Supports: full URL, partial URL (e.g. "ID/edit?gid=..."), or raw ID.
+        let spreadsheetId = null;
+        if (sheetUrl) {
+            const trimmed = sheetUrl.trim();
+            // 1) Try full /spreadsheets/d/<ID>
+            let match = trimmed.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+            if (match) {
+                spreadsheetId = match[1];
+            } else {
+                // 2) Take the first path-like segment that looks like a Sheets ID (>= 20 chars, alnum/_/-)
+                const segMatch = trimmed.match(/([a-zA-Z0-9_-]{20,})/);
+                if (segMatch) spreadsheetId = segMatch[1];
+            }
         }
         
         if (!spreadsheetId) {
