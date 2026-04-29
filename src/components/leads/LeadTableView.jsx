@@ -4,6 +4,7 @@ import { createPageUrl } from '@/utils';
 import { Phone, MessageCircle, Trash2, Zap } from 'lucide-react';
 import SourceBadge from './SourceBadge';
 import StatusSelect from './StatusSelect';
+import LeadMobileCard from './LeadMobileCard';
 
 export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoFollowUp }) {
   const getWhatsAppLink = (lead) => {
@@ -14,7 +15,22 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <>
+      {/* Mobile: card list */}
+      <div className="md:hidden space-y-3" dir="rtl">
+        {leads.map((lead) => (
+          <LeadMobileCard
+            key={lead.id}
+            lead={lead}
+            onStatusChange={onStatusChange}
+            onDelete={onDelete}
+            onAutoFollowUp={onAutoFollowUp}
+          />
+        ))}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       <table className="w-full text-sm table-fixed" dir="rtl">
         <colgroup>
           <col className="w-[28%]" />
@@ -107,6 +123,7 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
           ))}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }
