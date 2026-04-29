@@ -8,7 +8,10 @@ import StatusSelect from './StatusSelect';
 const getWhatsAppLink = (lead) => {
   const cleanPhone = (lead.phone || '').replace(/[^0-9]/g, '');
   const israelPhone = cleanPhone.startsWith('0') ? '972' + cleanPhone.substring(1) : cleanPhone;
-  const msg = `היי ${lead.name}, אני צלם/ת מקצועי/ת ושמחתי לראות שהתעניינת. אשמח לספר לך על השירותים שלי ולתאם שיחה קצרה. מה אומר/ת?`;
+  const hasRealName = lead.name && !['לא ידוע', 'unknown', 'Unknown'].includes(lead.name.trim());
+  const msg = hasRealName
+    ? `היי ${lead.name}, אני צלם/ת מקצועי/ת ושמחתי לראות שהתעניינת. אשמח לספר לך על השירותים שלי ולתאם שיחה קצרה. מה אומר/ת?`
+    : `הי, האם עדיין רלוונטי עבורכם שירותי צילום?`;
   return `https://wa.me/${israelPhone}?text=${encodeURIComponent(msg)}`;
 };
 

@@ -10,6 +10,13 @@ function greet(name) {
   return `היי ${clean}`;
 }
 
+// Detects whether the lead has a real name we can address them by
+function hasRealName(name) {
+  if (!name) return false;
+  const clean = String(name).trim();
+  return clean && !/ללא שם|לא ידוע|unknown/i.test(clean);
+}
+
 // Personalized line based on shooting type
 function typeContext(type) {
   if (!type) return null;
@@ -75,7 +82,10 @@ function getSourceKey(source) {
 
 export default function OutreachActions({ lead, onLog, compact = false }) {
   const sourceKey = getSourceKey(lead.source);
-  const waText = TEMPLATES.whatsapp[sourceKey](lead.name, lead.shooting_type);
+  // For unknown / unsaved contacts use a generic neutral opener instead of a personalized template
+  const waText = hasRealName(lead.name)
+    ? TEMPLATES.whatsapp[sourceKey](lead.name, lead.shooting_type)
+    : `הי, האם עדיין רלוונטי עבורכם שירותי צילום?`;
   const waLink = `https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(waText)}`;
 
   const emailSubject = TEMPLATES.email.subject(lead.name);
