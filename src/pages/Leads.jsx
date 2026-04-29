@@ -33,6 +33,7 @@ import SourceBadge from '@/components/leads/SourceBadge';
 import LeadTableView from '@/components/leads/LeadTableView';
 import DataActionsToolbar from '@/components/leads/DataActionsToolbar';
 import OutreachActions from '@/components/leads/OutreachActions';
+import AutoFollowUpDialog from '@/components/leads/AutoFollowUpDialog';
 
 // Fix leaflet icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -167,6 +168,7 @@ export default function Leads() {
   const [followUpDate, setFollowUpDate] = useState('');
   const [showAiAssist, setShowAiAssist] = useState(false);
   const [aiLead, setAiLead] = useState(null);
+  const [autoFollowUpLead, setAutoFollowUpLead] = useState(null);
   
   const [newLead, setNewLead] = useState({
     name: '',
@@ -482,6 +484,14 @@ export default function Leads() {
         </DialogContent>
       </Dialog>
 
+      {/* Auto Follow-Up Dialog */}
+      <AutoFollowUpDialog
+        open={!!autoFollowUpLead}
+        onOpenChange={(o) => !o && setAutoFollowUpLead(null)}
+        lead={autoFollowUpLead}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ['leads'] })}
+      />
+
       {/* Follow Up Dialog */}
       <Dialog open={showFollowUpDialog} onOpenChange={setShowFollowUpDialog}>
         <DialogContent className="sm:max-w-[400px]" dir="rtl">
@@ -575,6 +585,7 @@ export default function Leads() {
           leads={filteredLeads} 
           onStatusChange={(id, status) => updateLeadMutation.mutate({ id, data: { status } })}
           onDelete={(id) => { if (confirm('למחוק את הליד?')) deleteLeadMutation.mutate(id); }}
+          onAutoFollowUp={(lead) => setAutoFollowUpLead(lead)}
         />
       ) : viewMode === 'map' ? (
         <Card className="border shadow-sm overflow-hidden h-[600px] relative z-0">
