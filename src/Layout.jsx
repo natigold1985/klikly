@@ -69,7 +69,10 @@ export default function Layout({ children, currentPageName }) {
   // Mobile Bottom Navigation Items
   const mobileNavItems = isClient
     ? [
-        { name: 'קבצים', icon: Folder, page: 'FileStorage' },
+        { name: 'לידים', icon: Users, page: 'Leads' },
+        { name: 'פרויקטים', icon: Briefcase, page: 'Projects' },
+        { name: 'גלריה', icon: Folder, page: 'FileStorage' },
+        { name: 'משימות', icon: CheckCircle2, page: 'Tasks' },
       ]
     : [
         { name: 'לידים', icon: Users, page: 'Leads' },
@@ -95,10 +98,8 @@ export default function Layout({ children, currentPageName }) {
         path: location.pathname, 
         details: `Client role attempted to access restricted admin page: ${pageName}` 
       }).catch(console.error);
-    } else if (isClient && pageName === 'Home') {
-      // Only redirect clients from the home/landing page to FileStorage.
-      // Don't redirect from other valid client pages (FileStorage, DownloadPage, etc.)
-      window.location.href = createPageUrl('FileStorage');
+    } else {
+      setAccessDenied(false);
     }
   }, [isClient, pageName, location.pathname]);
 
@@ -149,7 +150,7 @@ export default function Layout({ children, currentPageName }) {
             alt="KLIKLY"
             className="h-10 object-contain drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]"
           />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
             <button
               onClick={() => base44.auth.logout()}
               className="w-10 h-10 flex items-center justify-center rounded-lg bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 transition-colors"
@@ -157,8 +158,50 @@ export default function Layout({ children, currentPageName }) {
             >
               <LogOut className="w-5 h-5 text-red-400" />
             </button>
+            <button
+              className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors"
+              onClick={() => setMobileMenuOpen(true)}
+            >
+              <Menu className="w-5 h-5 text-white" />
+            </button>
           </div>
         </header>
+
+        {/* Mobile Drawer Menu (Client) */}
+        {mobileMenuOpen && (
+          <div className="md:hidden fixed inset-0 z-50">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
+            <div className="absolute top-0 right-0 bottom-0 w-72 bg-black border-l border-white/10 shadow-2xl flex flex-col">
+              <div className="h-16 flex items-center justify-between px-5 border-b border-white/10">
+                <span className="text-white font-bold text-sm">תפריט</span>
+                <button onClick={() => setMobileMenuOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/10">
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              </div>
+              <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+                {clientNav.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pageName === item.page;
+                  return (
+                    <Link
+                      key={item.name}
+                      to={createPageUrl(item.page)}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                        isActive
+                          ? 'bg-gradient-to-r from-[#D4AF37] to-[#C5A028] text-black font-bold'
+                          : 'text-white/70 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <Icon className={`w-5 h-5 ${isActive ? 'text-black' : 'text-white/50'}`} />
+                      <span className="text-sm">{item.name}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+          </div>
+        )}
 
         {/* Desktop Sidebar */}
         <aside className="hidden md:flex flex-col w-72 bg-black text-white flex-shrink-0 h-full border-l border-white/5">
@@ -213,12 +256,37 @@ export default function Layout({ children, currentPageName }) {
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col min-w-0 h-full bg-white">
-          <main className="flex-1 overflow-y-auto overflow-x-hidden pt-20 md:pt-0 pb-6 px-4 md:px-8">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden pt-20 md:pt-0 pb-24 md:pb-6 px-4 md:px-8">
             <div className="max-w-6xl mx-auto w-full py-6">
               {children}
             </div>
           </main>
         </div>
+
+        {/* Mobile Bottom Navigation (Client) */}
+        <nav
+          className="md:hidden fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-2xl border-t border-white/10 z-50 flex items-stretch shadow-[0_-10px_30px_rgba(0,0,0,0.8)] px-2"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)', height: 'calc(72px + env(safe-area-inset-bottom))' }}
+        >
+          {mobileNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pageName === item.page;
+            return (
+              <Link
+                key={item.name}
+                to={createPageUrl(item.page)}
+                className="flex-1 flex flex-col items-center justify-center gap-1.5"
+              >
+                <div className={`p-2 rounded-2xl ${isActive ? 'bg-white/10' : ''}`}>
+                  <Icon className={`w-6 h-6 ${isActive ? 'text-[#FFD700]' : 'text-white/50'}`} strokeWidth={isActive ? 2.5 : 2} />
+                </div>
+                <span className={`text-[10px] font-bold tracking-wide ${isActive ? 'text-[#FFD700]' : 'text-white/50'}`}>
+                  {item.name}
+                </span>
+              </Link>
+            );
+          })}
+        </nav>
       </div>
     );
   }

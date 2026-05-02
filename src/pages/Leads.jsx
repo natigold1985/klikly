@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { motion, useAnimation } from 'framer-motion';
+
 import { toast } from 'sonner';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -43,51 +43,12 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Swipeable Lead Card Component
+// Lead Card Component (no drag - prevents layout jumps)
 const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
-  const controls = useAnimation();
-  const [isOpen, setIsOpen] = useState(false);
-
-  const handleDragEnd = (event, info) => {
-    const threshold = 100;
-    if (info.offset.x < -threshold) {
-      // Swipe Left -> Follow-up
-      onAction('followup', lead);
-      controls.start({ x: 0 });
-    } else if (info.offset.x > threshold) {
-      // Swipe Right -> Delete (or other action, maybe Call)
-      // Per user request: Swipe Actions for Follow-up or Delete
-      onAction('delete', lead);
-      controls.start({ x: 0 });
-    } else {
-      controls.start({ x: 0 });
-    }
-  };
-
-  const whatsappLink = `https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`היי ${lead.name}, ראיתי שהתעניינת ב-${lead.shooting_type || 'צילום'}. רציתי לבדוק אם קיבלת את הפרטים?`)}`;
-
   return (
-    <div className="relative overflow-hidden rounded-xl h-full">
-      {/* Background Actions */}
-      <div className="absolute inset-0 flex items-center justify-between pointer-events-none rounded-xl overflow-hidden">
-        <div className="h-full w-1/2 bg-red-500 flex items-center justify-start pl-6 text-white">
-          <Trash2 className="w-6 h-6" />
-        </div>
-        <div className="h-full w-1/2 bg-blue-500 flex items-center justify-end pr-6 text-white">
-          <Clock className="w-6 h-6" />
-        </div>
-      </div>
-
-      {/* Foreground Card */}
-      <motion.div
-        drag="x"
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.2}
-        onDragEnd={handleDragEnd}
-        animate={controls}
-        className="bg-white relative h-full z-10 rounded-xl border border-slate-200 shadow-sm w-full max-w-full box-border"
-      >
-        <Card className="hover:border-[#C5A028]/50 hover:shadow-md transition-all duration-300 h-full border-none shadow-none bg-transparent">
+    <div className="relative rounded-xl h-full">
+      <div className="bg-white relative h-full rounded-xl border border-slate-200 shadow-sm w-full max-w-full box-border">
+        <Card className="hover:border-[#C5A028]/50 hover:shadow-md transition-shadow duration-200 h-full border-none shadow-none bg-transparent">
           <CardContent className="p-5">
             <Link to={createPageUrl(`LeadDetails?id=${lead.id}`)} className="block hover:opacity-80">
               <div className="flex items-start justify-between mb-4">
@@ -153,7 +114,7 @@ const SwipeableLeadCard = ({ lead, onAction, getStatusBadge }) => {
             )}
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
     </div>
   );
 };
