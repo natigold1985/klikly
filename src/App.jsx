@@ -19,6 +19,7 @@ import Analytics from './pages/Analytics';
 import LeadImport from './pages/LeadImport';
 import RBACMatrix from './pages/RBACMatrix';
 import QuoteView from './pages/QuoteView';
+import QuoteTemplates from './pages/QuoteTemplates';
 import PublicLeadForm from './pages/PublicLeadForm';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
@@ -104,6 +105,11 @@ const AuthenticatedApp = () => {
       <Route path="/Quotes" element={
         <LayoutWrapper currentPageName="Quotes">
           <Quotes />
+        </LayoutWrapper>
+      } />
+      <Route path="/QuoteTemplates" element={
+        <LayoutWrapper currentPageName="QuoteTemplates">
+          <QuoteTemplates />
         </LayoutWrapper>
       } />
       <Route path="/Contacts" element={

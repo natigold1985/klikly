@@ -4,18 +4,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowRight, Phone, Mail, Calendar, Edit, 
-  Trash2, Briefcase, Plus, CheckCircle2, DollarSign
+  Trash2, Briefcase, Plus, CheckCircle2, DollarSign, FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import SendQuoteFromLeadDialog from '@/components/leads/SendQuoteFromLeadDialog';
 
 export default function LeadDetails() {
   const urlParams = new URLSearchParams(window.location.search);
   const leadId = urlParams.get('id');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [showQuoteDialog, setShowQuoteDialog] = useState(false);
 
   const { data: lead, isLoading } = useQuery({
     queryKey: ['lead', leadId],
@@ -73,12 +75,24 @@ export default function LeadDetails() {
           <h1 className="text-2xl font-bold text-slate-900 leading-tight">תיק ליד</h1>
         </div>
         {lead.status !== 'closed_won' && (
-          <Button onClick={convertToProject} className="bg-green-600 hover:bg-green-700 text-white shadow-md">
-            <CheckCircle2 className="w-4 h-4 mr-2" />
-            הפוך ללקוח (פרויקט)
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button onClick={() => setShowQuoteDialog(true)} className="bg-[#C5A028] hover:bg-[#A88820] text-white shadow-md">
+              <FileText className="w-4 h-4 mr-2" />
+              שלח הצעת מחיר
+            </Button>
+            <Button onClick={convertToProject} variant="outline" className="border-green-300 text-green-700 hover:bg-green-50">
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              הפוך לפרויקט
+            </Button>
+          </div>
         )}
       </div>
+
+      <SendQuoteFromLeadDialog
+        lead={lead}
+        open={showQuoteDialog}
+        onOpenChange={setShowQuoteDialog}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">

@@ -56,6 +56,7 @@ export default function Layout({ children, currentPageName }) {
         ...(isAdmin ? [{ name: 'ייבוא לידים', icon: Users, page: 'LeadImport' }] : []),
         { name: 'אנשי קשר', icon: BookUser, page: 'Contacts' },
         { name: 'הצעות מחיר', icon: FileText, page: 'Quotes' },
+        { name: 'תבניות הצעות', icon: FileText, page: 'QuoteTemplates' },
         { name: 'פרויקטים', icon: Briefcase, page: 'Projects' },
         { name: 'ספקי משנה', icon: UserCog, page: 'SubVendors' },
         { name: 'אחסון קבצים', icon: Folder, page: 'FileStorage' },

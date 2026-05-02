@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { CheckCircle2, XCircle, FileText, Loader2, Clock } from 'lucide-react';
+import { CheckCircle2, XCircle, FileText, Loader2, Clock, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import SignaturePad from '@/components/quotes/SignaturePad';
 
 export default function QuoteView() {
   const [quote, setQuote] = useState(null);
@@ -11,6 +13,10 @@ export default function QuoteView() {
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
   const [error, setError] = useState(null);
+  const [showSignFlow, setShowSignFlow] = useState(false);
+  const [signature, setSignature] = useState(null);
+  const [signerName, setSignerName] = useState('');
+  const [signError, setSignError] = useState('');
 
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get('token');
@@ -29,7 +35,7 @@ export default function QuoteView() {
     const res = await base44.functions.invoke('acceptQuote', { token });
     if (res.data?.quote) {
       setQuote(res.data.quote);
-      // Try to load branding
+      setSignerName(res.data.quote.client_name || '');
       const allSettings = await base44.entities.PhotographerSettings.list().catch(() => []);
       if (allSettings[0]) setSettings(allSettings[0]);
     } else {
@@ -38,11 +44,43 @@ export default function QuoteView() {
     setLoading(false);
   };
 
-  const handleAction = async (action) => {
+  const handleReject = async () => {
     setActing(true);
-    const res = await base44.functions.invoke('acceptQuote', { token, action });
+    const res = await base44.functions.invoke('acceptQuote', { token, action: 'reject' });
     if (res.data?.success) {
       setQuote({ ...quote, status: res.data.status });
+    }
+    setActing(false);
+  };
+
+  const handleConfirmSign = async () => {
+    setSignError('');
+    if (!signerName.trim()) {
+      setSignError('נא להזין שם מלא');
+      return;
+    }
+    if (!signature) {
+      setSignError('נא לחתום בתיבת החתימה');
+      return;
+    }
+    setActing(true);
+    const res = await base44.functions.invoke('acceptQuote', {
+      token,
+      action: 'accept',
+      signature_data: signature,
+      signer_name: signerName.trim(),
+    });
+    if (res.data?.success) {
+      setQuote({
+        ...quote,
+        status: res.data.status,
+        signature_data: signature,
+        signer_name: signerName.trim(),
+        signed_at: new Date().toISOString(),
+      });
+      setShowSignFlow(false);
+    } else {
+      setSignError(res.data?.error || 'שגיאה באישור ההצעה');
     }
     setActing(false);
   };
@@ -88,7 +126,7 @@ export default function QuoteView() {
         {isAccepted && (
           <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6 flex items-center gap-3 justify-center">
             <CheckCircle2 className="w-6 h-6 text-green-600" />
-            <span className="font-bold text-green-700">הצעת המחיר אושרה בהצלחה!</span>
+            <span className="font-bold text-green-700">הצעת המחיר אושרה ונחתמה!</span>
           </div>
         )}
         {isRejected && (
@@ -117,12 +155,11 @@ export default function QuoteView() {
               <div className="bg-slate-50 rounded-xl p-4 mb-6">
                 <h3 className="font-bold text-slate-800 mb-1">{quote.package_name}</h3>
                 {quote.package_description && (
-                  <p className="text-sm text-slate-600">{quote.package_description}</p>
+                  <p className="text-sm text-slate-600 whitespace-pre-line">{quote.package_description}</p>
                 )}
               </div>
             )}
 
-            {/* Line Items */}
             {quote.items?.length > 0 && (
               <div className="mb-6">
                 <table className="w-full text-sm">
@@ -146,13 +183,11 @@ export default function QuoteView() {
               </div>
             )}
 
-            {/* Total */}
             <div className="flex items-center justify-between py-4 border-t-2 border-slate-200">
               <span className="text-lg font-bold text-slate-700">סה"כ</span>
               <span className="text-3xl font-extrabold text-[#C5A028]">₪{(quote.total_price || 0).toLocaleString()}</span>
             </div>
 
-            {/* Valid Until */}
             {quote.valid_until && (
               <div className="flex items-center gap-2 text-sm text-slate-500 mt-3">
                 <Clock className="w-4 h-4" />
@@ -160,29 +195,45 @@ export default function QuoteView() {
               </div>
             )}
 
-            {/* Terms */}
             {quote.terms && (
               <div className="mt-6 pt-4 border-t border-slate-100">
                 <p className="text-xs text-slate-400 font-bold mb-1">תנאים</p>
                 <p className="text-xs text-slate-500 whitespace-pre-line">{quote.terms}</p>
               </div>
             )}
+
+            {/* Signature display when accepted */}
+            {isAccepted && quote.signature_data && (
+              <div className="mt-6 pt-4 border-t border-slate-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <ShieldCheck className="w-4 h-4 text-green-600" />
+                  <p className="text-sm font-bold text-slate-700">חתימה דיגיטלית מאושרת</p>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                  <img src={quote.signature_data} alt="חתימה" className="max-h-24 mx-auto" />
+                  <div className="text-xs text-slate-500 text-center mt-2 space-y-0.5">
+                    <p><strong>{quote.signer_name}</strong></p>
+                    {quote.signed_at && <p>נחתם בתאריך: {new Date(quote.signed_at).toLocaleString('he-IL')}</p>}
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Action Buttons */}
-        {canAct && (
+        {canAct && !showSignFlow && (
           <div className="flex gap-3">
             <Button
-              onClick={() => handleAction('accept')}
+              onClick={() => setShowSignFlow(true)}
               disabled={acting}
               className="flex-1 h-14 text-lg font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-lg"
             >
-              {acting ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5 ml-2" />}
-              אישור הצעת המחיר
+              <CheckCircle2 className="w-5 h-5 ml-2" />
+              חתום ואשר את ההצעה
             </Button>
             <Button
-              onClick={() => handleAction('reject')}
+              onClick={handleReject}
               disabled={acting}
               variant="outline"
               className="h-14 px-6 text-red-500 border-red-200 hover:bg-red-50 rounded-xl"
@@ -190,6 +241,58 @@ export default function QuoteView() {
               <XCircle className="w-5 h-5" />
             </Button>
           </div>
+        )}
+
+        {/* Signature Flow */}
+        {canAct && showSignFlow && (
+          <Card className="border-2 border-green-200 rounded-2xl shadow-lg">
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-green-600" />
+                <h3 className="text-lg font-bold text-slate-900">חתימה ואישור הצעת מחיר</h3>
+              </div>
+              <p className="text-sm text-slate-600">
+                בחתימה דיגיטלית זו אני מאשר/ת את הצעת המחיר ומסכים/ה לתנאים המפורטים בה.
+              </p>
+
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-1 block">שם החותם *</label>
+                <Input
+                  value={signerName}
+                  onChange={(e) => setSignerName(e.target.value)}
+                  placeholder="שם מלא"
+                  className="h-11"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-1 block">חתימה *</label>
+                <SignaturePad onChange={setSignature} />
+              </div>
+
+              {signError && (
+                <p className="text-sm text-red-500 text-center">{signError}</p>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  onClick={handleConfirmSign}
+                  disabled={acting}
+                  className="flex-1 h-12 text-base font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl"
+                >
+                  {acting ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle2 className="w-5 h-5 ml-2" /> אשר חתימה</>}
+                </Button>
+                <Button
+                  onClick={() => setShowSignFlow(false)}
+                  disabled={acting}
+                  variant="outline"
+                  className="h-12"
+                >
+                  ביטול
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Footer */}
