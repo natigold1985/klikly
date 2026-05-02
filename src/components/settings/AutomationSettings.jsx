@@ -14,19 +14,43 @@ export default function AutomationSettings({ formData, setFormData }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
-        {/* Lead reminder */}
+        {/* Lead auto-reply */}
         <div className="flex items-start justify-between gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-slate-800 text-sm">תזכורת לידים פתוחים</p>
-            <p className="text-xs text-slate-500 mt-1">קבל מייל יומי עם רשימת לידים שלא נסגרו</p>
+            <p className="font-bold text-slate-800 text-sm">פולואפ אוטומטי ללידים שלא ענו</p>
+            <p className="text-xs text-slate-500 mt-1">שולח מייל "היי מה קורה?" ללקוח שלא הגיב</p>
             <div className="flex items-center gap-2 mt-3">
               <span className="text-xs text-slate-600">אחרי</span>
               <Input
                 type="number"
                 min="1"
                 max="30"
-                value={formData.lead_followup_days ?? 3}
-                onChange={(e) => setFormData({ ...formData, lead_followup_days: parseInt(e.target.value) || 3 })}
+                value={formData.lead_auto_reply_days ?? 3}
+                onChange={(e) => setFormData({ ...formData, lead_auto_reply_days: parseInt(e.target.value) || 3 })}
+                className="w-16 h-8 text-center"
+              />
+              <span className="text-xs text-slate-600">ימים</span>
+            </div>
+          </div>
+          <Switch
+            checked={formData.lead_auto_reply_enabled !== false}
+            onCheckedChange={(v) => setFormData({ ...formData, lead_auto_reply_enabled: v })}
+          />
+        </div>
+
+        {/* Lead reminder to photographer */}
+        <div className="flex items-start justify-between gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-slate-800 text-sm">סיכום לידים פתוחים לצלם</p>
+            <p className="text-xs text-slate-500 mt-1">מייל יומי עם רשימת לידים שלא נסגרו</p>
+            <div className="flex items-center gap-2 mt-3">
+              <span className="text-xs text-slate-600">פתוחים מעל</span>
+              <Input
+                type="number"
+                min="1"
+                max="30"
+                value={formData.lead_followup_days ?? 7}
+                onChange={(e) => setFormData({ ...formData, lead_followup_days: parseInt(e.target.value) || 7 })}
                 className="w-16 h-8 text-center"
               />
               <span className="text-xs text-slate-600">ימים</span>

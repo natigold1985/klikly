@@ -60,7 +60,7 @@
     "next_follow_up_date": {
       "type": "string",
       "format": "date-time",
-      "description": "\u05ea\u05d0\u05e8\u05d9\u05da \u05e4\u05d5\u05dc\u05d5-\u05d0\u05e4 \u05d4\u05d1\u05d0"
+      "description": "\u05ea\u05d0\u05e8\u05d9\u05da \u05e4\u05d5\u05dc\u05d5-\u05d0\u05e3 \u05d4\u05d1\u05d0"
     },
     "user_id": {
       "type": "string",
@@ -76,7 +76,7 @@
     "auto_followup_enabled": {
       "type": "boolean",
       "default": false,
-      "description": "\u05d4\u05d0\u05dd \u05e4\u05d5\u05dc\u05d5-\u05d0\u05e4 \u05d0\u05d5\u05d8\u05d5\u05de\u05d8\u05d9 \u05e4\u05e2\u05d9\u05dc"
+      "description": "\u05d4\u05d0\u05dd \u05e4\u05d5\u05dc\u05d5-\u05d0\u05e3 \u05d0\u05d5\u05d8\u05d5\u05de\u05d8\u05d9 \u05e4\u05e2\u05d9\u05dc"
     },
     "auto_followup_channel": {
       "type": "string",
@@ -85,7 +85,7 @@
         "whatsapp",
         "both"
       ],
-      "description": "\u05e2\u05e8\u05d5\u05e5 \u05e4\u05d5\u05dc\u05d5-\u05d0\u05e4 \u05d0\u05d5\u05d8\u05d5\u05de\u05d8\u05d9"
+      "description": "\u05e2\u05e8\u05d5\u05e5 \u05e4\u05d5\u05dc\u05d5-\u05d0\u05e3 \u05d0\u05d5\u05d8\u05d5\u05de\u05d8\u05d9"
     },
     "auto_followup_message": {
       "type": "string",
@@ -115,6 +115,11 @@
       "type": "string",
       "format": "date-time",
       "description": "\u05de\u05ea\u05d9 \u05e0\u05e9\u05dc\u05d7\u05d4 \u05d4\u05d4\u05d5\u05d3\u05e2\u05d4 \u05d4\u05d0\u05d7\u05e8\u05d5\u05e0\u05d4"
+    },
+    "lead_auto_reply_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "\u05d4\u05d0\u05dd \u05e0\u05e9\u05dc\u05d7 \u05dc\u05dc\u05d9\u05d3 \u05de\u05d9\u05d9\u05dc \u05e4\u05d5\u05dc\u05d5\u05d0\u05e4 \u05d0\u05d5\u05d8\u05d5\u05de\u05d8\u05d9 '\u05d4\u05d9\u05d9 \u05de\u05d4 \u05e7\u05d5\u05e8\u05d4'"
     }
   },
   "required": [
