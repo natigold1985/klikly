@@ -4,10 +4,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { UserPlus, Search, ArrowRight, Trash2, Download, FileImage, Video, Upload, MessageSquare } from 'lucide-react';
+import { UserPlus, Search, ArrowRight, FileImage } from 'lucide-react';
 import FileUploader from '../components/FileUploader';
 import CreateClientDialog from '../components/storage/CreateClientDialog';
 import ClientCard from '../components/storage/ClientCard';
+import PixiesetGallery from '../components/storage/PixiesetGallery';
 import { toast } from 'sonner';
 
 export default function FileStorage() {
@@ -81,6 +82,15 @@ export default function FileStorage() {
     toast.success('הקובץ נמחק');
   };
 
+  const handleDownload = (photo) => {
+    // Trigger backend tracking (starts 90-day clock on first download + push to photographer + email)
+    if (isClient) {
+      base44.functions.invoke('onClientFirstDownload', { file_name: photo.file_name }).catch(() => {});
+    }
+    // Open in new tab to download
+    window.open(photo.file_url, '_blank');
+  };
+
   const filteredClients = clients.filter(c =>
     !search ||
     c.full_name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -92,10 +102,10 @@ export default function FileStorage() {
     return (
       <div className="space-y-6 pb-20" dir="rtl">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">הקבצים שלי</h1>
-          <p className="text-slate-600 text-sm">הקבצים זמינים להורדה למשך 3 חודשים</p>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">הגלריה שלי</h1>
+          <p className="text-slate-600 text-sm">לחץ על תמונה לצפייה במסך מלא · הקבצים זמינים להורדה למשך 90 יום מההורדה הראשונה</p>
         </div>
-        <PhotoGrid photos={photos} loading={loadingPhotos} canDelete={false} />
+        <PixiesetGallery photos={photos} loading={loadingPhotos} canDelete={false} onDownload={handleDownload} />
       </div>
     );
   }
@@ -177,74 +187,11 @@ export default function FileStorage() {
               <div className="mb-6">
                 <FileUploader onUploadComplete={handleUploadComplete} />
               </div>
-              <PhotoGrid photos={photos} loading={loadingPhotos} canDelete={true} onDelete={deletePhoto} />
+              <PixiesetGallery photos={photos} loading={loadingPhotos} canDelete={true} onDelete={deletePhoto} onDownload={handleDownload} />
             </CardContent>
           </Card>
         </>
       )}
-    </div>
-  );
-}
-
-function PhotoGrid({ photos, loading, canDelete, onDelete }) {
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-[#FFD700] rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (photos.length === 0) {
-    return (
-      <div className="text-center py-16 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-        <FileImage className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-        <p className="text-slate-500 font-medium">אין קבצים</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-      {photos.map((photo) => (
-        <div key={photo.id} className="group relative aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm hover:shadow-md transition-all">
-          {photo.file_url.match(/\.(mp4|webm|mov|avi)$/i) ? (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800 text-white">
-              <Video className="w-8 h-8 mb-2 opacity-70" />
-              <span className="text-xs max-w-[90%] truncate px-2">{photo.file_name}</span>
-            </div>
-          ) : (
-            <img
-              src={photo.file_url}
-              alt={photo.file_name}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              loading="lazy"
-            />
-          )}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 gap-2 z-20">
-            <a
-              href={photo.file_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => {
-                // Notify backend on every download (starts 90-day clock on first one + push to photographer + email confirmation)
-                base44.functions.invoke('onClientFirstDownload', { file_name: photo.file_name }).catch(() => {});
-              }}
-              className="w-9 h-9 rounded-full bg-white text-slate-900 flex items-center justify-center"
-            >
-              <Download className="w-4 h-4" />
-            </a>
-            {canDelete && (
-              <button onClick={() => onDelete(photo.id)} className="w-9 h-9 rounded-full bg-[#FFD700] text-black flex items-center justify-center">
-                <Trash2 className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 pt-4 opacity-0 group-hover:opacity-100 transition-opacity">
-            <p className="text-xs text-white truncate">{photo.file_name}</p>
-          </div>
-        </div>
-      ))}
     </div>
   );
 }
