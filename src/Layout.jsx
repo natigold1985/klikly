@@ -173,7 +173,7 @@ export default function Layout({ children, currentPageName }) {
         {mobileMenuOpen && (
           <div className="md:hidden fixed inset-0 z-50">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
-            <div className="absolute top-0 right-0 bottom-0 w-72 bg-black border-l border-white/10 shadow-2xl flex flex-col">
+            <div className="absolute top-0 right-0 bottom-0 w-72 max-w-[85vw] bg-black border-l border-white/10 shadow-2xl flex flex-col">
               <div className="h-16 flex items-center justify-between px-5 border-b border-white/10">
                 <span className="text-white font-bold text-sm">תפריט</span>
                 <button onClick={() => setMobileMenuOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/10">
@@ -338,7 +338,7 @@ export default function Layout({ children, currentPageName }) {
       {mobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
-          <div className="absolute top-0 right-0 bottom-0 w-72 bg-black border-l border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
+          <div className="absolute top-0 right-0 bottom-0 w-72 max-w-[85vw] bg-black border-l border-white/10 shadow-2xl flex flex-col">
             <div className="h-16 flex items-center justify-between px-5 border-b border-white/10">
               <span className="text-white font-bold text-sm">תפריט</span>
               <button onClick={() => setMobileMenuOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/10">

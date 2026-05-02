@@ -67,11 +67,11 @@ export default function SourceBadge({ source }) {
   if (!config) {
     return (
       <span
-        className="inline-flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 px-2.5 py-1.5 rounded-full font-medium border border-slate-200"
+        className="inline-flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 px-2.5 py-1.5 rounded-full font-medium border border-slate-200 max-w-[140px]"
         title={source || 'לא ידוע'}
       >
-        <Globe className="w-3.5 h-3.5" />
-        <span>לא ידוע</span>
+        <Globe className="w-3.5 h-3.5 flex-shrink-0" />
+        <span className="truncate">לא ידוע</span>
       </span>
     );
   }
@@ -80,12 +80,12 @@ export default function SourceBadge({ source }) {
 
   return (
     <span
-      className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full font-bold text-xs shadow-sm"
+      className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full font-bold text-xs shadow-sm max-w-[140px]"
       style={{ background: config.bg, color: config.text }}
       title={source}
     >
-      <Icon className="w-3.5 h-3.5" strokeWidth={2.5} />
-      <span>{config.label}</span>
+      <Icon className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2.5} />
+      <span className="truncate">{config.label}</span>
     </span>
   );
 }

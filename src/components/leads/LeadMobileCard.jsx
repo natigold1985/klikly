@@ -17,14 +17,14 @@ const getWhatsAppLink = (lead) => {
 
 export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoFollowUp }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 active:scale-[0.99] transition-transform">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 active:scale-[0.99] transition-transform overflow-hidden">
       {/* Top: name + status */}
-      <div className="flex items-start justify-between gap-3 mb-3">
+      <div className="flex items-start justify-between gap-2 mb-3">
         <Link
           to={createPageUrl(`LeadDetails?id=${lead.id}`)}
           className="flex items-center gap-1 min-w-0 flex-1"
         >
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h3 className="font-bold text-slate-900 text-base truncate">{lead.name}</h3>
             {lead.shooting_type && (
               <p className="text-xs text-slate-500 mt-0.5 truncate">{lead.shooting_type}</p>
@@ -38,15 +38,19 @@ export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoF
       </div>
 
       {/* Middle: phone + source */}
-      <div className="flex items-center justify-between gap-2 mb-3 pb-3 border-b border-slate-100">
+      <div className="flex items-center justify-between gap-2 mb-3 pb-3 border-b border-slate-100 min-w-0">
         <a
           href={`tel:${lead.phone}`}
-          className="font-mono text-sm text-slate-700 hover:text-blue-600 transition-colors"
+          className="font-mono text-sm text-slate-700 hover:text-blue-600 transition-colors truncate flex-shrink min-w-0"
           dir="ltr"
         >
           {lead.phone}
         </a>
-        {lead.source && <SourceBadge source={lead.source} />}
+        {lead.source && (
+          <div className="flex-shrink-0 max-w-[50%]">
+            <SourceBadge source={lead.source} />
+          </div>
+        )}
       </div>
 
       {/* Actions row */}

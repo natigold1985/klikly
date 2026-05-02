@@ -121,13 +121,13 @@ export default function Quotes() {
 
   return (
     <div className="space-y-6 pb-20" dir="rtl">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-extrabold text-slate-900">הצעות מחיר</h1>
-          <p className="text-slate-500 text-sm mt-0.5">צור, ערוך ושלח הצעות מחיר — הלקוח מקבל קישור לאישור ישיר</p>
+          <p className="text-slate-500 text-xs sm:text-sm mt-0.5">צור, ערוך ושלח הצעות מחיר — הלקוח מקבל קישור לאישור ישיר</p>
         </div>
-        <Button size="sm" className="gap-1.5" onClick={() => { setEditingQuote(null); setShowEditor(true); }}>
-          <Plus className="w-4 h-4" /> הצעה חדשה
+        <Button size="sm" className="gap-1.5 flex-shrink-0" onClick={() => { setEditingQuote(null); setShowEditor(true); }}>
+          <Plus className="w-4 h-4" /> <span className="hidden sm:inline">הצעה חדשה</span><span className="sm:hidden">חדשה</span>
         </Button>
       </div>
       
@@ -157,7 +157,7 @@ export default function Quotes() {
       </div>
 
       <Dialog open={showEditor} onOpenChange={(open) => { if (!open) { setShowEditor(false); setEditingQuote(null); } }}>
-        <DialogContent className="sm:max-w-[640px] max-h-[90vh] overflow-y-auto" dir="rtl">
+        <DialogContent className="sm:max-w-[640px] max-h-[95vh] w-[95vw] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle>{editingQuote ? 'עריכת הצעת מחיר' : 'הצעת מחיר חדשה'}</DialogTitle>
           </DialogHeader>
