@@ -44,6 +44,11 @@
     "total_price": {
       "type": "number"
     },
+    "paid_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "\u05e1\u05db\u05d5\u05dd \u05e9\u05e9\u05d5\u05dc\u05dd \u05e2\u05d3 \u05db\u05d4"
+    },
     "payment_status": {
       "type": "string",
       "enum": [
@@ -95,6 +100,18 @@
           "user_condition": {
             "role": "admin"
           }
+        },
+        {
+          "$and": [
+            {
+              "user_condition": {
+                "role": "client"
+              }
+            },
+            {
+              "data.client_email": "{{user.email}}"
+            }
+          ]
         }
       ]
     },

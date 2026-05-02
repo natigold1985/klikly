@@ -6,7 +6,7 @@ import SourceBadge from './SourceBadge';
 import StatusSelect from './StatusSelect';
 import LeadMobileCard from './LeadMobileCard';
 
-export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoFollowUp }) {
+export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoFollowUp, projectsByLeadId = {} }) {
   const getWhatsAppLink = (lead) => {
     const cleanPhone = lead.phone.replace(/[^0-9]/g, '');
     const israelPhone = cleanPhone.startsWith('0') ? '972' + cleanPhone.substring(1) : cleanPhone;
@@ -25,6 +25,7 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
           <LeadMobileCard
             key={lead.id}
             lead={lead}
+            project={projectsByLeadId[lead.id]}
             onStatusChange={onStatusChange}
             onDelete={onDelete}
             onAutoFollowUp={onAutoFollowUp}

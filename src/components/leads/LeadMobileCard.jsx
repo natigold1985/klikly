@@ -4,6 +4,7 @@ import { createPageUrl } from '@/utils';
 import { Phone, MessageCircle, Trash2, Zap, ChevronLeft } from 'lucide-react';
 import SourceBadge from './SourceBadge';
 import StatusSelect from './StatusSelect';
+import PaymentStatusRow from './PaymentStatusRow';
 
 const getWhatsAppLink = (lead) => {
   const cleanPhone = (lead.phone || '').replace(/[^0-9]/g, '');
@@ -15,17 +16,29 @@ const getWhatsAppLink = (lead) => {
   return `https://wa.me/${israelPhone}?text=${encodeURIComponent(msg)}`;
 };
 
-export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoFollowUp }) {
+// Hide noisy/empty source values
+const isMeaningfulSource = (src) => {
+  if (!src) return false;
+  const v = String(src).trim().toLowerCase();
+  return v && !['לא ידוע', 'unknown', 'none', '-', 'n/a'].includes(v);
+};
+
+export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoFollowUp, project }) {
+  const showSource = isMeaningfulSource(lead.source);
+  const isClosedWon = lead.status === 'closed_won';
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 active:scale-[0.99] transition-transform overflow-hidden">
       {/* Top: name + status */}
-      <div className="flex items-start justify-between gap-2 mb-3">
+      <div className="flex items-start justify-between gap-3 mb-3">
         <Link
           to={createPageUrl(`LeadDetails?id=${lead.id}`)}
           className="flex items-center gap-1 min-w-0 flex-1"
         >
           <div className="min-w-0 flex-1">
-            <h3 className="font-bold text-slate-900 text-base truncate">{lead.name}</h3>
+            <h3 className="font-bold text-slate-900 text-base leading-tight break-words line-clamp-2">
+              {lead.name}
+            </h3>
             {lead.shooting_type && (
               <p className="text-xs text-slate-500 mt-0.5 truncate">{lead.shooting_type}</p>
             )}
@@ -37,7 +50,7 @@ export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoF
         </div>
       </div>
 
-      {/* Middle: phone + source */}
+      {/* Phone + source on the same line, source only when meaningful */}
       <div className="flex items-center justify-between gap-2 mb-3 pb-3 border-b border-slate-100 min-w-0">
         <a
           href={`tel:${lead.phone}`}
@@ -46,12 +59,19 @@ export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoF
         >
           {lead.phone}
         </a>
-        {lead.source && (
-          <div className="flex-shrink-0 max-w-[50%]">
+        {showSource && (
+          <div className="flex-shrink-0 max-w-[55%]">
             <SourceBadge source={lead.source} />
           </div>
         )}
       </div>
+
+      {/* Payment status — only for closed_won leads with a linked project */}
+      {isClosedWon && project && (
+        <div className="mb-3">
+          <PaymentStatusRow project={project} />
+        </div>
+      )}
 
       {/* Actions row */}
       <div className="grid grid-cols-4 gap-2">

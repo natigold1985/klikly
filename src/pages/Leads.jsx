@@ -156,6 +156,21 @@ export default function Leads() {
     enabled: !!user,
   });
 
+  // Load projects to show payment status on closed_won leads
+  const { data: projects = [] } = useQuery({
+    queryKey: ['leadsProjects', user?.email],
+    queryFn: () => base44.entities.Project.filter({ created_by: user.email }, '-created_date', 200),
+    enabled: !!user,
+  });
+
+  const projectsByLeadId = React.useMemo(() => {
+    const map = {};
+    for (const p of projects) {
+      if (p.lead_id) map[p.lead_id] = p;
+    }
+    return map;
+  }, [projects]);
+
   const createLeadMutation = useMutation({
     mutationFn: (leadData) => base44.entities.Lead.create(leadData),
     onSuccess: () => {
@@ -544,6 +559,7 @@ export default function Leads() {
       ) : viewMode === 'table' ? (
         <LeadTableView 
           leads={filteredLeads} 
+          projectsByLeadId={projectsByLeadId}
           onStatusChange={(id, status) => updateLeadMutation.mutate({ id, data: { status } })}
           onDelete={(id) => { if (confirm('למחוק את הליד?')) deleteLeadMutation.mutate(id); }}
           onAutoFollowUp={(lead) => setAutoFollowUpLead(lead)}
