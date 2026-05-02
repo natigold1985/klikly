@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Phone, MessageCircle, Trash2, Zap } from 'lucide-react';
+import { Phone, MessageCircle, Trash2, Zap, Pencil } from 'lucide-react';
 import SourceBadge from './SourceBadge';
 import StatusSelect from './StatusSelect';
 import LeadMobileCard from './LeadMobileCard';
@@ -84,6 +84,13 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
               {/* CTA pills — always visible, compact */}
               <td className="py-3 px-3">
                 <div className="flex items-center justify-center gap-1.5 flex-nowrap">
+                  <Link
+                    to={createPageUrl(`LeadDetails?id=${lead.id}`)}
+                    className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 shadow-sm hover:shadow transition-all active:scale-95"
+                    title="עריכה"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Link>
                   <a
                     href={getWhatsAppLink(lead)}
                     target="_blank"

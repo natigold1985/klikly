@@ -4,6 +4,8 @@ import { createPageUrl } from '@/utils';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import PWAInstallBanner from '@/components/PWAInstallBanner';
+import Footer from '@/components/Footer';
+import AccessibilityWidget from '@/components/AccessibilityWidget';
 import {
   LayoutDashboard,
   Users,
@@ -256,12 +258,14 @@ export default function Layout({ children, currentPageName }) {
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col min-w-0 h-full bg-white">
-          <main className="flex-1 overflow-y-auto overflow-x-hidden pt-20 md:pt-0 pb-24 md:pb-6 px-4 md:px-8">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden pt-20 md:pt-0 pb-24 md:pb-0 px-4 md:px-8">
             <div className="max-w-6xl mx-auto w-full py-6">
               {children}
             </div>
+            <Footer />
           </main>
         </div>
+        <AccessibilityWidget />
 
         {/* Mobile Bottom Navigation (Client) */}
         <nav
@@ -449,8 +453,12 @@ export default function Layout({ children, currentPageName }) {
           <div className="max-w-6xl mx-auto w-full py-6">
             {children}
           </div>
+          <Footer />
         </main>
       </div>
+
+      {/* ── Accessibility Widget ── */}
+      <AccessibilityWidget />
 
       {/* ── PWA Install Banner ── */}
       <PWAInstallBanner />

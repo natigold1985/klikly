@@ -20,6 +20,9 @@ import LeadImport from './pages/LeadImport';
 import RBACMatrix from './pages/RBACMatrix';
 import QuoteView from './pages/QuoteView';
 import PublicLeadForm from './pages/PublicLeadForm';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+import AccessibilityPage from './pages/Accessibility';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -126,6 +129,21 @@ const AuthenticatedApp = () => {
       <Route path="/RBACMatrix" element={
         <LayoutWrapper currentPageName="RBACMatrix">
           <RBACMatrix />
+        </LayoutWrapper>
+      } />
+      <Route path="/PrivacyPolicy" element={
+        <LayoutWrapper currentPageName="PrivacyPolicy">
+          <PrivacyPolicy />
+        </LayoutWrapper>
+      } />
+      <Route path="/TermsOfService" element={
+        <LayoutWrapper currentPageName="TermsOfService">
+          <TermsOfService />
+        </LayoutWrapper>
+      } />
+      <Route path="/Accessibility" element={
+        <LayoutWrapper currentPageName="Accessibility">
+          <AccessibilityPage />
         </LayoutWrapper>
       } />
       {Object.entries(Pages).map(([path, Page]) => (
