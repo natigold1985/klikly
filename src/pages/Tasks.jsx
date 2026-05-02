@@ -36,8 +36,9 @@ export default function Tasks() {
   const isAdmin = user?.role === 'admin' || user?.email === 'natigold04@gmail.com';
 
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['tasks'],
-    queryFn: () => base44.entities.Task.list('-due_date', 200),
+    queryKey: ['tasks', user?.email],
+    queryFn: () => base44.entities.Task.filter({ created_by: user.email }, '-due_date', 200),
+    enabled: !!user?.email,
   });
 
   const createTaskMutation = useMutation({

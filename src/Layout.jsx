@@ -95,7 +95,9 @@ export default function Layout({ children, currentPageName }) {
         path: location.pathname, 
         details: `Client role attempted to access restricted admin page: ${pageName}` 
       }).catch(console.error);
-    } else if (isClient && !['FileStorage', 'DownloadPage', 'QuoteView', 'ClientGallery'].includes(pageName)) {
+    } else if (isClient && pageName === 'Home') {
+      // Only redirect clients from the home/landing page to FileStorage.
+      // Don't redirect from other valid client pages (FileStorage, DownloadPage, etc.)
       window.location.href = createPageUrl('FileStorage');
     }
   }, [isClient, pageName, location.pathname]);
