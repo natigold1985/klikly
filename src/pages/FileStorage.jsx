@@ -222,7 +222,16 @@ function PhotoGrid({ photos, loading, canDelete, onDelete }) {
             />
           )}
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100 gap-2 z-20">
-            <a href={photo.file_url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white text-slate-900 flex items-center justify-center">
+            <a
+              href={photo.file_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                // Notify backend on every download (starts 90-day clock on first one + push to photographer + email confirmation)
+                base44.functions.invoke('onClientFirstDownload', { file_name: photo.file_name }).catch(() => {});
+              }}
+              className="w-9 h-9 rounded-full bg-white text-slate-900 flex items-center justify-center"
+            >
               <Download className="w-4 h-4" />
             </a>
             {canDelete && (
