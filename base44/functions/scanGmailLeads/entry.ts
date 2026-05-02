@@ -73,13 +73,53 @@ function parseWordPressForm(body) {
   };
 }
 
+// In-memory guard against concurrent / runaway invocations within a single deploy instance.
+// (Cold starts reset this — combined with the DB circuit-breaker below for cross-instance safety.)
+let isRunning = false;
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
     const messageIds = body.data?.new_message_ids || [];
 
-    const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
+    // ── Concurrency guard ─────────────────────────────────────────────
+    if (isRunning) {
+      console.log('scanGmailLeads: already running, skipping duplicate invocation');
+      return Response.json({ success: true, skipped: 'already_running' });
+    }
+    isRunning = true;
+
+    // ── Circuit breaker: prevent runaway loops ────────────────────────
+    // Count how many times this function ran in the last 60 minutes via SystemLog.
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const recentLogs = await base44.asServiceRole.entities.SystemLog.filter(
+      { action: 'gmail_lead_scan' },
+      '-created_date',
+      20
+    );
+    const recentCount = recentLogs.filter(l => l.created_date > oneHourAgo).length;
+    if (recentCount >= 5) {
+      console.warn(`scanGmailLeads: circuit-breaker tripped — ${recentCount} runs in last hour. Aborting.`);
+      isRunning = false;
+      await base44.asServiceRole.entities.SystemLog.create({
+        action: 'gmail_lead_scan_blocked',
+        details: `Circuit breaker tripped: ${recentCount} runs in last 60min`,
+        status: 'error',
+      });
+      return Response.json({ success: false, error: 'rate_limited', recentCount }, { status: 429 });
+    }
+
+    // Connector with single retry — if no auth, abort cleanly (no loop).
+    let accessToken;
+    try {
+      const conn = await base44.asServiceRole.connectors.getConnection('gmail');
+      accessToken = conn.accessToken;
+    } catch (e) {
+      isRunning = false;
+      console.error('scanGmailLeads: Gmail not connected:', e.message);
+      return Response.json({ success: false, error: 'gmail_not_connected' }, { status: 400 });
+    }
     const authHeader = { Authorization: `Bearer ${accessToken}` };
 
     let idsToProcess = messageIds;
@@ -210,6 +250,7 @@ ${unparsed.map(e => `From: ${e.from}\nSubject: ${e.subject}\n${e.body}\n---`).jo
       status: 'success',
     });
 
+    isRunning = false;
     return Response.json({
       success: true,
       found: allLeads.length,
@@ -219,6 +260,7 @@ ${unparsed.map(e => `From: ${e.from}\nSubject: ${e.subject}\n${e.body}\n---`).jo
       llmFallback: llmLeads.length,
     });
   } catch (error) {
+    isRunning = false;
     return Response.json({ error: error.message }, { status: 500 });
   }
 });

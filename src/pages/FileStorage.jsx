@@ -9,6 +9,7 @@ import FileUploader from '../components/FileUploader';
 import CreateClientDialog from '../components/storage/CreateClientDialog';
 import ClientCard from '../components/storage/ClientCard';
 import PixiesetGallery from '../components/storage/PixiesetGallery';
+import PhotographerDisclaimer from '../components/storage/PhotographerDisclaimer';
 import { toast } from 'sonner';
 
 export default function FileStorage() {
@@ -132,6 +133,8 @@ export default function FileStorage() {
               לקוח חדש
             </Button>
           </div>
+
+          <PhotographerDisclaimer />
 
           <div className="relative max-w-md">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />

@@ -21,8 +21,16 @@ const AI_CHANNEL_HINTS = {
   instagram: 'הדבק כאן הודעות DM, תגובות, או טפסי לידים מאינסטגרם',
   whatsapp: 'הדבק כאן שיחות ווטסאפ, או רשימת שמות ומספרים מקבוצות',
   email: 'הדבק כאן תוכן מיילים, טפסי "צור קשר", או רשימות מנויים',
-  linkedin: 'הדבק כאן הודעות InMail, פניות, או פרופילים מ-LinkedIn',
+  linkedin: 'הדבק כאן פרופילים, הודעות InMail או רשימות מאנשי קשר ב-LinkedIn — ה-AI יחלץ שמות, תפקידים וחברות',
 };
+
+// Pre-built LinkedIn search queries useful for the photographer's niche
+const LINKEDIN_SEARCHES = [
+  { label: 'משרד הביטחון — אנשי קשר רלוונטיים', url: 'https://www.linkedin.com/search/results/people/?keywords=%D7%9E%D7%A9%D7%A8%D7%93%20%D7%94%D7%91%D7%99%D7%98%D7%97%D7%95%D7%9F&origin=GLOBAL_SEARCH_HEADER' },
+  { label: 'משרד הביטחון — דובר/יח״צ/תקשורת', url: 'https://www.linkedin.com/search/results/people/?keywords=%D7%93%D7%95%D7%91%D7%A8%20%D7%9E%D7%A9%D7%A8%D7%93%20%D7%94%D7%91%D7%99%D7%98%D7%97%D7%95%D7%9F&origin=GLOBAL_SEARCH_HEADER' },
+  { label: 'מפיקי אירועים — חברות ביטחוניות', url: 'https://www.linkedin.com/search/results/people/?keywords=%D7%9E%D7%A4%D7%99%D7%A7%20%D7%90%D7%99%D7%A8%D7%95%D7%A2%D7%99%D7%9D%20%D7%91%D7%99%D7%98%D7%97%D7%95%D7%9F&origin=GLOBAL_SEARCH_HEADER' },
+  { label: 'פוסטים אחרונים: "דרוש צלם"', url: 'https://www.linkedin.com/search/results/content/?keywords=%22%D7%93%D7%A8%D7%95%D7%A9%20%D7%A6%D7%9C%D7%9D%22&origin=GLOBAL_SEARCH_HEADER' },
+];
 
 const CHANNELS = [
   { id: 'gmail_auto', label: 'Gmail סריקה חיה', desc: 'סריקה אוטומטית פעמיים ביום (09:00 / 21:00)', icon: Mail, color: 'bg-red-600', available: true },
@@ -31,7 +39,7 @@ const CHANNELS = [
   { id: 'instagram', label: 'Instagram', desc: 'בקרוב - דורש Meta API', icon: Instagram, color: 'bg-gradient-to-tr from-purple-500 to-pink-500', available: false },
   { id: 'whatsapp', label: 'WhatsApp', desc: 'בקרוב - דורש WhatsApp Business API', icon: MessageCircle, color: 'bg-[#25D366]', available: false },
   { id: 'email', label: 'Gmail (ידני)', desc: 'הדבק טפסי "צור קשר" מהמייל', icon: Mail, color: 'bg-red-500', available: true },
-  { id: 'linkedin', label: 'LinkedIn', desc: 'בקרוב - אין API פתוח', icon: Linkedin, color: 'bg-[#0A66C2]', available: false },
+  { id: 'linkedin', label: 'LinkedIn', desc: 'חיפוש מוכוון + הדבקת תוצאות', icon: Linkedin, color: 'bg-[#0A66C2]', available: true },
   { id: 'csv', label: 'העלאת קובץ CSV', desc: 'ייבוא ידני מקובץ', icon: Upload, color: 'bg-slate-700', available: true },
 ];
 
@@ -472,6 +480,33 @@ Return ONLY valid leads that have at least a name AND a phone number.`,
             </DialogHeader>
             <div className="space-y-4 mt-2">
               <p className="text-sm text-slate-600">{AI_CHANNEL_HINTS[chId]}</p>
+
+              {chId === 'linkedin' && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-2">
+                  <p className="text-xs font-bold text-blue-800 flex items-center gap-1.5">
+                    <Linkedin className="w-3.5 h-3.5" />
+                    חיפושים מוכנים — לחץ, חפש, העתק והדבק כאן:
+                  </p>
+                  <p className="text-[11px] text-blue-700/80">
+                    LinkedIn לא מאפשר חיבור API לחיפוש לידים אוטומטית. אבל הכנו לך קישורי חיפוש ישירים — פתח, סמן את התוצאות הרלוונטיות (Ctrl+A → Ctrl+C), והדבק כאן.
+                  </p>
+                  <div className="flex flex-col gap-1.5">
+                    {LINKEDIN_SEARCHES.map(s => (
+                      <a
+                        key={s.url}
+                        href={s.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-700 hover:text-blue-900 hover:underline flex items-center gap-1.5"
+                      >
+                        <Linkedin className="w-3 h-3" />
+                        {s.label}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <textarea
                 value={pasteText}
                 onChange={(e) => setPasteText(e.target.value)}
