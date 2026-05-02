@@ -129,12 +129,12 @@ export default function Dashboard() {
   return (
     <>
       <Dialog open={showWelcome} onOpenChange={(open) => { if (!open) closeWelcome(); }}>
-        <DialogContent className="sm:max-w-[550px]" dir="rtl">
-          <DialogHeader>
-            <DialogTitle className="text-xl md:text-2xl text-[#D4AF37] font-bold">ברוך הבא ל-Klikly 🚀</DialogTitle>
+        <DialogContent className="sm:max-w-[550px] text-right" dir="rtl">
+          <DialogHeader className="text-right sm:text-right">
+            <DialogTitle className="text-xl md:text-2xl text-[#D4AF37] font-bold text-right">ברוך הבא ל-Klikly 🚀</DialogTitle>
             <DialogDescription asChild>
-              <div className="text-slate-700 text-sm mt-4 space-y-4 pt-4">
-                <div className="font-semibold text-slate-900 text-lg">היי {user?.full_name || 'צלם'}, כאן הצוות של BASE 44.</div>
+              <div className="text-slate-700 text-sm mt-4 space-y-4 pt-4 text-right">
+                <div className="font-semibold text-slate-900 text-lg">היי {user?.full_name || 'צלם'}, כאן הצוות של Klikly.</div>
                 <p>המערכת שלך מוכנה. לידים, פרויקטים, משלוחי קבצים ואנליטיקס — הכל במקום אחד.</p>
                 <ul className="list-none space-y-2">
                   <li className="flex gap-2 items-start"><span className="text-[#D4AF37] font-bold">•</span><span><strong>לידים חכמים:</strong> קליטה אוטומטית וסגירה בקליק.</span></li>
@@ -144,7 +144,7 @@ export default function Dashboard() {
               </div>
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end mt-4 pt-2">
+          <div className="flex justify-start mt-4 pt-2">
             <Button onClick={closeWelcome} className="w-full sm:w-auto">כניסה למערכת</Button>
           </div>
         </DialogContent>
