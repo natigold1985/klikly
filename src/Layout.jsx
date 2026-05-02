@@ -87,7 +87,7 @@ export default function Layout({ children, currentPageName }) {
     document.documentElement.classList.remove('dark');
     
     // Security Directive: BOLA Protection & Route Segregation
-    const protectedPages = ['Dashboard', 'Leads', 'Quotes', 'Projects', 'Tasks', 'AdminUsers', 'Settings', 'Contacts', 'SubVendors', 'Analytics', 'LeadImport', 'RBACMatrix'];
+    const protectedPages = ['AdminUsers', 'Settings', 'LeadImport', 'RBACMatrix'];
     
     if (isClient && protectedPages.includes(pageName)) {
       setAccessDenied(true);
@@ -122,7 +122,15 @@ export default function Layout({ children, currentPageName }) {
   // ── Client view: sidebar with options + main content
   if (isClient) {
     const clientNav = [
+      { name: 'לוח ניהול', icon: LayoutDashboard, page: 'Dashboard' },
+      { name: 'לידים', icon: Users, page: 'Leads' },
+      { name: 'אנשי קשר', icon: BookUser, page: 'Contacts' },
+      { name: 'הצעות מחיר', icon: FileText, page: 'Quotes' },
+      { name: 'פרויקטים', icon: Briefcase, page: 'Projects' },
+      { name: 'ספקי משנה', icon: UserCog, page: 'SubVendors' },
       { name: 'הגלריה שלי', icon: Folder, page: 'FileStorage' },
+      { name: 'משימות', icon: CheckCircle2, page: 'Tasks' },
+      { name: 'אנליטיקס', icon: BarChart3, page: 'Analytics' },
     ];
 
     return (
