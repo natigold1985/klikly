@@ -1,57 +1,91 @@
 import React from 'react';
-import { FileSpreadsheet, MessageCircle, Instagram, Facebook, Mail, Globe, User, Linkedin } from 'lucide-react';
+import { FileSpreadsheet, MessageCircle, Instagram, Facebook, Mail, Globe, User, Linkedin, Phone } from 'lucide-react';
 
+// Source key → icon + label + brand color (background)
 const SOURCE_CONFIG = {
-  google: { icon: FileSpreadsheet, label: 'Google', color: 'bg-green-500' },
-  sheets: { icon: FileSpreadsheet, label: 'Sheets', color: 'bg-green-500' },
-  facebook: { icon: Facebook, label: 'Facebook', color: 'bg-blue-600' },
-  fb: { icon: Facebook, label: 'Facebook', color: 'bg-blue-600' },
-  instagram: { icon: Instagram, label: 'Instagram', color: 'bg-gradient-to-tr from-purple-500 to-pink-500' },
-  ig: { icon: Instagram, label: 'Instagram', color: 'bg-gradient-to-tr from-purple-500 to-pink-500' },
-  whatsapp: { icon: MessageCircle, label: 'WhatsApp', color: 'bg-[#25D366]' },
-  wa: { icon: MessageCircle, label: 'WhatsApp', color: 'bg-[#25D366]' },
-  email: { icon: Mail, label: 'Email', color: 'bg-red-500' },
-  csv: { icon: FileSpreadsheet, label: 'CSV', color: 'bg-slate-600' },
-  linkedin: { icon: Linkedin, label: 'LinkedIn', color: 'bg-[#0A66C2]' },
-  website: { icon: Globe, label: 'אתר', color: 'bg-indigo-500' },
-  referral: { icon: User, label: 'המלצה', color: 'bg-amber-500' },
+  google:    { icon: Globe,           label: 'Google',    bg: '#4285F4', text: '#fff' },
+  sheets:    { icon: FileSpreadsheet, label: 'Sheets',    bg: '#0F9D58', text: '#fff' },
+  facebook:  { icon: Facebook,        label: 'Facebook',  bg: '#1877F2', text: '#fff' },
+  fb:        { icon: Facebook,        label: 'Facebook',  bg: '#1877F2', text: '#fff' },
+  instagram: { icon: Instagram,       label: 'Instagram', bg: 'linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)', text: '#fff' },
+  ig:        { icon: Instagram,       label: 'Instagram', bg: 'linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)', text: '#fff' },
+  whatsapp:  { icon: MessageCircle,   label: 'WhatsApp',  bg: '#25D366', text: '#fff' },
+  wa:        { icon: MessageCircle,   label: 'WhatsApp',  bg: '#25D366', text: '#fff' },
+  email:     { icon: Mail,            label: 'Email',     bg: '#EA4335', text: '#fff' },
+  gmail:     { icon: Mail,            label: 'Gmail',     bg: '#EA4335', text: '#fff' },
+  csv:       { icon: FileSpreadsheet, label: 'CSV',       bg: '#475569', text: '#fff' },
+  linkedin:  { icon: Linkedin,        label: 'LinkedIn',  bg: '#0A66C2', text: '#fff' },
+  website:   { icon: Globe,           label: 'אתר',       bg: '#6366F1', text: '#fff' },
+  referral:  { icon: User,            label: 'המלצה',     bg: '#F59E0B', text: '#fff' },
+  phone:     { icon: Phone,           label: 'טלפון',     bg: '#64748B', text: '#fff' },
 };
 
-function getSourceKey(source) {
+// Hebrew/English keyword → source key. Order matters (specific first).
+const KEYWORD_MAP = [
+  ['אינסטגרם',     'instagram'],
+  ['instagram',    'instagram'],
+  ['ig ',          'instagram'],
+  ['ווטסאפ',       'whatsapp'],
+  ['וואטסאפ',      'whatsapp'],
+  ['whatsapp',     'whatsapp'],
+  ['wa.me',        'whatsapp'],
+  ['פייסבוק',      'facebook'],
+  ['facebook',     'facebook'],
+  ['fb.com',       'facebook'],
+  ['לינקדאין',    'linkedin'],
+  ['linkedin',     'linkedin'],
+  ['גוגל',         'google'],
+  ['google',       'google'],
+  ['sheets',       'sheets'],
+  ['gmail',        'gmail'],
+  ['email',        'email'],
+  ['מייל',         'email'],
+  ['@',            'email'],
+  ['csv',          'csv'],
+  ['אתר',          'website'],
+  ['website',      'website'],
+  ['המלצה',        'referral'],
+  ['חבר',          'referral'],
+  ['referral',     'referral'],
+  ['טלפון',        'phone'],
+  ['phone',        'phone'],
+];
+
+function detectSource(source) {
   if (!source) return null;
-  const lower = source.toLowerCase();
-  for (const key of Object.keys(SOURCE_CONFIG)) {
-    if (lower.includes(key)) return key;
+  const lower = String(source).toLowerCase();
+  for (const [kw, key] of KEYWORD_MAP) {
+    if (lower.includes(kw)) return key;
   }
-  if (lower.includes('המלצה') || lower.includes('חבר')) return 'referral';
-  if (lower.includes('גוגל')) return 'google';
-  if (lower.includes('פייסבוק')) return 'facebook';
-  if (lower.includes('אינסטגרם')) return 'instagram';
-  if (lower.includes('ווטסאפ')) return 'whatsapp';
-  if (lower.includes('לינקדאין')) return 'linkedin';
   return null;
 }
 
 export default function SourceBadge({ source }) {
-  const key = getSourceKey(source);
+  const key = detectSource(source);
   const config = key ? SOURCE_CONFIG[key] : null;
 
   if (!config) {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
-        <Globe className="w-3 h-3" />
-        {source || 'לא ידוע'}
+      <span
+        className="inline-flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 px-2.5 py-1.5 rounded-full font-medium border border-slate-200"
+        title={source || 'לא ידוע'}
+      >
+        <Globe className="w-3.5 h-3.5" />
+        <span>לא ידוע</span>
       </span>
     );
   }
 
   const Icon = config.icon;
+
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs text-white px-2.5 py-1 rounded-full font-medium shadow-sm" style={{ minWidth: 'fit-content' }}>
-      <span className={`w-5 h-5 rounded-full ${config.color} flex items-center justify-center shrink-0`}>
-        <Icon className="w-3 h-3 text-white" />
-      </span>
-      <span className="text-slate-700">{source || config.label}</span>
+    <span
+      className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full font-bold text-xs shadow-sm"
+      style={{ background: config.bg, color: config.text }}
+      title={source}
+    >
+      <Icon className="w-3.5 h-3.5" strokeWidth={2.5} />
+      <span>{config.label}</span>
     </span>
   );
 }
