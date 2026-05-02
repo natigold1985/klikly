@@ -54,10 +54,10 @@ export default function LeadRadarWidget() {
         <div>
           <CardTitle className="flex items-center gap-2 text-base">
             <Radar className="w-5 h-5 text-[#C5A028]" />
-            רדאר לידים AI
+            רדאר לידים
           </CardTitle>
           <p className="text-[11px] text-slate-400 mt-1">
-            סורק פורומים, קבוצות פייסבוק, לוחות דרושים ורשתות חברתיות — אוטומטית פעמיים ביום (09:00 ו-21:00)
+            מאתר פניות מ-Google Alerts ופוסטים שהועברו למייל — חיפוש דטרמיניסטי בתיבת ה-Gmail המחוברת
           </p>
         </div>
         <Button
@@ -75,8 +75,8 @@ export default function LeadRadarWidget() {
         {potentialLeads.length === 0 ? (
           <div className="text-center py-6 text-slate-400 text-sm">
             <Radar className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-            <p>הרדאר סורק אוטומטית את הרשת בחיפוש אנשים שמחפשים צלם.</p>
-            <p className="text-xs mt-1">תוצאות חדשות יופיעו כאן. אפשר גם ללחוץ "סרוק עכשיו".</p>
+            <p>הוסף את ה-Gmail שלך ל-Google Alerts (למשל "דרוש צלם") — והרדאר יזהה תוצאות חדשות אוטומטית.</p>
+            <p className="text-xs mt-1">לחץ "סרוק עכשיו" כדי לבדוק את התיבה.</p>
           </div>
         ) : (
           <div className="space-y-3">

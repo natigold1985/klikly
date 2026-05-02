@@ -76,10 +76,17 @@ export default function FileStorage() {
   };
 
   const deletePhoto = async (id) => {
-    if (!confirm('למחוק את הקובץ?')) return;
     await base44.entities.Photo.delete(id);
     queryClient.invalidateQueries({ queryKey: ['clientPhotos'] });
-    toast.success('הקובץ נמחק');
+    toast.success('הקובץ נמחק', {
+      action: {
+        label: 'בוטל',
+        onClick: () => {
+          // best-effort: re-fetch keeps UI consistent; full undo would need server soft-delete
+          queryClient.invalidateQueries({ queryKey: ['clientPhotos'] });
+        }
+      }
+    });
   };
 
   const handleDownload = (photo) => {

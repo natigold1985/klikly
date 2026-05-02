@@ -1,110 +1,139 @@
+// Lead Radar — discovers potential leads from Gmail (forwarded posts, group emails, alerts)
+// using deterministic keyword matching. NO LLM credits used.
+// If users want web-radar features, those should be added via Gmail alerts/Google Alerts forwarded
+// to the connected mailbox.
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+
+const KEYWORDS = [
+  'דרוש צלם', 'דרושה צלמת', 'מחפש צלם', 'מחפשת צלם', 'מחפשים צלם',
+  'photographer needed', 'looking for a photographer',
+  'צלם לאירוע', 'צלם לחתונה', 'צלם לבר מצווה', 'צלם לבת מצווה',
+  'מכרז צילום', 'הצעת מחיר צילום',
+];
+
+function pickKeywords(text) {
+  const lower = text.toLowerCase();
+  return KEYWORDS.filter(k => lower.includes(k.toLowerCase()));
+}
+
+function extractContact(text) {
+  const phone = (text.match(/(?:\+?972[-\s]?|0)5\d[-\s]?\d{3}[-\s]?\d{4}/) || [])[0] || '';
+  const email = (text.match(/[\w.+-]+@[\w-]+\.[\w.-]+/) || [])[0] || '';
+  return { phone, email };
+}
+
+function platformFromSubject(subject = '') {
+  const s = subject.toLowerCase();
+  if (s.includes('facebook') || s.includes('פייסבוק')) return 'facebook';
+  if (s.includes('instagram') || s.includes('אינסטגרם')) return 'instagram';
+  if (s.includes('linkedin')) return 'linkedin';
+  if (s.includes('forum') || s.includes('פורום')) return 'forum';
+  if (s.includes('alert') || s.includes('התראה')) return 'other';
+  return 'other';
+}
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const body = await req.json().catch(() => ({}));
-    const customKeywords = body.keywords || [];
+    const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
+    const authHeader = { Authorization: `Bearer ${accessToken}` };
 
-    const defaultKeywords = [
-      'דרוש צלם אירועים',
-      'מחפשת צלמת לחתונה',
-      'מכרז צילום',
-      'צלם לאירוע',
-      'מחפשים צלם לבר מצווה',
-      'photographer needed Israel',
-      'wedding photographer Tel Aviv',
+    // Find emails that look like lead-leads (Google Alerts, group forwards, etc.)
+    const queries = [
+      'newer_than:7d (subject:"Google Alert" OR from:googlealerts-noreply@google.com)',
+      'newer_than:7d ("דרוש צלם" OR "מחפש צלם" OR "מחפשת צלמת" OR "photographer needed")',
     ];
 
-    const keywords = [...defaultKeywords, ...customKeywords];
-    const searchQuery = keywords.slice(0, 5).join(' OR ');
-
-    const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
-      prompt: `You are a lead generation assistant for a professional photographer in Israel.
-
-Search the web for RECENT posts, ads, or discussions where people are looking for a photographer.
-Focus on Hebrew and English content from Israel.
-
-Search terms: ${searchQuery}
-
-For each result found, extract:
-- title: the post title or first line
-- platform: one of "facebook", "instagram", "linkedin", "forum", "job_board", "other"
-- snippet: a short excerpt (2-3 sentences max) in the original language
-- source_url: the URL if available, or "N/A"
-- keywords_matched: which keywords matched
-- relevance_score: 1-10 how relevant this is for a photographer
-- contact_info: any contact details found (phone, email, name) or "N/A"
-
-Return 5-10 results, sorted by relevance_score descending.
-Only include results from the last 30 days if possible.
-Focus on actual people looking for photographers, not photographer portfolios or ads BY photographers.`,
-      add_context_from_internet: true,
-      model: 'gemini_3_flash',
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          leads: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                title: { type: 'string' },
-                platform: { type: 'string' },
-                snippet: { type: 'string' },
-                source_url: { type: 'string' },
-                keywords_matched: { type: 'string' },
-                relevance_score: { type: 'number' },
-                contact_info: { type: 'string' },
-              }
-            }
-          },
-          scan_summary: { type: 'string' }
-        }
-      }
-    });
-
-    // Save discovered leads to PotentialLead entity
-    const discoveredLeads = result.leads || [];
-    let saved = 0;
-
-    if (discoveredLeads.length > 0) {
-      // Get existing potential leads to avoid duplicates
-      const existing = await base44.entities.PotentialLead.filter({}, '-created_date', 100);
-      const existingTitles = new Set(existing.map(e => e.title?.toLowerCase().trim()));
-
-      const newLeads = discoveredLeads.filter(l => 
-        l.title && !existingTitles.has(l.title.toLowerCase().trim())
+    const messageIds = new Set();
+    for (const q of queries) {
+      const listRes = await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20&q=${encodeURIComponent(q)}`,
+        { headers: authHeader }
       );
+      if (!listRes.ok) continue;
+      const data = await listRes.json();
+      (data.messages || []).forEach(m => messageIds.add(m.id));
+    }
 
-      if (newLeads.length > 0) {
-        const validPlatforms = ['facebook', 'instagram', 'linkedin', 'forum', 'job_board', 'other'];
-        await base44.entities.PotentialLead.bulkCreate(
-          newLeads.map(l => ({
-            title: l.title.substring(0, 200),
-            platform: validPlatforms.includes(l.platform) ? l.platform : 'other',
-            snippet: l.snippet?.substring(0, 500) || '',
-            source_url: l.source_url || '',
-            keywords_matched: l.keywords_matched || '',
-            relevance_score: Math.min(10, Math.max(1, l.relevance_score || 5)),
-            contact_info: l.contact_info || '',
-            status: 'new',
-          }))
-        );
-        saved = newLeads.length;
-      }
+    if (messageIds.size === 0) {
+      return Response.json({ success: true, found: 0, saved: 0, summary: 'אין תוצאות חדשות בתיבת המייל' });
+    }
+
+    const discovered = [];
+    for (const id of Array.from(messageIds).slice(0, 25)) {
+      const res = await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=full`,
+        { headers: authHeader }
+      );
+      if (!res.ok) continue;
+      const msg = await res.json();
+      const headers = msg.payload?.headers || [];
+      const subject = headers.find(h => h.name === 'Subject')?.value || '';
+      const from = headers.find(h => h.name === 'From')?.value || '';
+
+      let text = '';
+      const walk = (p) => {
+        if (!p) return;
+        if (p.mimeType === 'text/plain' && p.body?.data) {
+          try { text += atob(p.body.data.replace(/-/g, '+').replace(/_/g, '/')) + '\n'; } catch {}
+        }
+        if (p.parts) p.parts.forEach(walk);
+      };
+      walk(msg.payload);
+
+      const matched = pickKeywords(text);
+      if (matched.length === 0) continue;
+
+      // Find a representative line / link
+      const linkMatch = text.match(/https?:\/\/[^\s)]+/);
+      const sourceUrl = linkMatch ? linkMatch[0] : '';
+      const { phone, email } = extractContact(text);
+
+      // Use the first 200 chars of the matching paragraph as snippet
+      const idx = text.toLowerCase().indexOf(matched[0].toLowerCase());
+      const snippet = text.substring(Math.max(0, idx - 50), Math.min(text.length, idx + 200)).trim();
+
+      discovered.push({
+        title: (subject || matched[0]).substring(0, 200),
+        platform: platformFromSubject(subject),
+        snippet,
+        source_url: sourceUrl,
+        keywords_matched: matched.join(', '),
+        relevance_score: Math.min(10, 4 + matched.length * 2),
+        contact_info: [phone, email].filter(Boolean).join(' / ') || 'N/A',
+      });
+    }
+
+    if (discovered.length === 0) {
+      return Response.json({ success: true, found: 0, saved: 0, summary: 'לא נמצאו פוסטים רלוונטיים' });
+    }
+
+    // Dedup by title
+    const existing = await base44.entities.PotentialLead.filter({}, '-created_date', 100);
+    const existingTitles = new Set(existing.map(e => e.title?.toLowerCase().trim()));
+    const newOnes = discovered.filter(l => l.title && !existingTitles.has(l.title.toLowerCase().trim()));
+
+    if (newOnes.length > 0) {
+      await base44.entities.PotentialLead.bulkCreate(newOnes.map(l => ({
+        title: l.title.substring(0, 200),
+        platform: l.platform,
+        snippet: l.snippet?.substring(0, 500) || '',
+        source_url: l.source_url,
+        keywords_matched: l.keywords_matched,
+        relevance_score: l.relevance_score,
+        contact_info: l.contact_info,
+        status: 'new',
+      })));
     }
 
     return Response.json({
       success: true,
-      found: discoveredLeads.length,
-      saved,
-      summary: result.scan_summary || `סריקה הושלמה: ${discoveredLeads.length} תוצאות`,
+      found: discovered.length,
+      saved: newOnes.length,
+      summary: `סריקה הושלמה: ${discovered.length} פוסטים, ${newOnes.length} חדשים`,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

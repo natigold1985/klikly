@@ -96,6 +96,7 @@ export default function PixiesetLightbox({ photos, startIndex = 0, onClose, onDo
       <div
         className="flex-1 flex items-center justify-center p-4 md:p-12"
         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+        onContextMenu={(e) => e.preventDefault()}
       >
         {video ? (
           <video
@@ -103,8 +104,10 @@ export default function PixiesetLightbox({ photos, startIndex = 0, onClose, onDo
             src={photo.file_url}
             controls
             autoPlay
+            controlsList="nodownload"
             className="max-h-full max-w-full rounded-lg shadow-2xl"
             onLoadedData={() => setLoaded(true)}
+            onContextMenu={(e) => e.preventDefault()}
           />
         ) : (
           <>
@@ -118,7 +121,9 @@ export default function PixiesetLightbox({ photos, startIndex = 0, onClose, onDo
               src={photo.file_url}
               alt={photo.file_name}
               onLoad={() => setLoaded(true)}
-              className={`max-h-full max-w-full object-contain rounded-lg shadow-2xl transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+              draggable={false}
+              onContextMenu={(e) => e.preventDefault()}
+              className={`max-h-full max-w-full object-contain rounded-lg shadow-2xl transition-opacity duration-300 select-none ${loaded ? 'opacity-100' : 'opacity-0'}`}
             />
           </>
         )}
