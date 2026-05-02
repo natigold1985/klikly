@@ -119,23 +119,98 @@ export default function Layout({ children, currentPageName }) {
     return children;
   }
 
-  // ── Client view: minimal UI — no sidebar, no nav, no header. Just content + tiny logout button.
+  // ── Client view: sidebar with options + main content
   if (isClient) {
+    const clientNav = [
+      { name: 'הגלריה שלי', icon: Folder, page: 'FileStorage' },
+    ];
+
     return (
-      <div className="min-h-screen bg-white text-slate-900" dir="rtl">
-        <div className="absolute top-4 left-4 z-50">
-          <button
-            onClick={() => base44.auth.logout()}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium transition-colors"
-            title="התנתקות"
-          >
-            <LogOut className="w-4 h-4" />
-            יציאה
-          </button>
+      <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-900" dir="rtl">
+        {/* Mobile Header */}
+        <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-black/90 backdrop-blur-lg border-b border-white/10 z-40 flex items-center justify-center px-4 shadow-lg">
+          {user && (
+            <div className="absolute left-4 top-1/2 -translate-y-1/2">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FFD700] to-[#b38f2d] flex items-center justify-center text-black font-bold text-sm shadow-[0_0_10px_rgba(255,215,0,0.3)]">
+                {user.full_name?.[0] || '?'}
+              </div>
+            </div>
+          )}
+          <img
+            src="https://media.base44.com/images/public/699330cced2139a6e7aa06a9/1e11bfcc1_generated_image.png"
+            alt="KLIKLY"
+            className="h-10 object-contain drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]"
+          />
+          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            <button
+              onClick={() => base44.auth.logout()}
+              className="w-10 h-10 flex items-center justify-center rounded-lg bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 transition-colors"
+              title="התנתקות"
+            >
+              <LogOut className="w-5 h-5 text-red-400" />
+            </button>
+          </div>
+        </header>
+
+        {/* Desktop Sidebar */}
+        <aside className="hidden md:flex flex-col w-72 bg-black text-white flex-shrink-0 h-full border-l border-white/5">
+          <div className="h-20 flex items-center justify-center px-8 border-b border-white/10 bg-black">
+            <img
+              src="https://media.base44.com/images/public/699330cced2139a6e7aa06a9/1e11bfcc1_generated_image.png"
+              alt="KLIKLY"
+              className="h-14 object-contain drop-shadow-[0_0_10px_rgba(255,215,0,0.4)]"
+            />
+          </div>
+          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+            {clientNav.map((item) => {
+              const Icon = item.icon;
+              const isActive = pageName === item.page;
+              return (
+                <Link
+                  key={item.name}
+                  to={createPageUrl(item.page)}
+                  className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group ${
+                    isActive
+                      ? 'bg-gradient-to-r from-[#D4AF37] to-[#C5A028] text-black shadow-lg shadow-yellow-900/20 font-bold'
+                      : 'text-white/70 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-black' : 'text-white/50 group-hover:text-white'}`} strokeWidth={isActive ? 2.5 : 2} />
+                  <span className="text-sm tracking-wide">{item.name}</span>
+                </Link>
+              );
+            })}
+          </nav>
+          {user && (
+            <div className="p-6 border-t border-white/10 bg-[#050505] space-y-3">
+              <div className="flex items-center gap-3 p-2 rounded-lg bg-white/5 border border-white/5">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#b38f2d] flex items-center justify-center text-white font-bold text-sm shadow-md">
+                  {user.full_name?.[0] || '?'}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-white truncate">{user.full_name}</p>
+                  <p className="text-xs text-white/40 truncate">לקוח</p>
+                </div>
+              </div>
+              <button
+                onClick={() => base44.auth.logout()}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 transition-all text-sm font-medium"
+              >
+                <LogOut className="w-4 h-4" />
+                התנתקות
+              </button>
+            </div>
+          )}
+        </aside>
+
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col min-w-0 h-full bg-white">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden pt-20 md:pt-0 pb-6 px-4 md:px-8">
+            <div className="max-w-6xl mx-auto w-full py-6">
+              {children}
+            </div>
+          </main>
         </div>
-        <main className="px-4 md:px-8 py-12 max-w-6xl mx-auto">
-          {children}
-        </main>
       </div>
     );
   }
