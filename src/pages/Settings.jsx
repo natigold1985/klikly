@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Upload, Save, Camera, Building2, Calendar, Bell } from 'lucide-react';
 import PushNotificationToggle from '@/components/PushNotificationToggle';
+import AutomationSettings from '@/components/settings/AutomationSettings';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -247,6 +248,9 @@ export default function Settings() {
           <PushNotificationToggle />
         </CardContent>
       </Card>
+
+      {/* Automation Settings */}
+      <AutomationSettings formData={formData} setFormData={setFormData} />
 
       {/* Google Calendar Integrations */}
       <Card className="bg-white/60 backdrop-blur-sm border-white/20 shadow-lg">

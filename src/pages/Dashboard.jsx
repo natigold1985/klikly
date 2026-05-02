@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import LeadRadarWidget from '@/components/dashboard/LeadRadarWidget';
 import TaskBoard from '@/components/dashboard/TaskBoard';
+import QuickActions from '@/components/dashboard/QuickActions';
 
 export default function Dashboard() {
   const { data: user } = useQuery({
@@ -230,6 +231,9 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Quick Actions */}
+        <QuickActions />
 
         {/* Task Board — front and center */}
         <TaskBoard tasks={tasks} />
