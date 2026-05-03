@@ -101,9 +101,9 @@ export default function DataActionsToolbar({ leads }) {
           <RefreshCw className={`w-3.5 h-3.5 text-blue-600 ${isSyncing ? 'animate-spin' : ''}`} />
           סנכרן
         </Button>
-        <Button variant="outline" size="sm" className="gap-1.5 text-xs border-slate-200 hover:border-green-500" onClick={() => setShowBroadcast(true)}>
-          <Send className="w-3.5 h-3.5 text-green-600" />
-          שידור
+        <Button variant="outline" size="sm" className="gap-1.5 text-xs border-slate-200 hover:border-green-500" onClick={() => setShowBroadcast(true)} title="שידור WhatsApp">
+          <MessageCircle className="w-4 h-4 text-green-600 fill-green-600/10" />
+          <span className="font-bold text-green-700">WhatsApp</span>
         </Button>
       </div>
 
