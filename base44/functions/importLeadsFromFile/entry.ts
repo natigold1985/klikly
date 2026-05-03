@@ -98,6 +98,15 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Notify user about credit usage (ExtractDataFromUploadedFile uses AI credits)
+    try {
+      await base44.asServiceRole.functions.invoke('notifyCreditUsage', {
+        user_email: user.email,
+        operation: 'ייבוא לידים מקובץ (AI)',
+        details: `${rows.length} שורות עובדו, ${added} חדשים`,
+      });
+    } catch (e) { /* non-blocking */ }
+
     return Response.json({ success: true, added, updated, total_processed: rows.length });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

@@ -1,30 +1,9 @@
 // Twice-daily LinkedIn lead-hunting reminder.
-// Triggered by a scheduled automation (09:00 & 15:00 Asia/Jerusalem).
-// Sends an email with pre-built LinkedIn search links to the photographer/admin,
-// who manually copies search results back into the LeadImport "LinkedIn → Paste & Extract" flow.
-//
-// No Gmail/LLM/web-search calls here — minimal credit usage (just SendEmail).
+// Sends a PUSH notification (NOT an email) to avoid credits.
+// Push opens the LeadImport page where the user pastes LinkedIn results.
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-
-const LINKEDIN_SEARCHES = [
-  {
-    label: 'משרד הביטחון — אנשי קשר רלוונטיים',
-    url: 'https://www.linkedin.com/search/results/people/?keywords=%D7%9E%D7%A9%D7%A8%D7%93%20%D7%94%D7%91%D7%99%D7%98%D7%97%D7%95%D7%9F',
-  },
-  {
-    label: 'משרד הביטחון — דובר/יח״צ/תקשורת',
-    url: 'https://www.linkedin.com/search/results/people/?keywords=%D7%93%D7%95%D7%91%D7%A8%20%D7%9E%D7%A9%D7%A8%D7%93%20%D7%94%D7%91%D7%99%D7%98%D7%97%D7%95%D7%9F',
-  },
-  {
-    label: 'מפיקי אירועים — חברות ביטחוניות',
-    url: 'https://www.linkedin.com/search/results/people/?keywords=%D7%9E%D7%A4%D7%99%D7%A7%20%D7%90%D7%99%D7%A8%D7%95%D7%A2%D7%99%D7%9D%20%D7%91%D7%99%D7%98%D7%97%D7%95%D7%9F',
-  },
-  {
-    label: 'פוסטים אחרונים: "דרוש צלם"',
-    url: 'https://www.linkedin.com/search/results/content/?keywords=%22%D7%93%D7%A8%D7%95%D7%A9%20%D7%A6%D7%9C%D7%9D%22',
-  },
-];
+import webpush from 'npm:web-push@3.6.7';
 
 Deno.serve(async (req) => {
   try {
@@ -34,41 +13,42 @@ Deno.serve(async (req) => {
     const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
     const target = admins[0] || { email: 'natigold04@gmail.com', full_name: 'בעל העסק' };
 
-    const linksHtml = LINKEDIN_SEARCHES.map(s => `
-      <li style="margin-bottom:10px;">
-        <a href="${s.url}" target="_blank" style="color:#0A66C2;font-weight:bold;text-decoration:none;">
-          🔗 ${s.label}
-        </a>
-      </li>
-    `).join('');
+    const vapidPublic = (Deno.env.get('VAPID_PUBLIC_KEY') || '').trim();
+    const vapidPrivate = (Deno.env.get('VAPID_PRIVATE_KEY') || '').trim();
+    if (!vapidPublic || !vapidPrivate) {
+      return Response.json({ error: 'VAPID not configured' }, { status: 500 });
+    }
 
-    const body = `
-      <div dir="rtl" style="font-family:Rubik,Arial,sans-serif;background:#f8fafc;padding:24px;">
-        <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;padding:28px;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
-          <div style="background:#0A66C2;color:#fff;padding:16px;border-radius:12px;margin-bottom:20px;text-align:center;">
-            <h2 style="margin:0;font-size:20px;">🎯 תזכורת לידים מ-LinkedIn</h2>
-          </div>
-          <p style="color:#334155;font-size:15px;line-height:1.6;">
-            היי ${target.full_name || 'צלם יקר'},<br/>
-            הגיע הזמן לסריקת לידים ב-LinkedIn. לחץ על כל קישור, סמן את התוצאות הרלוונטיות, העתק והדבק ב-<b>ייבוא לידים → LinkedIn</b>.
-          </p>
-          <ul style="list-style:none;padding:0;margin:20px 0;">
-            ${linksHtml}
-          </ul>
-          <div style="background:#FFFBEA;border:1px solid #FFD700;border-radius:10px;padding:12px;font-size:13px;color:#78350F;">
-            💡 טיפ: ה-AI יחלץ אוטומטית שמות, תפקידים וחברות מהטקסט שתדביק.
-          </div>
-        </div>
-      </div>
-    `;
+    webpush.setVapidDetails('mailto:' + target.email, vapidPublic, vapidPrivate);
 
-    await base44.asServiceRole.integrations.Core.SendEmail({
-      to: target.email,
-      subject: '🎯 תזכורת LinkedIn — חיפוש לידים מוכן',
-      body,
+    const subscriptions = await base44.asServiceRole.entities.PushSubscription.filter({
+      user_email: target.email,
+      is_active: true,
     });
 
-    return Response.json({ success: true, sent_to: target.email });
+    const pushPayload = JSON.stringify({
+      title: '🎯 תזכורת LinkedIn',
+      body: 'הגיע הזמן לסריקת לידים. לחץ כאן לפתיחת ייבוא לידים.',
+      icon: '/icon-192.png',
+      url: '/LeadImport',
+    });
+
+    let sent = 0;
+    for (const sub of subscriptions) {
+      try {
+        await webpush.sendNotification(
+          { endpoint: sub.endpoint, keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth } },
+          pushPayload
+        );
+        sent++;
+      } catch (err) {
+        if (err.statusCode === 410 || err.statusCode === 404) {
+          await base44.asServiceRole.entities.PushSubscription.delete(sub.id);
+        }
+      }
+    }
+
+    return Response.json({ success: true, sent_to: target.email, push_sent: sent });
   } catch (error) {
     console.error('sendLinkedInReminder error:', error);
     return Response.json({ error: error.message }, { status: 500 });
