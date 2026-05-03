@@ -37,18 +37,20 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
       <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       <table className="w-full text-sm table-fixed" dir="rtl">
         <colgroup>
-          <col className="w-[28%]" />
-          <col className="w-[14%] hidden md:table-column" />
-          <col className="w-[16%]" />
-          <col className="w-[14%]" />
-          <col className="w-[28%]" />
+          <col className="w-[18%]" />
+          <col className="w-[12%]" />
+          <col className="w-[13%]" />
+          <col className="w-[13%]" />
+          <col className="w-[19%]" />
+          <col className="w-[25%]" />
         </colgroup>
         <thead>
           <tr className="bg-gradient-to-l from-[#FFD700] to-[#E5B800] text-black">
             <th className="text-right py-3 px-4 font-bold tracking-wide">שם</th>
-            <th className="text-right py-3 px-4 font-bold tracking-wide hidden md:table-cell">מקור</th>
+            <th className="text-right py-3 px-4 font-bold tracking-wide">מקור</th>
             <th className="text-right py-3 px-4 font-bold tracking-wide whitespace-nowrap">טלפון</th>
             <th className="text-right py-3 px-4 font-bold tracking-wide">סטטוס</th>
+            <th className="text-right py-3 px-4 font-bold tracking-wide">הערות</th>
             <th className="text-center py-3 px-4 font-bold tracking-wide">פעולות</th>
           </tr>
         </thead>
@@ -60,18 +62,21 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
                 idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/40'
               } hover:bg-[#FFFBEA]`}
             >
-              <td className="py-3 px-4">
+              <td className="py-3 px-4 max-w-0">
                 <Link
                   to={createPageUrl(`LeadDetails?id=${lead.id}`)}
                   className="font-bold text-slate-900 hover:text-[#B8860B] transition-colors block truncate"
+                  title={lead.name}
                 >
-                  {lead.name}
+                  {lead.name || '—'}
                 </Link>
-                {lead.shooting_type && <p className="text-xs text-slate-400 mt-0.5 truncate">{lead.shooting_type}</p>}
+                {lead.shooting_type && <p className="text-xs text-slate-400 mt-0.5 truncate" title={lead.shooting_type}>{lead.shooting_type}</p>}
               </td>
 
-              <td className="py-3 px-4 hidden md:table-cell">
-                <SourceBadge source={lead.source} />
+              <td className="py-3 px-4 max-w-0">
+                <div className="truncate">
+                  <SourceBadge source={lead.source} />
+                </div>
               </td>
 
               <td className="py-3 px-4 whitespace-nowrap">
@@ -82,6 +87,12 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
 
               <td className="py-3 px-4">
                 <StatusSelect value={lead.status} onChange={(val) => onStatusChange(lead.id, val)} />
+              </td>
+
+              <td className="py-3 px-4 max-w-0">
+                <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed" title={lead.notes || ''}>
+                  {lead.notes || <span className="text-slate-300">—</span>}
+                </p>
               </td>
 
               {/* CTA pills — always visible, compact */}
