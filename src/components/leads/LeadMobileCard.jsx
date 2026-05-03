@@ -28,6 +28,14 @@ export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoF
   const isClosedWon = lead.status === 'closed_won';
   const displayName = lead.name || 'ללא שם';
 
+  // Validate phone: if invalid (too long / non-standard), move it to notes
+  const rawPhone = (lead.phone || '').toString();
+  const digits = rawPhone.replace(/[^0-9]/g, '');
+  const isValidPhone = digits.length >= 7 && digits.length <= 15;
+  const displayPhone = isValidPhone ? rawPhone : '';
+  const extraNote = !isValidPhone && rawPhone ? `טלפון שגוי: ${rawPhone}` : '';
+  const combinedNotes = [extraNote, lead.notes].filter(Boolean).join(' • ');
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 active:scale-[0.99] transition-transform overflow-hidden">
       {/* Top row: name (truncated) — full width */}
@@ -58,14 +66,27 @@ export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoF
 
       {/* Phone */}
       <div className="flex items-center justify-between gap-2 mb-3 pb-3 border-b border-slate-100 min-w-0">
-        <a
-          href={`tel:${lead.phone}`}
-          className="text-sm font-bold text-slate-800 hover:text-blue-600 transition-colors truncate min-w-0 tracking-wide"
-          dir="ltr"
-        >
-          {lead.phone || '—'}
-        </a>
+        {displayPhone ? (
+          <a
+            href={`tel:${displayPhone}`}
+            className="text-sm font-bold text-slate-800 hover:text-blue-600 transition-colors truncate min-w-0 tracking-wide"
+            dir="ltr"
+          >
+            {displayPhone}
+          </a>
+        ) : (
+          <span className="text-sm text-slate-400">—</span>
+        )}
       </div>
+
+      {/* Notes (includes invalid phone if relevant) */}
+      {combinedNotes && (
+        <div className="mb-3 pb-3 border-b border-slate-100">
+          <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed" title={combinedNotes}>
+            {combinedNotes}
+          </p>
+        </div>
+      )}
 
       {/* Payment status — only for closed_won leads with a linked project */}
       {isClosedWon && project && (

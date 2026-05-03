@@ -55,7 +55,16 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
           </tr>
         </thead>
         <tbody>
-          {leads.map((lead, idx) => (
+          {leads.map((lead, idx) => {
+            // If phone is invalid (too long / not a real phone), move it into notes display and clear the phone cell
+            const rawPhone = (lead.phone || '').toString();
+            const digits = rawPhone.replace(/[^0-9]/g, '');
+            const isValidPhone = digits.length >= 7 && digits.length <= 15;
+            const displayPhone = isValidPhone ? rawPhone : '';
+            const extraNote = !isValidPhone && rawPhone ? `טלפון שגוי: ${rawPhone}` : '';
+            const combinedNotes = [extraNote, lead.notes].filter(Boolean).join(' • ');
+
+            return (
             <tr
               key={lead.id}
               className={`border-b border-slate-100 last:border-0 transition-colors ${
@@ -79,10 +88,14 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
                 </div>
               </td>
 
-              <td className="py-3 px-4 whitespace-nowrap">
-                <a href={`tel:${lead.phone}`} className="text-sm font-bold text-slate-900 hover:text-blue-600 tracking-wide" dir="ltr">
-                  {lead.phone}
-                </a>
+              <td className="py-3 px-4 max-w-0">
+                {displayPhone ? (
+                  <a href={`tel:${displayPhone}`} className="text-sm font-bold text-slate-900 hover:text-blue-600 tracking-wide block truncate" dir="ltr" title={displayPhone}>
+                    {displayPhone}
+                  </a>
+                ) : (
+                  <span className="text-slate-300 text-sm">—</span>
+                )}
               </td>
 
               <td className="py-3 px-4">
@@ -90,8 +103,8 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
               </td>
 
               <td className="py-3 px-4 max-w-0">
-                <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed" title={lead.notes || ''}>
-                  {lead.notes || <span className="text-slate-300">—</span>}
+                <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed" title={combinedNotes}>
+                  {combinedNotes || <span className="text-slate-300">—</span>}
                 </p>
               </td>
 
@@ -144,7 +157,8 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
                 </div>
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
       </div>
