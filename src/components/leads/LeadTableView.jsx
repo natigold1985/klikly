@@ -75,7 +75,7 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
               </td>
 
               <td className="py-3 px-4 whitespace-nowrap">
-                <a href={`tel:${lead.phone}`} className="font-mono text-sm font-semibold text-slate-800 hover:text-blue-600 tracking-wide" dir="ltr">
+                <a href={`tel:${lead.phone}`} className="text-sm font-bold text-slate-900 hover:text-blue-600 tracking-wide" dir="ltr">
                   {lead.phone}
                 </a>
               </td>

@@ -6,9 +6,12 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 const KEYWORDS = [
   'דרוש צלם', 'דרושה צלמת', 'מחפש צלם', 'מחפשת צלם', 'מחפשים צלם',
-  'photographer needed', 'looking for a photographer',
+  'photographer needed', 'looking for a photographer', 'hiring photographer',
+  'need a photographer', 'event photographer',
   'צלם לאירוע', 'צלם לחתונה', 'צלם לבר מצווה', 'צלם לבת מצווה',
-  'מכרז צילום', 'הצעת מחיר צילום',
+  'צלם וידאו', 'צלמת אירועים', 'צלם מקצועי',
+  'מכרז צילום', 'הצעת מחיר צילום', 'שירותי צילום',
+  'wedding photographer', 'bar mitzvah photographer', 'corporate photographer',
 ];
 
 function pickKeywords(text) {
@@ -22,13 +25,13 @@ function extractContact(text) {
   return { phone, email };
 }
 
-function platformFromSubject(subject = '') {
-  const s = subject.toLowerCase();
+function platformFromSubjectAndFrom(subject = '', from = '') {
+  const s = (subject + ' ' + from).toLowerCase();
+  if (s.includes('linkedin')) return 'linkedin';
   if (s.includes('facebook') || s.includes('פייסבוק')) return 'facebook';
   if (s.includes('instagram') || s.includes('אינסטגרם')) return 'instagram';
-  if (s.includes('linkedin')) return 'linkedin';
   if (s.includes('forum') || s.includes('פורום')) return 'forum';
-  if (s.includes('alert') || s.includes('התראה')) return 'other';
+  if (s.includes('jobs') || s.includes('דרושים')) return 'job_board';
   return 'other';
 }
 
@@ -41,10 +44,14 @@ Deno.serve(async (req) => {
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
     const authHeader = { Authorization: `Bearer ${accessToken}` };
 
-    // Find emails that look like lead-leads (Google Alerts, group forwards, etc.)
+    // Find emails that look like leads (Google Alerts, LinkedIn notifications, group forwards)
     const queries = [
-      'newer_than:7d (subject:"Google Alert" OR from:googlealerts-noreply@google.com)',
-      'newer_than:7d ("דרוש צלם" OR "מחפש צלם" OR "מחפשת צלמת" OR "photographer needed")',
+      'newer_than:14d (subject:"Google Alert" OR from:googlealerts-noreply@google.com)',
+      'newer_than:14d ("דרוש צלם" OR "מחפש צלם" OR "מחפשת צלמת" OR "photographer needed")',
+      // LinkedIn-specific: notifications, jobs, posts mentioning photographer needs
+      'newer_than:14d from:linkedin.com',
+      'newer_than:14d (from:jobs-noreply@linkedin.com OR from:jobs-listings@linkedin.com OR from:notifications-noreply@linkedin.com)',
+      'newer_than:14d (subject:"linkedin" AND ("photographer" OR "צלם" OR "videographer"))',
     ];
 
     const messageIds = new Set();
@@ -96,13 +103,15 @@ Deno.serve(async (req) => {
       const idx = text.toLowerCase().indexOf(matched[0].toLowerCase());
       const snippet = text.substring(Math.max(0, idx - 50), Math.min(text.length, idx + 200)).trim();
 
+      const platform = platformFromSubjectAndFrom(subject, from);
       discovered.push({
         title: (subject || matched[0]).substring(0, 200),
-        platform: platformFromSubject(subject),
+        platform,
         snippet,
         source_url: sourceUrl,
         keywords_matched: matched.join(', '),
-        relevance_score: Math.min(10, 4 + matched.length * 2),
+        // LinkedIn results get a small relevance boost since they're more targeted
+        relevance_score: Math.min(10, (platform === 'linkedin' ? 5 : 4) + matched.length * 2),
         contact_info: [phone, email].filter(Boolean).join(' / ') || 'N/A',
       });
     }

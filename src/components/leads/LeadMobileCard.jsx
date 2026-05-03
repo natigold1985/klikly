@@ -54,7 +54,7 @@ export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoF
       <div className="flex items-center justify-between gap-2 mb-3 pb-3 border-b border-slate-100 min-w-0">
         <a
           href={`tel:${lead.phone}`}
-          className="font-mono text-sm text-slate-700 hover:text-blue-600 transition-colors truncate flex-shrink min-w-0"
+          className="text-sm font-bold text-slate-800 hover:text-blue-600 transition-colors truncate flex-shrink min-w-0 tracking-wide"
           dir="ltr"
         >
           {lead.phone}
