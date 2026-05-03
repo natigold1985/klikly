@@ -15,7 +15,7 @@ export default function StatusSelect({ value, onChange }) {
 
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="h-10 w-[150px] border border-slate-200 bg-white text-sm font-bold text-slate-900 px-3 gap-2 focus:ring-1 focus:ring-[#FFD700] rounded-xl shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-colors font-sans">
+      <SelectTrigger className="h-9 w-auto min-w-[120px] max-w-[150px] border border-slate-200 bg-white text-xs font-bold text-slate-900 px-3 gap-2 focus:ring-1 focus:ring-[#FFD700] rounded-xl shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-colors font-sans">
         <div className="flex items-center gap-2 min-w-0">
           <span className={`w-2.5 h-2.5 rounded-full ${current.color} shrink-0 ring-2 ring-white shadow`} />
           <span className="truncate">{current.label}</span>

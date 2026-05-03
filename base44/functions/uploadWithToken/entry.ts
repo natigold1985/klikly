@@ -27,19 +27,16 @@ Deno.serve(async (req) => {
       is_selected: false
     });
 
-    // Notify photographer (optional, but good for UX)
+    // Notify photographer via PUSH (no email = no credits)
     if (link.photographer_email) {
-       await base44.asServiceRole.integrations.Core.SendEmail({
-        to: link.photographer_email,
-        subject: `📂 הלקוח ${link.client_name} העלה קובץ חדש`,
-        body: `
-          <div dir="rtl" style="font-family: Arial, sans-serif;">
-            <h3>קובץ חדש הועלה לפרויקט "${link.project_title}"</h3>
-            <p>הלקוח העלה קובץ בשם: ${file_name || 'ללא שם'}</p>
-            <a href="${file_url}">צפה בקובץ</a>
-          </div>
-        `
-      });
+      try {
+        await base44.asServiceRole.functions.invoke('sendPushNotification', {
+          target_email: link.photographer_email,
+          title: `📂 ${link.client_name} העלה קובץ`,
+          body: `קובץ חדש: ${file_name || 'ללא שם'} בפרויקט "${link.project_title}"`,
+          url: '/Projects',
+        });
+      } catch (e) { /* non-blocking */ }
     }
 
     return Response.json({ success: true, photo });

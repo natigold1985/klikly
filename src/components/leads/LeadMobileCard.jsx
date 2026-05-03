@@ -26,44 +26,45 @@ const isMeaningfulSource = (src) => {
 export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoFollowUp, project }) {
   const showSource = isMeaningfulSource(lead.source);
   const isClosedWon = lead.status === 'closed_won';
+  const displayName = lead.name || 'ללא שם';
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 active:scale-[0.99] transition-transform overflow-hidden">
-      {/* Top: name + status */}
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <Link
-          to={createPageUrl(`LeadDetails?id=${lead.id}`)}
-          className="flex items-center gap-1 min-w-0 flex-1"
-        >
-          <div className="min-w-0 flex-1">
-            <h3 className="font-bold text-slate-900 text-base leading-tight break-words line-clamp-2">
-              {lead.name}
-            </h3>
-            {lead.shooting_type && (
-              <p className="text-xs text-slate-500 mt-0.5 truncate">{lead.shooting_type}</p>
-            )}
-          </div>
-          <ChevronLeft className="w-4 h-4 text-slate-300 flex-shrink-0" />
-        </Link>
-        <div className="flex-shrink-0">
-          <StatusSelect value={lead.status} onChange={(val) => onStatusChange(lead.id, val)} />
+      {/* Top row: name (truncated) — full width */}
+      <Link
+        to={createPageUrl(`LeadDetails?id=${lead.id}`)}
+        className="flex items-center gap-1 mb-2"
+      >
+        <div className="min-w-0 flex-1">
+          <h3 className="font-bold text-slate-900 text-base leading-tight truncate">
+            {displayName}
+          </h3>
+          {lead.shooting_type && (
+            <p className="text-xs text-slate-500 mt-0.5 truncate">{lead.shooting_type}</p>
+          )}
         </div>
-      </div>
+        <ChevronLeft className="w-4 h-4 text-slate-300 flex-shrink-0" />
+      </Link>
 
-      {/* Phone + source on the same line, source only when meaningful */}
-      <div className="flex items-center justify-between gap-2 mb-3 pb-3 border-b border-slate-100 min-w-0">
-        <a
-          href={`tel:${lead.phone}`}
-          className="text-sm font-bold text-slate-800 hover:text-blue-600 transition-colors truncate flex-shrink min-w-0 tracking-wide"
-          dir="ltr"
-        >
-          {lead.phone}
-        </a>
+      {/* Status row — own row, prevents overlap with long names */}
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <StatusSelect value={lead.status} onChange={(val) => onStatusChange(lead.id, val)} />
         {showSource && (
-          <div className="flex-shrink-0 max-w-[55%]">
+          <div className="flex-shrink min-w-0">
             <SourceBadge source={lead.source} />
           </div>
         )}
+      </div>
+
+      {/* Phone */}
+      <div className="flex items-center justify-between gap-2 mb-3 pb-3 border-b border-slate-100 min-w-0">
+        <a
+          href={`tel:${lead.phone}`}
+          className="text-sm font-bold text-slate-800 hover:text-blue-600 transition-colors truncate min-w-0 tracking-wide"
+          dir="ltr"
+        >
+          {lead.phone || '—'}
+        </a>
       </div>
 
       {/* Payment status — only for closed_won leads with a linked project */}

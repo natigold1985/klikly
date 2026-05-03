@@ -291,10 +291,11 @@ export default function Leads() {
 
   const filteredLeads = leads
     .filter((lead) => {
+      const term = (searchTerm || '').toLowerCase();
       const matchesSearch =
-        lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        lead.phone.includes(searchTerm) ||
-        (lead.email && lead.email.toLowerCase().includes(searchTerm.toLowerCase()));
+        ((lead.name || '').toLowerCase().includes(term)) ||
+        ((lead.phone || '').includes(searchTerm)) ||
+        (lead.email && lead.email.toLowerCase().includes(term));
 
       const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
 
