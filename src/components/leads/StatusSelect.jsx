@@ -15,18 +15,18 @@ export default function StatusSelect({ value, onChange }) {
 
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="h-8 w-[130px] border-none bg-transparent text-xs font-bold px-2 gap-1 focus:ring-0">
-        <div className="flex items-center gap-1.5">
-          <span className={`w-2 h-2 rounded-full ${current.color} shrink-0`} />
-          <SelectValue />
+      <SelectTrigger className="h-9 w-[140px] border border-slate-200 bg-white text-sm font-semibold text-slate-800 px-3 gap-2 focus:ring-1 focus:ring-[#FFD700] rounded-lg shadow-sm hover:bg-slate-50 transition-colors">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={`w-2.5 h-2.5 rounded-full ${current.color} shrink-0`} />
+          <span className="truncate">{current.label}</span>
         </div>
       </SelectTrigger>
       <SelectContent dir="rtl">
         {STATUS_OPTIONS.map(s => (
           <SelectItem key={s.value} value={s.value}>
             <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${s.color}`} />
-              {s.label}
+              <span className={`w-2.5 h-2.5 rounded-full ${s.color}`} />
+              <span className="font-semibold">{s.label}</span>
             </div>
           </SelectItem>
         ))}

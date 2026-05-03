@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Upload, Save, Camera, Building2, Calendar, Bell } from 'lucide-react';
+import { Upload, Save, Camera, Building2, Calendar, Bell, FileSpreadsheet } from 'lucide-react';
 import PushNotificationToggle from '@/components/PushNotificationToggle';
 import AutomationSettings from '@/components/settings/AutomationSettings';
 import { Button } from '@/components/ui/button';
@@ -251,6 +251,60 @@ export default function Settings() {
 
       {/* Automation Settings */}
       <AutomationSettings formData={formData} setFormData={setFormData} />
+
+      {/* Google Sheets Sync */}
+      <Card className="bg-white/60 backdrop-blur-sm border-white/20 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3">
+            <FileSpreadsheet className="w-5 h-5 text-[#FFD700]" />
+            סנכרון מ-Google Sheets
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-slate-600">
+            הדבק קישור לגיליון גוגל שלך עם רשימת לידים. הסנכרון רץ אוטומטית פעמיים ביום (09:00 ו-21:00).
+            הגיליון חייב לכלול עמודות: שם, טלפון (חובה), אימייל, מקור, סוג, כתובת.
+          </p>
+
+          <div>
+            <label className="text-sm font-medium text-slate-700 mb-1 block">קישור לגיליון Google Sheets</label>
+            <Input
+              value={formData.google_sheet_url || ''}
+              onChange={(e) => setFormData({ ...formData, google_sheet_url: e.target.value })}
+              placeholder="https://docs.google.com/spreadsheets/d/..."
+              dir="ltr"
+            />
+          </div>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.google_sheet_sync_enabled !== false}
+              onChange={(e) => setFormData({ ...formData, google_sheet_sync_enabled: e.target.checked })}
+              className="w-4 h-4 accent-[#FFD700]"
+            />
+            <span className="text-sm font-medium text-slate-700">סנכרון אוטומטי פעיל (פעמיים ביום)</span>
+          </label>
+
+          <div className="flex justify-end">
+            <Button
+              onClick={async () => {
+                toast.loading("מסנכרן עכשיו...", { id: 'sheet-sync' });
+                try {
+                  const res = await base44.functions.invoke('runScheduledSheetsSync', {});
+                  toast.success(`סנכרון הסתיים: ${res.data.added || 0} חדשים, ${res.data.updated || 0} עודכנו`, { id: 'sheet-sync' });
+                } catch (err) {
+                  toast.error("שגיאה בסנכרון", { id: 'sheet-sync' });
+                }
+              }}
+              variant="outline"
+              className="text-sm"
+            >
+              סנכרן עכשיו
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Google Calendar Integrations */}
       <Card className="bg-white/60 backdrop-blur-sm border-white/20 shadow-lg">

@@ -125,8 +125,8 @@ Deno.serve(async (req) => {
     let idsToProcess = messageIds;
 
     if (idsToProcess.length === 0) {
-      // Tighter search: only WP contact-form notification subjects
-      const query = encodeURIComponent('newer_than:2d (from:natigold.com OR from:main-hosting.eu OR "נתי גולד צילום" OR "הודעה חדשה מאת")');
+      // Strict: only WP contact-form notifications from natigold.com (the website)
+      const query = encodeURIComponent('newer_than:2d from:natigold.com "הודעה חדשה מאת"');
       const listRes = await fetch(
         `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20&q=${query}`,
         { headers: authHeader }
@@ -143,8 +143,8 @@ Deno.serve(async (req) => {
     }
 
     // Fetch + parse — no LLM in the happy path
+    // STRICT: only process emails coming from the website contact form (natigold.com).
     const parsed = [];
-    const unparsed = [];
     for (const msgId of idsToProcess.slice(0, 20)) {
       const res = await fetch(
         `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msgId}?format=full`,
@@ -155,16 +155,17 @@ Deno.serve(async (req) => {
       const headers = msg.payload?.headers || [];
       const subject = headers.find(h => h.name === 'Subject')?.value || '';
       const from = headers.find(h => h.name === 'From')?.value || '';
-      const text = extractBody(msg.payload);
 
+      // Hard filter: must come from natigold.com
+      const fromLower = from.toLowerCase();
+      const isWebsiteForm = fromLower.includes('natigold.com') || /הודעה חדשה מאת/i.test(subject);
+      if (!isWebsiteForm) continue;
+
+      const text = extractBody(msg.payload);
       const lead = parseWordPressForm(text);
-      if (lead) {
-        parsed.push(lead);
-      } else if (/צילום|חתונה|צלם|אירוע|בר מצווה|בת מצווה/i.test(subject + ' ' + text)) {
-        // Looks like a lead but doesn't match WP form — keep for LLM fallback
-        unparsed.push({ subject, from, body: text.substring(0, 800), id: msgId });
-      }
+      if (lead) parsed.push(lead);
     }
+    const unparsed = []; // No LLM fallback — strict website-only mode
 
     // Optional fallback to LLM only when we have unparsed but possibly relevant emails
     let llmLeads = [];

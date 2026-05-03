@@ -74,8 +74,10 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
                 <SourceBadge source={lead.source} />
               </td>
 
-              <td className="py-3 px-4 font-mono text-slate-700 whitespace-nowrap text-xs">
-                {lead.phone}
+              <td className="py-3 px-4 whitespace-nowrap">
+                <a href={`tel:${lead.phone}`} className="font-mono text-sm font-semibold text-slate-800 hover:text-blue-600 tracking-wide" dir="ltr">
+                  {lead.phone}
+                </a>
               </td>
 
               <td className="py-3 px-4">

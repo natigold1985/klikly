@@ -279,16 +279,37 @@ export default function Leads() {
     });
   };
 
-  const filteredLeads = leads.filter((lead) => {
-    const matchesSearch = 
-      lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.phone.includes(searchTerm) ||
-      (lead.email && lead.email.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
+  // Status priority: active leads (need attention) at top, closed/lost at bottom
+  const STATUS_PRIORITY = {
+    new: 1,
+    in_progress: 2,
+    follow_up: 3,
+    quote_sent: 4,
+    closed_won: 5,
+    closed_lost: 6,
+  };
+
+  const filteredLeads = leads
+    .filter((lead) => {
+      const matchesSearch =
+        lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lead.phone.includes(searchTerm) ||
+        (lead.email && lead.email.toLowerCase().includes(searchTerm.toLowerCase()));
+
+      const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      // Primary: by status priority (active leads on top)
+      const priA = STATUS_PRIORITY[a.status] ?? 99;
+      const priB = STATUS_PRIORITY[b.status] ?? 99;
+      if (priA !== priB) return priA - priB;
+      // Secondary: newest first
+      const dA = new Date(a.created_date || 0).getTime();
+      const dB = new Date(b.created_date || 0).getTime();
+      return dB - dA;
+    });
 
   const getStatusBadge = (status) => {
     const statusMap = {
