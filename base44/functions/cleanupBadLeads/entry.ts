@@ -53,6 +53,33 @@ const isJunkLead = (lead) => {
   for (const p of junkPatterns) {
     if (text.includes(p.toLowerCase())) return true;
   }
+
+  const source = (lead.source || '').toLowerCase();
+  const notes = (lead.notes || '').toLowerCase();
+  const name = (lead.name || '').toLowerCase();
+
+  // LinkedIn lead without a profile URL — useless
+  if (source.includes('linkedin')) {
+    const hasProfileUrl = /linkedin\.com\/in\//.test(notes) || /linkedin\.com\/in\//.test(name);
+    if (!hasProfileUrl) return true;
+  }
+
+  // Defense Industry / generic role-based leads — no real person
+  if (source.includes('defense') || source.includes('ביטחון')) {
+    return true;
+  }
+
+  // Facebook/WhatsApp leads where shooting_type is actually our auto-reply bot text (starts with היי / שלום and ends with natigold.com link)
+  if ((source.includes('facebook') || source.includes('whatsapp')) ) {
+    const st = (lead.shooting_type || '').toLowerCase();
+    if (st.includes('natigold.com') || st.includes('היי!') || st.includes('שבעה ימים להבין הכל')) {
+      return true;
+    }
+    if (notes.includes('natigold.com/photography-course') || notes.includes('שבעה ימים להבין הכל')) {
+      return true;
+    }
+  }
+
   return false;
 };
 
