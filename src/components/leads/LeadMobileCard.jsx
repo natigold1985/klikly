@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Phone, MessageCircle, Trash2, Zap, ChevronLeft } from 'lucide-react';
+import { Phone, MessageCircle, Trash2, Zap, ChevronLeft, Undo2 } from 'lucide-react';
 import SourceBadge from './SourceBadge';
 import StatusSelect from './StatusSelect';
 import PaymentStatusRow from './PaymentStatusRow';
@@ -23,7 +23,7 @@ const isMeaningfulSource = (src) => {
   return v && !['לא ידוע', 'unknown', 'none', '-', 'n/a'].includes(v);
 };
 
-export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoFollowUp, project }) {
+export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoFollowUp, onRestoreToActive, project }) {
   const showSource = isMeaningfulSource(lead.source);
   const isClosedWon = lead.status === 'closed_won';
   const displayName = lead.name || 'ללא שם';
@@ -93,6 +93,17 @@ export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoF
         <div className="mb-3">
           <PaymentStatusRow project={project} />
         </div>
+      )}
+
+      {/* Restore to active — only for filtered leads */}
+      {onRestoreToActive && lead.is_filtered && (
+        <button
+          onClick={() => onRestoreToActive(lead.id)}
+          className="w-full mb-3 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-purple-500 hover:bg-purple-600 text-white shadow-sm active:scale-95 transition-all"
+        >
+          <Undo2 className="w-4 h-4" />
+          <span className="text-xs font-bold">החזר לליד פעיל</span>
+        </button>
       )}
 
       {/* Actions row */}

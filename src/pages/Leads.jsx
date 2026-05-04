@@ -290,15 +290,20 @@ export default function Leads() {
     closed_lost: 6,
   };
 
+  // A lead is truly "filtered" only if marked is_filtered AND not in an active workflow status.
+  // Active workflow statuses (in_progress, follow_up, quote_sent, closed_won) override the junk filter.
+  const ACTIVE_OVERRIDE_STATUSES = ['in_progress', 'follow_up', 'quote_sent', 'closed_won'];
+  const isTrulyFiltered = (lead) => lead.is_filtered && !ACTIVE_OVERRIDE_STATUSES.includes(lead.status);
+
   // Counts for tab badges
-  const activeCount = leads.filter(l => !l.is_filtered).length;
-  const filteredCount = leads.filter(l => l.is_filtered).length;
+  const activeCount = leads.filter(l => !isTrulyFiltered(l)).length;
+  const filteredCount = leads.filter(l => isTrulyFiltered(l)).length;
 
   const filteredLeads = leads
     .filter((lead) => {
-      // Tab gate: active tab hides filtered leads, filtered tab shows only them
-      if (activeTab === 'active' && lead.is_filtered) return false;
-      if (activeTab === 'filtered' && !lead.is_filtered) return false;
+      // Tab gate: active tab hides truly-filtered leads; filtered tab shows only them
+      if (activeTab === 'active' && isTrulyFiltered(lead)) return false;
+      if (activeTab === 'filtered' && !isTrulyFiltered(lead)) return false;
 
       const term = (searchTerm || '').toLowerCase();
       const matchesSearch =
@@ -620,6 +625,10 @@ export default function Leads() {
           onStatusChange={(id, status) => updateLeadMutation.mutate({ id, data: { status } })}
           onDelete={(id) => { if (confirm('למחוק את הליד?')) deleteLeadMutation.mutate(id); }}
           onAutoFollowUp={(lead) => setAutoFollowUpLead(lead)}
+          onRestoreToActive={(id) => {
+            updateLeadMutation.mutate({ id, data: { is_filtered: false, filter_reason: null } });
+            toast.success('הליד הוחזר לפעילים');
+          }}
         />
       ) : viewMode === 'map' ? (
         <Card className="border shadow-sm overflow-hidden h-[600px] relative z-0">

@@ -1,12 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Phone, MessageCircle, Trash2, Zap, Pencil } from 'lucide-react';
+import { Phone, MessageCircle, Trash2, Zap, Pencil, Undo2 } from 'lucide-react';
 import SourceBadge from './SourceBadge';
 import StatusSelect from './StatusSelect';
 import LeadMobileCard from './LeadMobileCard';
 
-export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoFollowUp, projectsByLeadId = {} }) {
+export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoFollowUp, onRestoreToActive, projectsByLeadId = {} }) {
   const getWhatsAppLink = (lead) => {
     const cleanPhone = lead.phone.replace(/[^0-9]/g, '');
     const israelPhone = cleanPhone.startsWith('0') ? '972' + cleanPhone.substring(1) : cleanPhone;
@@ -29,6 +29,7 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
             onStatusChange={onStatusChange}
             onDelete={onDelete}
             onAutoFollowUp={onAutoFollowUp}
+            onRestoreToActive={onRestoreToActive}
           />
         ))}
       </div>
@@ -145,6 +146,15 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
                       title={lead.auto_followup_enabled ? 'פולו-אפ אוטומטי פעיל' : 'הפעל פולו-אפ אוטומטי'}
                     >
                       <Zap className="w-4 h-4" />
+                    </button>
+                  )}
+                  {onRestoreToActive && lead.is_filtered && (
+                    <button
+                      onClick={() => onRestoreToActive(lead.id)}
+                      className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-purple-500 hover:bg-purple-600 text-white shadow-sm hover:shadow transition-all active:scale-95"
+                      title="החזר לליד פעיל"
+                    >
+                      <Undo2 className="w-4 h-4" />
                     </button>
                   )}
                   <button
