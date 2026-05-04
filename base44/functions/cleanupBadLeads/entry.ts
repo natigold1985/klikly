@@ -69,15 +69,18 @@ const isJunkLead = (lead) => {
     return true;
   }
 
-  // Facebook/WhatsApp leads where shooting_type is actually our auto-reply bot text (starts with היי / שלום and ends with natigold.com link)
-  if ((source.includes('facebook') || source.includes('whatsapp')) ) {
-    const st = (lead.shooting_type || '').toLowerCase();
-    if (st.includes('natigold.com') || st.includes('היי!') || st.includes('שבעה ימים להבין הכל')) {
-      return true;
-    }
-    if (notes.includes('natigold.com/photography-course') || notes.includes('שבעה ימים להבין הכל')) {
-      return true;
-    }
+  // Bot-generated leads — auto-reply text in shooting_type or notes
+  const st = (lead.shooting_type || '').toLowerCase();
+  if (st.includes('natigold.com') || st.includes('שבעה ימים להבין הכל') || st.includes('אני נתי גולד')) {
+    return true;
+  }
+  if (notes.includes('natigold.com/photography-course') || notes.includes('שבעה ימים להבין הכל') || notes.includes('אני נתי גולד')) {
+    return true;
+  }
+
+  // Forum/search-result leads (Google Search, xplace) — these are posts, not real inquiries to me
+  if (source.includes('google search') || source.includes('xplace')) {
+    return true;
   }
 
   return false;
