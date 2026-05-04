@@ -24,7 +24,6 @@ import PublicLeadForm from './pages/PublicLeadForm';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import AccessibilityPage from './pages/Accessibility';
-import CourseLanding from './pages/CourseLanding';
 import Newsletter from './pages/Newsletter';
 
 const { Pages, Layout, mainPage } = pagesConfig;
@@ -187,7 +186,6 @@ function App() {
             <Route path="/gallery/:id" element={<ClientGallery />} />
             <Route path="/quote/view" element={<QuoteView />} />
             <Route path="/contact" element={<PublicLeadForm />} />
-            <Route path="/CourseLanding" element={<CourseLanding />} />
             <Route path="*" element={<AuthenticatedApp />} />
           </Routes>
         </Router>

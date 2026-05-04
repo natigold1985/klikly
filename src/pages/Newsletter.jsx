@@ -43,9 +43,10 @@ export default function Newsletter() {
     }
   };
 
+  const COURSE_LANDING_URL = 'https://natigold.com/photography-course/';
+
   const copyLandingLink = () => {
-    const url = `${window.location.origin}/CourseLanding`;
-    navigator.clipboard.writeText(url);
+    navigator.clipboard.writeText(COURSE_LANDING_URL);
     toast.success('הקישור הועתק');
   };
 
@@ -67,7 +68,7 @@ export default function Newsletter() {
             העתק קישור לדף נחיתה
           </Button>
           <a
-            href="/CourseLanding"
+            href={COURSE_LANDING_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium border border-slate-200 transition-colors"

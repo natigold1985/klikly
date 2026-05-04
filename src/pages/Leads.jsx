@@ -151,16 +151,22 @@ export default function Leads() {
     queryFn: () => base44.auth.me(),
   });
 
+  const isAdmin = user?.role === 'admin' || user?.email === 'natigold04@gmail.com';
+
   const { data: leads = [], isLoading } = useQuery({
-    queryKey: ['leads', user?.email],
-    queryFn: () => base44.entities.Lead.filter({ created_by: user.email }, '-created_date', 200),
+    queryKey: ['leads', user?.email, isAdmin],
+    queryFn: () => isAdmin
+      ? base44.entities.Lead.list('-created_date', 500)
+      : base44.entities.Lead.filter({ created_by: user.email }, '-created_date', 200),
     enabled: !!user,
   });
 
   // Load projects to show payment status on closed_won leads
   const { data: projects = [] } = useQuery({
-    queryKey: ['leadsProjects', user?.email],
-    queryFn: () => base44.entities.Project.filter({ created_by: user.email }, '-created_date', 200),
+    queryKey: ['leadsProjects', user?.email, isAdmin],
+    queryFn: () => isAdmin
+      ? base44.entities.Project.list('-created_date', 500)
+      : base44.entities.Project.filter({ created_by: user.email }, '-created_date', 200),
     enabled: !!user,
   });
 
