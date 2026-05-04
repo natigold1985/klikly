@@ -71,11 +71,17 @@ export default function LeadDetails() {
 
   return (
     <div className="space-y-6 pb-20" dir="rtl">
-      <div className="flex items-center gap-4 mb-2">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full shrink-0">
-          <ArrowRight className="w-5 h-5" />
-        </Button>
-        <div className="flex-1">
+      {/* Back button - prominent on both mobile and desktop */}
+      <button
+        onClick={() => navigate(-1)}
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all text-sm font-medium text-slate-700 mb-4"
+      >
+        <ArrowRight className="w-4 h-4" />
+        <span>חזרה</span>
+      </button>
+
+      <div className="flex items-center gap-4 mb-2 flex-wrap">
+        <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold text-slate-900 leading-tight">תיק ליד</h1>
         </div>
         {lead.status !== 'closed_won' && (
