@@ -7,10 +7,10 @@ import {
   Trash2, Briefcase, Plus, CheckCircle2, DollarSign, FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import SendQuoteFromLeadDialog from '@/components/leads/SendQuoteFromLeadDialog';
+import EditableField from '@/components/leads/EditableField';
 
 export default function LeadDetails() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -38,6 +38,10 @@ export default function LeadDetails() {
       toast.success("פרטי הליד עודכנו");
     }
   });
+
+  const updateField = (field) => async (newValue) => {
+    await updateLeadMutation.mutateAsync({ [field]: newValue });
+  };
 
   const createProjectMutation = useMutation({
     mutationFn: (data) => base44.entities.Project.create(data),
@@ -101,51 +105,77 @@ export default function LeadDetails() {
               <CardTitle>פרטי איש קשר</CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
+              <p className="text-xs text-slate-400 mb-4">לחץ על כל שדה כדי לערוך</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-4">
                 <div>
                   <label className="text-sm text-slate-500 block mb-1">שם מלא</label>
-                  <div className="font-medium">{lead.name}</div>
+                  <EditableField
+                    value={lead.name}
+                    onSave={updateField('name')}
+                    placeholder="הזן שם"
+                  />
                 </div>
                 <div>
                   <label className="text-sm text-slate-500 block mb-1">טלפון</label>
-                  <div className="font-medium flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-slate-400" />
-                    {lead.phone}
-                  </div>
+                  <EditableField
+                    value={lead.phone}
+                    onSave={updateField('phone')}
+                    type="tel"
+                    placeholder="הזן טלפון"
+                    icon={<Phone className="w-4 h-4 text-slate-400 shrink-0" />}
+                  />
                 </div>
                 <div>
                   <label className="text-sm text-slate-500 block mb-1">אימייל</label>
-                  <div className="font-medium flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-slate-400" />
-                    {lead.email || 'לא הוזן'}
-                  </div>
+                  <EditableField
+                    value={lead.email}
+                    onSave={updateField('email')}
+                    type="email"
+                    placeholder="הזן אימייל"
+                    icon={<Mail className="w-4 h-4 text-slate-400 shrink-0" />}
+                  />
                 </div>
                 <div>
                   <label className="text-sm text-slate-500 block mb-1">סוג צילום</label>
-                  <div className="font-medium">{lead.shooting_type || 'לא הוגדר'}</div>
+                  <EditableField
+                    value={lead.shooting_type}
+                    onSave={updateField('shooting_type')}
+                    placeholder="לא הוגדר"
+                  />
                 </div>
                 <div>
                   <label className="text-sm text-slate-500 block mb-1">תאריך אירוע</label>
-                  <div className="font-medium flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-slate-400" />
-                    {lead.event_date ? new Date(lead.event_date).toLocaleDateString('he-IL') : 'לא נקבע'}
-                  </div>
+                  <EditableField
+                    value={lead.event_date}
+                    onSave={updateField('event_date')}
+                    type="date"
+                    placeholder="לא נקבע"
+                    icon={<Calendar className="w-4 h-4 text-slate-400 shrink-0" />}
+                    formatDisplay={(v) => v ? new Date(v).toLocaleDateString('he-IL') : null}
+                  />
                 </div>
                 <div>
                   <label className="text-sm text-slate-500 block mb-1">תקציב משוער</label>
-                  <div className="font-medium flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-slate-400" />
-                    {lead.budget ? `₪${lead.budget.toLocaleString()}` : 'לא צוין'}
-                  </div>
+                  <EditableField
+                    value={lead.budget}
+                    onSave={async (v) => updateField('budget')(v ? Number(v) : null)}
+                    type="number"
+                    placeholder="לא צוין"
+                    icon={<DollarSign className="w-4 h-4 text-slate-400 shrink-0" />}
+                    formatDisplay={(v) => v ? `₪${Number(v).toLocaleString()}` : null}
+                  />
                 </div>
               </div>
-              
-              {lead.notes && (
-                <div className="mt-6 pt-4 border-t border-slate-100">
-                  <label className="text-sm text-slate-500 block mb-2">הערות</label>
-                  <p className="text-sm text-slate-800 whitespace-pre-wrap">{lead.notes}</p>
-                </div>
-              )}
+
+              <div className="mt-6 pt-4 border-t border-slate-100">
+                <label className="text-sm text-slate-500 block mb-2">הערות</label>
+                <EditableField
+                  value={lead.notes}
+                  onSave={updateField('notes')}
+                  multiline
+                  placeholder="לחץ להוספת הערות"
+                />
+              </div>
             </CardContent>
           </Card>
         </div>
