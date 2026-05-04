@@ -62,15 +62,18 @@ function isValidPhone(phone) {
     return digits.length >= 9 && digits.length <= 13;
 }
 
-// Detect junk/irrelevant leads — used to mark them as is_filtered on creation
-function detectJunkLead(name, phone) {
+// Detect junk/irrelevant leads — used to mark them as is_filtered on creation.
+// A lead with a valid email is considered reachable even without a phone (B2B contacts).
+function detectJunkLead(name, phone, email) {
     const cleanName = String(name || '').trim();
     const lowName = cleanName.toLowerCase();
     const digits = String(phone || '').replace(/[^0-9]/g, '');
+    const hasValidEmail = !!(email && /\S+@\S+\.\S+/.test(String(email)));
+    const hasValidPhone = digits.length >= 9 && digits.length <= 13;
 
-    // Invalid / missing phone
-    if (!digits || digits.length < 9 || digits.length > 13) {
-        return { isJunk: true, reason: 'invalid_phone' };
+    // Need at least one reachable channel (phone or email)
+    if (!hasValidPhone && !hasValidEmail) {
+        return { isJunk: true, reason: 'no_contact_method' };
     }
 
     // Placeholder / nameless leads
@@ -152,9 +155,11 @@ Deno.serve(async (req) => {
         const valuesData = await valuesResp.json();
         const valueRanges = valuesData.valueRanges || [];
 
-        // 3) Load existing leads for de-duplication (by phone, email, and name+source)
-        const filterQuery = userEmail ? { created_by: userEmail } : {};
-        const existing = await base44.asServiceRole.entities.Lead.filter(filterQuery, '-created_date', 1000);
+        // 3) Load existing leads for de-duplication.
+        // We intentionally load ALL recent leads (not filtered by created_by),
+        // because the same sheet can be synced by either the user OR a scheduled
+        // service token, and both should de-duplicate against each other.
+        const existing = await base44.asServiceRole.entities.Lead.list('-created_date', 2000);
         const phoneMap = {};
         const emailMap = {};
         const nameSourceMap = {};
@@ -272,7 +277,7 @@ Deno.serve(async (req) => {
                     }
                 } else {
                     const finalName = name || (email || phone || 'לא ידוע');
-                    const junk = detectJunkLead(finalName, phone);
+                    const junk = detectJunkLead(finalName, phone, email);
                     const created = await base44.asServiceRole.entities.Lead.create({
                         name: finalName,
                         phone: phone || '',
