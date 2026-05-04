@@ -62,6 +62,26 @@ function isValidPhone(phone) {
     return digits.length >= 9 && digits.length <= 13;
 }
 
+// Detect junk/irrelevant leads — used to mark them as is_filtered on creation
+function detectJunkLead(name, phone) {
+    const cleanName = String(name || '').trim();
+    const lowName = cleanName.toLowerCase();
+    const digits = String(phone || '').replace(/[^0-9]/g, '');
+
+    // Invalid / missing phone
+    if (!digits || digits.length < 9 || digits.length > 13) {
+        return { isJunk: true, reason: 'invalid_phone' };
+    }
+
+    // Placeholder / nameless leads
+    const junkNames = ['לא ידוע', 'unknown', 'test', 'בדיקה', 'n/a', '-', '?', 'ללא שם', 'ללא'];
+    if (!cleanName || junkNames.some(j => lowName === j) || lowName.includes('ליד ללא שם')) {
+        return { isJunk: true, reason: 'no_name' };
+    }
+
+    return { isJunk: false, reason: null };
+}
+
 function normPhone(p) {
     if (!p) return '';
     return String(p).replace(/[^0-9]/g, '');
@@ -251,8 +271,10 @@ Deno.serve(async (req) => {
                         Object.assign(match, updates);
                     }
                 } else {
+                    const finalName = name || (email || phone || 'לא ידוע');
+                    const junk = detectJunkLead(finalName, phone);
                     const created = await base44.asServiceRole.entities.Lead.create({
-                        name: name || (email || phone || 'לא ידוע'),
+                        name: finalName,
                         phone: phone || '',
                         email: email || undefined,
                         source: detectedSource,
@@ -261,6 +283,8 @@ Deno.serve(async (req) => {
                         notes: notes || undefined,
                         status: 'new',
                         last_contact_date: new Date().toISOString(),
+                        is_filtered: junk.isJunk,
+                        filter_reason: junk.reason || undefined,
                     });
                     tabAdded++; added++;
 

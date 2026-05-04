@@ -124,9 +124,16 @@ Deno.serve(async (req) => {
         const shootingType = typeIdx !== -1 ? (row[typeIdx] || '') : '';
         const address = addressIdx !== -1 ? (row[addressIdx] || '') : '';
 
-        if (!name || !phone) continue;
+        if (!name && !phone) continue;
         const cleanPhone = phone.replace(/[^0-9]/g, '');
-        if (cleanPhone.length < 7) continue; // Skip clearly invalid phone numbers
+
+        // Detect junk leads (invalid phone / placeholder name) — they're still saved but marked as filtered
+        const lowName = String(name).toLowerCase().trim();
+        const junkNames = ['לא ידוע', 'unknown', 'test', 'בדיקה', 'n/a', '-', '?', 'ללא שם', 'ללא'];
+        const isInvalidPhone = !cleanPhone || cleanPhone.length < 9 || cleanPhone.length > 13;
+        const isPlaceholderName = !name || junkNames.some(j => lowName === j) || lowName.includes('ליד ללא שם');
+        const isJunk = isInvalidPhone || isPlaceholderName;
+        const junkReason = isInvalidPhone ? 'invalid_phone' : (isPlaceholderName ? 'no_name' : null);
 
         const matchLead = phoneMap[cleanPhone];
         if (matchLead) {
@@ -142,7 +149,7 @@ Deno.serve(async (req) => {
           }
         } else {
           await base44.asServiceRole.entities.Lead.create({
-            name,
+            name: name || 'לא ידוע',
             phone,
             email: email || undefined,
             source: source || 'Google Sheets',
@@ -150,9 +157,11 @@ Deno.serve(async (req) => {
             address: address || undefined,
             status: 'new',
             last_contact_date: new Date().toISOString(),
+            is_filtered: isJunk,
+            filter_reason: junkReason || undefined,
           });
           added++;
-          phoneMap[cleanPhone] = { phone, name };
+          if (cleanPhone) phoneMap[cleanPhone] = { phone, name };
         }
       }
 

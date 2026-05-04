@@ -123,6 +123,7 @@ export default function Leads() {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('table');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [activeTab, setActiveTab] = useState('active'); // 'active' | 'filtered'
   const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
   const [showFollowUpDialog, setShowFollowUpDialog] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
@@ -289,8 +290,16 @@ export default function Leads() {
     closed_lost: 6,
   };
 
+  // Counts for tab badges
+  const activeCount = leads.filter(l => !l.is_filtered).length;
+  const filteredCount = leads.filter(l => l.is_filtered).length;
+
   const filteredLeads = leads
     .filter((lead) => {
+      // Tab gate: active tab hides filtered leads, filtered tab shows only them
+      if (activeTab === 'active' && lead.is_filtered) return false;
+      if (activeTab === 'filtered' && !lead.is_filtered) return false;
+
       const term = (searchTerm || '').toLowerCase();
       const matchesSearch =
         ((lead.name || '').toLowerCase().includes(term)) ||
@@ -516,6 +525,32 @@ export default function Leads() {
       </Dialog>
 
 
+
+      {/* Tabs: Active vs Filtered */}
+      <div className="flex items-center gap-2 border-b border-slate-200 -mb-2" dir="rtl">
+        <button
+          onClick={() => setActiveTab('active')}
+          className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${
+            activeTab === 'active'
+              ? 'border-[#C5A028] text-slate-900'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          לידים פעילים
+          <span className="mr-2 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs">{activeCount}</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('filtered')}
+          className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${
+            activeTab === 'filtered'
+              ? 'border-red-500 text-slate-900'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          מסוננים / לא רלוונטיים
+          <span className="mr-2 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs">{filteredCount}</span>
+        </button>
+      </div>
 
       {/* Data Actions Toolbar */}
       <Card className="border shadow-sm">
