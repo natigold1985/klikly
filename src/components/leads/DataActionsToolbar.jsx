@@ -89,21 +89,46 @@ export default function DataActionsToolbar({ leads }) {
   return (
     <>
       <div className="flex items-center gap-2 flex-wrap">
-        <Button variant="outline" size="sm" className="gap-1.5 text-xs border-slate-200 hover:border-[#D4AF37]" onClick={() => setShowImport('sheets')}>
-          <FileSpreadsheet className="w-3.5 h-3.5 text-green-600" />
-          Sheets
-        </Button>
-        <Button variant="outline" size="sm" className="gap-1.5 text-xs border-slate-200 hover:border-[#D4AF37]" onClick={() => setShowImport('csv')}>
-          <Upload className="w-3.5 h-3.5 text-slate-600" />
-          CSV
-        </Button>
-        <Button variant="outline" size="sm" className="gap-1.5 text-xs border-slate-200 hover:border-[#D4AF37]" onClick={handleManualSync} disabled={isSyncing}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 gap-1.5 text-xs font-semibold text-slate-700 border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300"
+          onClick={handleManualSync}
+          disabled={isSyncing}
+          title="סנכרון מגוגל שיטס"
+        >
           <RefreshCw className={`w-3.5 h-3.5 text-blue-600 ${isSyncing ? 'animate-spin' : ''}`} />
-          סנכרן
+          <span>{isSyncing ? 'מסנכרן...' : 'סנכרן'}</span>
         </Button>
-        <Button variant="outline" size="sm" className="gap-1.5 text-xs border-slate-200 hover:border-green-500" onClick={() => setShowBroadcast(true)} title="שידור WhatsApp">
-          <MessageCircle className="w-4 h-4 text-green-600 fill-green-600/10" />
-          <span className="font-bold text-green-700">WhatsApp</span>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 gap-1.5 text-xs font-semibold text-slate-700 border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300"
+          onClick={() => setShowImport('sheets')}
+          title="ייבוא מ-Google Sheets"
+        >
+          <FileSpreadsheet className="w-3.5 h-3.5 text-green-600" />
+          <span>Sheets</span>
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 gap-1.5 text-xs font-semibold text-slate-700 border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300"
+          onClick={() => setShowImport('csv')}
+          title="העלאת קובץ CSV / Excel"
+        >
+          <Upload className="w-3.5 h-3.5 text-slate-600" />
+          <span>CSV</span>
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 gap-1.5 text-xs font-bold text-green-700 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-400"
+          onClick={() => setShowBroadcast(true)}
+          title="שידור WhatsApp"
+        >
+          <MessageCircle className="w-3.5 h-3.5 text-green-600" />
+          <span>WhatsApp</span>
         </Button>
       </div>
 
