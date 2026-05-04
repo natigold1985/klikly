@@ -5,8 +5,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Upload, FileSpreadsheet, MessageCircle, Instagram, Facebook, Mail, Loader2, CheckCircle2, Linkedin, RefreshCw, Clock, Sparkles } from 'lucide-react';
+import { Upload, FileSpreadsheet, MessageCircle, Instagram, Facebook, Mail, Loader2, CheckCircle2, Linkedin, RefreshCw, Clock, Sparkles, ClipboardPaste } from 'lucide-react';
 import { toast } from 'sonner';
+import PasteLeadsDialog from '@/components/leads/PasteLeadsDialog';
 
 const AI_CHANNELS = ['facebook', 'instagram', 'whatsapp', 'email', 'linkedin'];
 const AI_CHANNEL_LABELS = {
@@ -41,6 +42,7 @@ const CHANNELS = [
   { id: 'email', label: 'Gmail (ידני)', desc: 'הדבק טפסי "צור קשר" מהמייל', icon: Mail, color: 'bg-red-500', available: true },
   { id: 'linkedin', label: 'LinkedIn', desc: 'חיפוש מוכוון + הדבקת תוצאות', icon: Linkedin, color: 'bg-[#0A66C2]', available: true },
   { id: 'csv', label: 'העלאת קובץ CSV', desc: 'ייבוא ידני מקובץ', icon: Upload, color: 'bg-slate-700', available: true },
+  { id: 'paste', label: 'הדבקה מ-Sheets', desc: 'העתק שורות והדבק ישירות', icon: ClipboardPaste, color: 'bg-[#C5A028]', available: true },
 ];
 
 export default function LeadImport() {
@@ -532,6 +534,11 @@ Return ONLY valid leads that have at least a name AND a phone number.`,
           </DialogContent>
         </Dialog>
       ))}
+
+      <PasteLeadsDialog
+        open={activeChannel === 'paste'}
+        onOpenChange={(open) => { if (!open) setActiveChannel(null); }}
+      />
     </div>
   );
 }
