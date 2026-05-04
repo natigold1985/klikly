@@ -21,7 +21,7 @@ export default function Contacts() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [showNew, setShowNew] = useState(false);
-  const [form, setForm] = useState({ name: '', phone: '', email: '', type: 'client', address: '', notes: '', source: '', instagram: '' });
+  const [form, setForm] = useState({ name: '', phone: '', email: '', type: 'client', address: '', notes: '', source: '', instagram: '', birthday: '', birthday_greeting_consent: false });
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
@@ -40,7 +40,7 @@ export default function Contacts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
       setShowNew(false);
-      setForm({ name: '', phone: '', email: '', type: 'client', address: '', notes: '', source: '', instagram: '' });
+      setForm({ name: '', phone: '', email: '', type: 'client', address: '', notes: '', source: '', instagram: '', birthday: '', birthday_greeting_consent: false });
       toast.success('איש קשר נוצר');
     },
   });
@@ -90,6 +90,16 @@ export default function Contacts() {
               <Input placeholder="כתובת" value={form.address} onChange={e => setForm({...form, address: e.target.value})} />
               <Input placeholder="מקור (פייסבוק, המלצה...)" value={form.source} onChange={e => setForm({...form, source: e.target.value})} />
               <Input placeholder="@אינסטגרם" value={form.instagram} onChange={e => setForm({...form, instagram: e.target.value})} />
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">תאריך יום הולדת (לברכה אוטומטית עם קופון)</label>
+                <Input type="date" value={form.birthday} onChange={e => setForm({...form, birthday: e.target.value})} />
+              </div>
+              {form.birthday && (
+                <label className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 cursor-pointer">
+                  <input type="checkbox" checked={form.birthday_greeting_consent} onChange={e => setForm({...form, birthday_greeting_consent: e.target.checked})} className="mt-0.5 w-4 h-4 accent-amber-500" />
+                  <span className="text-xs text-slate-700 leading-relaxed">הלקוח/ה אישר/ה לקבל ברכת יום הולדת + קופון הנחה ב-WhatsApp/אימייל</span>
+                </label>
+              )}
               <textarea placeholder="הערות..." value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm" rows={2} />
               <Button className="w-full" disabled={!form.name || !form.phone} onClick={() => createMutation.mutate(form)}>צור איש קשר</Button>
             </div>

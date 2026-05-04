@@ -20,7 +20,8 @@ import {
   UserCog,
   BarChart3,
   X,
-  LogOut
+  LogOut,
+  Mail
 } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
@@ -62,6 +63,7 @@ export default function Layout({ children, currentPageName }) {
         { name: 'אחסון קבצים', icon: Folder, page: 'FileStorage' },
         { name: 'משימות', icon: CheckCircle2, page: 'Tasks' },
         { name: 'אנליטיקס', icon: BarChart3, page: 'Analytics' },
+        ...(isAdmin ? [{ name: 'ניוזלטר וברכות', icon: Mail, page: 'Newsletter' }] : []),
         ...(isAdmin ? [
           { name: 'משתמשים', icon: Shield, page: 'AdminUsers' },
           { name: 'מטריצת הרשאות', icon: Shield, page: 'RBACMatrix' },

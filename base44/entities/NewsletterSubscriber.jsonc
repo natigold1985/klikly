@@ -1,0 +1,109 @@
+{
+  "name": "NewsletterSubscriber",
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "description": "\u05d0\u05d9\u05de\u05d9\u05d9\u05dc \u05d4\u05e0\u05de\u05e2\u05df"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "\u05e9\u05dd \u05de\u05dc\u05d0"
+    },
+    "phone": {
+      "type": "string",
+      "description": "\u05d8\u05dc\u05e4\u05d5\u05df (\u05d0\u05d5\u05e4\u05e6\u05d9\u05d5\u05e0\u05dc\u05d9)"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "course_landing",
+        "client_existing",
+        "manual",
+        "lead_form"
+      ],
+      "default": "course_landing",
+      "description": "\u05de\u05e7\u05d5\u05e8 \u05d4\u05d4\u05e8\u05e9\u05de\u05d4"
+    },
+    "interests": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "\u05ea\u05d7\u05d5\u05de\u05d9 \u05e2\u05e0\u05d9\u05d9\u05df (\u05e7\u05d5\u05e8\u05e1 \u05e6\u05d9\u05dc\u05d5\u05dd, \u05d8\u05d9\u05e4\u05d9\u05dd, \u05d4\u05e6\u05e2\u05d5\u05ea)"
+    },
+    "consent_given": {
+      "type": "boolean",
+      "default": false,
+      "description": "\u05d4\u05d0\u05dd \u05e0\u05ea\u05df \u05d4\u05e1\u05db\u05de\u05d4 \u05de\u05e4\u05d5\u05e8\u05e9\u05ea \u05dc\u05d3\u05d9\u05d5\u05d5\u05e8 (\u05d7\u05d5\u05e7 \u05d4\u05e1\u05e4\u05d0\u05dd)"
+    },
+    "consent_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u05de\u05d5\u05e2\u05d3 \u05de\u05ea\u05df \u05d4\u05d4\u05e1\u05db\u05de\u05d4"
+    },
+    "consent_ip": {
+      "type": "string",
+      "description": "\u05db\u05ea\u05d5\u05d1\u05ea IP \u05e9\u05dc \u05d4\u05e0\u05de\u05e2\u05df \u05d1\u05e2\u05ea \u05d4\u05d4\u05e1\u05db\u05de\u05d4 (\u05dc\u05ea\u05d9\u05e2\u05d5\u05d3 \u05de\u05e9\u05e4\u05d8\u05d9)"
+    },
+    "consent_text": {
+      "type": "string",
+      "description": "\u05d4\u05d8\u05e7\u05e1\u05d8 \u05d4\u05de\u05d3\u05d5\u05d9\u05e7 \u05e9\u05d4\u05e0\u05de\u05e2\u05df \u05d0\u05d9\u05e9\u05e8"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "unsubscribed",
+        "bounced"
+      ],
+      "default": "active",
+      "description": "\u05e1\u05d8\u05d8\u05d5\u05e1 \u05d4\u05e8\u05e9\u05de\u05d4"
+    },
+    "unsubscribed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "unsubscribe_token": {
+      "type": "string",
+      "description": "\u05d8\u05d5\u05e7\u05df \u05d9\u05d9\u05d7\u05d5\u05d3\u05d9 \u05dc\u05d4\u05e1\u05e8\u05d4 \u05de\u05e8\u05e9\u05d9\u05de\u05ea \u05ea\u05e4\u05d5\u05e6\u05d4"
+    },
+    "birthday": {
+      "type": "string",
+      "format": "date",
+      "description": "\u05ea\u05d0\u05e8\u05d9\u05da \u05d9\u05d5\u05dd \u05d4\u05d5\u05dc\u05d3\u05ea (\u05d0\u05d5\u05e4\u05e6\u05d9\u05d5\u05e0\u05dc\u05d9)"
+    },
+    "last_email_sent": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "email",
+    "consent_given"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
