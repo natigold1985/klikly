@@ -60,6 +60,16 @@ export default function DriveProjectView({ project }) {
     window.open(file.download_url, '_blank');
   };
 
+  const handleDownloadAll = (filesToDownload) => {
+    const list = filesToDownload || files || [];
+    if (!list.length) return;
+    // Open each file in a new tab — browser triggers direct Drive download (zero server cost)
+    list.forEach((f, i) => {
+      setTimeout(() => window.open(f.download_url, '_blank'), i * 250);
+    });
+    toast.success(`ההורדה החלה (${list.length} קבצים)`);
+  };
+
   const handleFileUploaded = (file) => {
     // Add to optimistic list — appears in grid instantly
     setOptimistic((prev) => [file, ...prev]);
@@ -174,7 +184,12 @@ export default function DriveProjectView({ project }) {
       {/* Files */}
       <Card>
         <CardContent className="p-6">
-          <DriveFilesGrid files={files} loading={isLoading} onDownload={handleDownload} />
+          <DriveFilesGrid
+            files={files}
+            loading={isLoading}
+            onDownload={handleDownload}
+            onDownloadAll={handleDownloadAll}
+          />
         </CardContent>
       </Card>
     </div>

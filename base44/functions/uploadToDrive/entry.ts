@@ -17,25 +17,37 @@ const SUBFOLDER_NAMES = {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const me = await base44.auth.me();
-    if (!me) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-
     const body = await req.json().catch(() => ({}));
-    const { project_id, file_url, file_name, mime_type, target_subfolder } = body;
+    const { project_id, file_url, file_name, mime_type, target_subfolder, token } = body;
 
-    if (!project_id || !file_url || !file_name) {
+    if (!file_url || !file_name) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Authorize: photographer (owner/admin) OR client whose email matches project.client_email
-    const projects = await base44.asServiceRole.entities.Project.filter({ id: project_id });
-    const project = projects[0];
-    if (!project) return Response.json({ error: 'Project not found' }, { status: 404 });
+    // Two access modes:
+    //  A) Authenticated photographer/admin/client → project_id
+    //  B) PUBLIC anonymous client via Magic Link → token (no auth needed)
+    let project = null;
+    let isProjectClient = false;
+    let isOwner = false;
 
-    const isOwner = project.created_by === me.email || me.role === 'admin';
-    const isProjectClient = me.role === 'client' && project.client_email === me.email;
-    if (!isOwner && !isProjectClient) {
-      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    if (token) {
+      const list = await base44.asServiceRole.entities.Project.filter({ client_access_token: token });
+      project = list[0];
+      if (!project) return Response.json({ error: 'Invalid token' }, { status: 404 });
+      isProjectClient = true; // token-based uploads always go to client subfolder
+    } else {
+      const me = await base44.auth.me();
+      if (!me) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      if (!project_id) return Response.json({ error: 'project_id required' }, { status: 400 });
+      const projects = await base44.asServiceRole.entities.Project.filter({ id: project_id });
+      project = projects[0];
+      if (!project) return Response.json({ error: 'Project not found' }, { status: 404 });
+      isOwner = project.created_by === me.email || me.role === 'admin';
+      isProjectClient = me.role === 'client' && project.client_email === me.email;
+      if (!isOwner && !isProjectClient) {
+        return Response.json({ error: 'Forbidden' }, { status: 403 });
+      }
     }
 
     if (!project.drive_folder_url) {

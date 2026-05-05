@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Camera, Download, Loader2, ShieldOff } from 'lucide-react';
+import { Camera, Download, Loader2, ShieldOff, ArrowRight, Upload as UploadIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import DriveFilesGrid from '../components/storage/DriveFilesGrid';
+import ClientUploadDropzone from '../components/storage/ClientUploadDropzone';
 import { toast } from 'sonner';
 
 // Public Magic Link gallery — accessible without auth via /g/:token
@@ -84,22 +85,34 @@ export default function MagicGallery() {
     <div className="min-h-screen bg-black text-white pb-32" dir="rtl">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-black/80 backdrop-blur-2xl border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 h-20 flex items-center justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="text-xl md:text-2xl font-bold text-[#FFD700] tracking-wide truncate">{project.client_name}</h1>
-            <p className="text-xs md:text-sm text-white/50 truncate">
-              {project.shooting_type}
-              {project.shooting_date && ` • ${new Date(project.shooting_date).toLocaleDateString('he-IL')}`}
-            </p>
+        <div className="max-w-7xl mx-auto px-4 md:px-8 h-20 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+            <button
+              onClick={() => window.history.length > 1 ? window.history.back() : window.close()}
+              className="shrink-0 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+              title="חזרה"
+              aria-label="חזרה"
+            >
+              <ArrowRight className="w-5 h-5" />
+            </button>
+            <div className="min-w-0">
+              <h1 className="text-xl md:text-2xl font-bold text-[#FFD700] tracking-wide truncate">{project.client_name}</h1>
+              <p className="text-xs md:text-sm text-white/50 truncate">
+                {project.shooting_type}
+                {project.shooting_date && ` • ${new Date(project.shooting_date).toLocaleDateString('he-IL')}`}
+              </p>
+            </div>
           </div>
           {files.length > 0 && (
             <Button
               onClick={() => handleDownloadAll(files)}
               disabled={downloading}
               className="gap-2 shrink-0"
+              size="lg"
             >
-              {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              {downloading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
               <span className="hidden sm:inline">הורד הכל ({files.length})</span>
+              <span className="sm:hidden">{files.length}</span>
             </Button>
           )}
         </div>
@@ -118,6 +131,18 @@ export default function MagicGallery() {
             <DriveFilesGrid files={files} onDownload={handleDownloadOne} onDownloadAll={handleDownloadAll} />
           </div>
         )}
+
+        {/* Client direct upload — files go straight to the photographer's Drive folder */}
+        <section className="mt-10 bg-white/5 border border-white/10 rounded-2xl p-5 md:p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <UploadIcon className="w-5 h-5 text-[#FFD700]" />
+            <h3 className="text-lg font-bold text-white">העלאת קבצים לצלם</h3>
+          </div>
+          <p className="text-sm text-white/60 mb-4 leading-relaxed">
+            צריך לשלוח לצלם תמונות השראה או קבצי הפניה? העלה אותם כאן — הם יישלחו ישירות לתיקיית הפרויקט שלו ב-Drive.
+          </p>
+          <ClientUploadDropzone token={token} />
+        </section>
 
         {/* Footer disclaimer per spec */}
         <p className="text-center text-white/40 text-[11px] mt-12 max-w-2xl mx-auto leading-relaxed">
