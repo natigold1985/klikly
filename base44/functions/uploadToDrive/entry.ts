@@ -42,10 +42,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Project has no Drive folder yet' }, { status: 400 });
     }
 
-    const folderMatch = project.drive_folder_url.match(/folders\/([a-zA-Z0-9_-]+)/);
+    // === STRICT ISOLATION GUARD ===
+    // Only allow uploads into a specific /folders/<id> — never the Drive root.
+    const folderMatch = project.drive_folder_url.match(/drive\.google\.com\/drive\/(?:u\/\d+\/)?folders\/([a-zA-Z0-9_-]+)/);
     const rootFolderId = folderMatch?.[1];
-    if (!rootFolderId) {
-      return Response.json({ error: 'Invalid drive_folder_url' }, { status: 400 });
+    if (!rootFolderId || rootFolderId.length < 10 || rootFolderId.toLowerCase() === 'my-drive' || rootFolderId.toLowerCase() === 'root') {
+      console.error('SECURITY: upload rejected — invalid/root folder URL', project.drive_folder_url);
+      return Response.json({ error: 'Invalid drive_folder_url — must be a specific folder, not Drive root' }, { status: 400 });
     }
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('googledrive');

@@ -37,11 +37,19 @@ Deno.serve(async (req) => {
       return Response.json({ project: serializeProject(project, isClient), files: [], folder_missing: true });
     }
 
-    // Extract folder ID from URL
-    const match = project.drive_folder_url.match(/folders\/([a-zA-Z0-9_-]+)/);
+    // === STRICT ISOLATION GUARD ===
+    // Only accept a /folders/<id> URL — NEVER the Drive root or a file URL.
+    // This guarantees we read files exclusively from the project's bound folder.
+    const match = project.drive_folder_url.match(/drive\.google\.com\/drive\/(?:u\/\d+\/)?folders\/([a-zA-Z0-9_-]+)/);
     const folderId = match?.[1];
-    if (!folderId) {
-      return Response.json({ project: serializeProject(project, isClient), files: [], folder_missing: true });
+    if (!folderId || folderId.length < 10 || folderId.toLowerCase() === 'my-drive' || folderId.toLowerCase() === 'root') {
+      console.error('SECURITY: invalid or root drive folder URL rejected', project.drive_folder_url);
+      return Response.json({
+        project: serializeProject(project, isClient),
+        files: [],
+        folder_missing: true,
+        error: 'invalid_folder_url',
+      });
     }
 
     // Use the photographer's Drive connection (project owner)

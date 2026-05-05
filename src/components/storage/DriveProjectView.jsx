@@ -3,11 +3,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, FolderOpen, RefreshCw, Cloud, Loader2 } from 'lucide-react';
+import { ExternalLink, FolderOpen, RefreshCw, Cloud, Loader2, Link2 } from 'lucide-react';
 import DriveFilesGrid from './DriveFilesGrid';
 import MagicLinkButton from './MagicLinkButton';
 import DriveUploader from './DriveUploader';
 import GoogleDriveIcon from './GoogleDriveIcon';
+import LinkDriveFolderDialog from './LinkDriveFolderDialog';
 import { toast } from 'sonner';
 
 // Photographer view: pulls files directly from a project's Google Drive folder.
@@ -72,7 +73,7 @@ export default function DriveProjectView({ project }) {
     }, 1500);
   };
 
-  // === No folder yet — show prominent Connect/Create button ===
+  // === No folder yet — show prominent Connect/Create button + Link existing ===
   if (!project.drive_folder_url) {
     return (
       <Card className="border-2 border-dashed border-amber-300 bg-amber-50/30">
@@ -81,19 +82,28 @@ export default function DriveProjectView({ project }) {
             <GoogleDriveIcon className="w-10 h-10" />
           </div>
           <h3 className="text-xl font-bold text-slate-900 mb-2">
-            צור תיקייה ב-Google Drive
+            חבר תיקייה ב-Google Drive
           </h3>
           <p className="text-sm text-slate-600 mb-6 max-w-md mx-auto leading-relaxed">
-            תיקייה אוטומטית עם תתי-תיקיות (גלמים, ערוכות, בחירת לקוח, מסמכים) — הקבצים נשארים אצלך ב-Drive, מבודדים מהרוט.
+            צור תיקייה אוטומטית עם תתי-תיקיות (גלמים, ערוכות, בחירת לקוח, מסמכים) או קשר תיקייה קיימת. הקבצים נשארים אצלך ב-Drive, מבודדים לפרויקט הזה בלבד.
           </p>
-          <Button onClick={handleCreateFolder} disabled={creating} className="gap-2">
-            {creating ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <GoogleDriveIcon className="w-5 h-5" />
-            )}
-            {creating ? 'יוצר...' : 'חבר ל-Google Drive'}
-          </Button>
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <Button onClick={handleCreateFolder} disabled={creating} className="gap-2">
+              {creating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <GoogleDriveIcon className="w-5 h-5" />
+              )}
+              {creating ? 'יוצר...' : 'צור תיקייה אוטומטית'}
+            </Button>
+            <LinkDriveFolderDialog
+              project={project}
+              onLinked={() => {
+                queryClient.invalidateQueries({ queryKey: ['driveProjects'] });
+                queryClient.invalidateQueries({ queryKey: ['driveFiles', project.id] });
+              }}
+            />
+          </div>
         </CardContent>
       </Card>
     );
@@ -101,6 +111,34 @@ export default function DriveProjectView({ project }) {
 
   return (
     <div className="space-y-5">
+      {/* === GIANT "Open in Drive" button — foolproof for non-technical users === */}
+      <a
+        href={project.drive_folder_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="group relative block w-full overflow-hidden rounded-2xl bg-gradient-to-br from-white via-blue-50/40 to-amber-50/30 border-2 border-slate-200 hover:border-blue-400 hover:shadow-xl transition-all duration-200 active:scale-[0.99]"
+      >
+        <div className="flex items-center gap-4 md:gap-6 p-5 md:p-7">
+          <div className="shrink-0 w-16 h-16 md:w-20 md:h-20 flex items-center justify-center bg-white rounded-2xl shadow-md group-hover:shadow-lg transition-shadow">
+            <GoogleDriveIcon className="w-10 h-10 md:w-12 md:h-12" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
+              תיקיית הפרויקט
+            </div>
+            <div className="text-xl md:text-2xl font-bold text-slate-900 mb-1">
+              פתח ב-Google Drive
+            </div>
+            <div className="text-sm text-slate-500">
+              לחץ כאן לפתיחת התיקייה הספציפית של הפרויקט הזה
+            </div>
+          </div>
+          <div className="shrink-0 hidden md:flex items-center gap-2 text-blue-600 group-hover:translate-x-[-4px] transition-transform">
+            <ExternalLink className="w-6 h-6" />
+          </div>
+        </div>
+      </a>
+
       {/* Toolbar */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2 flex-wrap">
@@ -108,16 +146,19 @@ export default function DriveProjectView({ project }) {
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
             רענון
           </Button>
-          <a
-            href={project.drive_folder_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium transition-colors"
-          >
-            <GoogleDriveIcon className="w-4 h-4" />
-            פתח ב-Drive
-            <ExternalLink className="w-3 h-3" />
-          </a>
+          <LinkDriveFolderDialog
+            project={project}
+            onLinked={() => {
+              queryClient.invalidateQueries({ queryKey: ['driveProjects'] });
+              queryClient.invalidateQueries({ queryKey: ['driveFiles', project.id] });
+            }}
+            trigger={
+              <Button variant="outline" size="sm" className="gap-2">
+                <Link2 className="w-4 h-4" />
+                שנה תיקייה
+              </Button>
+            }
+          />
           <MagicLinkButton project={project} />
         </div>
       </div>
