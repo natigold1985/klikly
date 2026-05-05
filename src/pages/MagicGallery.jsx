@@ -1,18 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Camera, Download, Loader2, ShieldOff, ArrowRight, Upload as UploadIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import DriveFilesGrid from '../components/storage/DriveFilesGrid';
-import ClientUploadDropzone from '../components/storage/ClientUploadDropzone';
-import { toast } from 'sonner';
+import { Download, Loader2, ShieldOff, CheckCircle2 } from 'lucide-react';
 
-// Public Magic Link gallery — accessible without auth via /g/:token
-// Pulls files directly from photographer's Google Drive (zero-cost).
+// Public Magic Link gallery — minimalist MVP per spec.
+// Shows: client name + project title + ONE massive "Download All Files" button.
+// On click: opens Drive folder in new tab + fires backend webhook (DB log + push + email).
 export default function MagicGallery() {
   const { token } = useParams();
-  const [downloading, setDownloading] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['magicGallery', token],
@@ -25,38 +23,27 @@ export default function MagicGallery() {
     retry: false,
   });
 
-  // Mark "page viewed" once
-  useEffect(() => {
-    if (data?.project?.id) {
-      base44.functions.invoke('trackDownload', { token, file_name: null, download_type: 'page_view' }).catch(() => {});
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data?.project?.id]);
+  const handleDownloadAll = async () => {
+    if (!data?.project?.drive_folder_url) return;
+    setBusy(true);
 
-  const handleDownloadOne = (file) => {
-    base44.functions.invoke('trackDownload', { token, file_name: file.name, download_type: 'single' }).catch(() => {});
-    window.open(file.download_url, '_blank');
-  };
+    // Action A: Open Drive folder in new tab
+    window.open(data.project.drive_folder_url, '_blank', 'noopener,noreferrer');
 
-  const handleDownloadAll = async (filesToDownload) => {
-    const list = filesToDownload || data?.files || [];
-    if (!list.length) return;
-    setDownloading(true);
-    // Trigger backend webhook — push notification + email + DB log
-    base44.functions.invoke('trackDownload', {
-      token,
-      file_name: 'ALL',
-      download_type: 'download_all',
-      file_count: list.length,
-    }).catch(() => {});
-    // Open each file in a new tab — browser will trigger download
-    list.forEach((f, i) => {
-      setTimeout(() => window.open(f.download_url, '_blank'), i * 250);
-    });
+    // Action B: Fire tracking webhook (logs DB + push + email to photographer)
+    base44.functions
+      .invoke('trackDownload', {
+        token,
+        file_name: 'ALL',
+        download_type: 'download_all',
+        file_count: data?.files?.length || 0,
+      })
+      .catch(() => {});
+
     setTimeout(() => {
-      setDownloading(false);
-      toast.success(`ההורדה החלה (${list.length} קבצים) — הצלם קיבל התראה`);
-    }, 1000);
+      setBusy(false);
+      setDownloaded(true);
+    }, 800);
   };
 
   if (isLoading) {
@@ -67,7 +54,7 @@ export default function MagicGallery() {
     );
   }
 
-  if (error || !data) {
+  if (error || !data?.project) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4" dir="rtl">
         <div className="bg-[#0a0a0a] border border-red-500/30 rounded-2xl p-8 text-center max-w-md">
@@ -79,76 +66,73 @@ export default function MagicGallery() {
     );
   }
 
-  const { project, files } = data;
+  const { project } = data;
+  const hasDrive = !!project.drive_folder_url;
 
   return (
-    <div className="min-h-screen bg-black text-white pb-32" dir="rtl">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-black/80 backdrop-blur-2xl border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 h-20 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
-            <button
-              onClick={() => window.history.length > 1 ? window.history.back() : window.close()}
-              className="shrink-0 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
-              title="חזרה"
-              aria-label="חזרה"
-            >
-              <ArrowRight className="w-5 h-5" />
-            </button>
-            <div className="min-w-0">
-              <h1 className="text-xl md:text-2xl font-bold text-[#FFD700] tracking-wide truncate">{project.client_name}</h1>
-              <p className="text-xs md:text-sm text-white/50 truncate">
-                {project.shooting_type}
-                {project.shooting_date && ` • ${new Date(project.shooting_date).toLocaleDateString('he-IL')}`}
-              </p>
-            </div>
-          </div>
-          {files.length > 0 && (
-            <Button
-              onClick={() => handleDownloadAll(files)}
-              disabled={downloading}
-              className="gap-2 shrink-0"
-              size="lg"
-            >
-              {downloading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
-              <span className="hidden sm:inline">הורד הכל ({files.length})</span>
-              <span className="sm:hidden">{files.length}</span>
-            </Button>
-          )}
-        </div>
-      </header>
+    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6" dir="rtl">
+      <div className="w-full max-w-xl text-center">
+        {/* Logo */}
+        <img
+          src="https://media.base44.com/images/public/699330cced2139a6e7aa06a9/1e11bfcc1_generated_image.png"
+          alt="KLIKLY"
+          className="h-12 md:h-14 mx-auto mb-12 object-contain drop-shadow-[0_0_15px_rgba(255,215,0,0.4)]"
+        />
 
-      {/* Gallery */}
-      <main className="max-w-7xl mx-auto px-4 md:px-8 py-6">
-        {data.folder_missing ? (
-          <div className="text-center py-32 opacity-70">
-            <Camera className="w-16 h-16 mx-auto mb-4 text-white/40" />
-            <h2 className="text-xl">הגלריה עוד בהכנה</h2>
-            <p className="text-white/50 text-sm mt-2">הצלם עדיין לא העלה קבצים. נסה שוב מאוחר יותר.</p>
-          </div>
+        {/* Client name + project title */}
+        <p className="text-sm uppercase tracking-[0.3em] text-white/40 mb-3">
+          הגלריה מוכנה
+        </p>
+        <h1 className="text-4xl md:text-5xl font-bold text-[#FFD700] mb-3 tracking-wide">
+          {project.client_name}
+        </h1>
+        {project.shooting_type && (
+          <p className="text-lg md:text-xl text-white/70 mb-12">
+            {project.shooting_type}
+            {project.shooting_date && (
+              <>
+                {' • '}
+                {new Date(project.shooting_date).toLocaleDateString('he-IL')}
+              </>
+            )}
+          </p>
+        )}
+
+        {/* MASSIVE single CTA */}
+        {hasDrive ? (
+          <button
+            onClick={handleDownloadAll}
+            disabled={busy}
+            className="group relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-[#FFD700] via-[#FFC700] to-[#D4AF37] hover:shadow-[0_0_50px_rgba(255,215,0,0.6)] active:scale-[0.98] transition-all duration-300 px-8 py-7 md:py-8 flex items-center justify-center gap-4 disabled:opacity-70"
+          >
+            {busy ? (
+              <Loader2 className="w-7 h-7 text-black animate-spin" />
+            ) : downloaded ? (
+              <CheckCircle2 className="w-7 h-7 text-black" />
+            ) : (
+              <Download className="w-7 h-7 text-black" />
+            )}
+            <span className="text-xl md:text-2xl font-bold text-black tracking-wide">
+              {downloaded ? 'נפתח ב-Google Drive' : 'הורד את כל הקבצים'}
+            </span>
+          </button>
         ) : (
-          <div className="bg-white text-slate-900 rounded-2xl p-4 md:p-6">
-            <DriveFilesGrid files={files} onDownload={handleDownloadOne} onDownloadAll={handleDownloadAll} />
+          <div className="bg-white/5 border border-white/10 rounded-2xl px-6 py-8 text-white/60 text-sm">
+            הגלריה עוד בהכנה. נסה שוב מאוחר יותר.
           </div>
         )}
 
-        {/* Client direct upload — files go straight to the photographer's Drive folder */}
-        <section className="mt-10 bg-white/5 border border-white/10 rounded-2xl p-5 md:p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <UploadIcon className="w-5 h-5 text-[#FFD700]" />
-            <h3 className="text-lg font-bold text-white">העלאת קבצים לצלם</h3>
-          </div>
-          <p className="text-sm text-white/60 mb-4 leading-relaxed">
-            צריך לשלוח לצלם תמונות השראה או קבצי הפניה? העלה אותם כאן — הם יישלחו ישירות לתיקיית הפרויקט שלו ב-Drive.
+        {downloaded && (
+          <p className="text-sm text-emerald-400 mt-6 animate-pulse">
+            ✓ הצלם קיבל התראה. הקבצים נפתחו ב-Google Drive.
           </p>
-          <ClientUploadDropzone token={token} />
-        </section>
+        )}
 
-        {/* Footer disclaimer per spec */}
-        <p className="text-center text-white/40 text-[11px] mt-12 max-w-2xl mx-auto leading-relaxed">
-          KLIKLY הינה ממשק תצוגה לאחסון ענן של צד שלישי. הבעלות והאבטחה של הנתונים מנוהלות על ידי חשבון ספק הענן של המשתמש.
+        {/* Footer */}
+        <p className="text-center text-white/30 text-[11px] mt-16 leading-relaxed">
+          KLIKLY · ממשק תצוגה לאחסון ענן · הבעלות והאבטחה מנוהלות על ידי הצלם
         </p>
-      </main>
+      </div>
     </div>
   );
 }
