@@ -4,10 +4,9 @@ import webpush from 'npm:web-push@3.6.7';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Allow service-role / anonymous calls (e.g. from public client uploads via magic link).
+    // When called by an authenticated user, we use their email for VAPID contact.
+    const user = await base44.auth.me().catch(() => null);
 
     const { target_email, title, body, url } = await req.json();
 
@@ -19,13 +18,16 @@ Deno.serve(async (req) => {
     }
 
     webpush.setVapidDetails(
-      'mailto:' + user.email,
+      'mailto:' + (user?.email || target_email || 'noreply@klikly.app'),
       vapidPublic,
       vapidPrivate
     );
 
     // Get subscriptions for target user (or current user if no target)
-    const emailToNotify = target_email || user.email;
+    const emailToNotify = target_email || user?.email;
+    if (!emailToNotify) {
+      return Response.json({ error: 'No target_email and no authenticated user' }, { status: 400 });
+    }
     const subscriptions = await base44.asServiceRole.entities.PushSubscription.filter({
       user_email: emailToNotify,
       is_active: true,

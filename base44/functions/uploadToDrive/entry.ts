@@ -123,8 +123,11 @@ Deno.serve(async (req) => {
 
     const driveFile = await uploadRes.json();
 
-    // Notify the OTHER party via push + email (bidirectional)
-    notifyUpload(base44, project, isProjectClient).catch((e) => console.error('notify failed', e));
+    // Notify the OTHER party via push + email + DB log (bidirectional, fire-and-forget)
+    notifyUpload(base44, project, isProjectClient, {
+      name: driveFile.name,
+      size: driveFile.size ? parseInt(driveFile.size) : 0,
+    }).catch((e) => console.error('notify failed', e));
 
     return Response.json({
       success: true,
@@ -179,41 +182,88 @@ async function findOrCreateSubfolder(accessToken, rootFolderId, key) {
   return created.id;
 }
 
-async function notifyUpload(base44, project, uploaderIsClient) {
-  // Push to the OTHER side
+async function notifyUpload(base44, project, uploaderIsClient, fileMeta = {}) {
   const targetEmail = uploaderIsClient ? project.created_by : project.client_email;
-  if (!targetEmail) return;
 
-  const subs = await base44.asServiceRole.entities.PushSubscription
-    .filter({ user_email: targetEmail, is_active: true })
-    .catch(() => []);
-
-  for (const sub of subs || []) {
-    try {
-      await base44.asServiceRole.functions.invoke('sendPushNotification', {
-        endpoint: sub.endpoint,
-        keys_p256dh: sub.keys_p256dh,
-        keys_auth: sub.keys_auth,
-        title: uploaderIsClient ? `📷 ${project.client_name} העלה קבצים` : '📁 קבצים חדשים זמינים',
-        body: uploaderIsClient
-          ? `הלקוח העלה קבצים חדשים לפרויקט ${project.client_name}`
-          : `הצלם העלה קבצים חדשים לפרויקט שלך`,
-      });
-    } catch (e) {
-      console.error('push fail', e);
-    }
+  // === DB LOG (always, even if notify targets are missing) ===
+  try {
+    await base44.asServiceRole.entities.SystemLog.create({
+      action: uploaderIsClient ? 'client_uploaded_files' : 'photographer_uploaded_files',
+      details: `${uploaderIsClient ? 'Client' : 'Photographer'} uploaded "${fileMeta.name || 'file'}" to project ${project.client_name}`,
+      status: 'success',
+      related_entity_type: 'Project',
+      related_entity_id: project.id,
+      owner_id: project.created_by,
+    });
+  } catch (e) {
+    console.error('SystemLog create failed', e);
   }
 
-  // Email
   try {
+    await base44.asServiceRole.entities.Activity.create({
+      related_to_type: 'project',
+      related_to_id: project.id,
+      activity_type: 'photos_uploaded',
+      title: uploaderIsClient
+        ? `הלקוח ${project.client_name} העלה קובץ`
+        : `קובץ חדש הועלה לפרויקט`,
+      description: fileMeta.name ? `קובץ: ${fileMeta.name}` : '',
+      metadata: { uploaded_by: uploaderIsClient ? 'client' : 'photographer', file_name: fileMeta.name, file_size: fileMeta.size },
+    });
+  } catch (e) {
+    console.error('Activity create failed', e);
+  }
+
+  if (!targetEmail) return;
+
+  // Build deep-link to the project page (Drive folder for photographer)
+  const projectUrl = uploaderIsClient
+    ? (project.drive_folder_url || '')
+    : '';
+
+  // === PUSH (delegated to sendPushNotification, which handles VAPID + auto-cleanup) ===
+  try {
+    await base44.asServiceRole.functions.invoke('sendPushNotification', {
+      target_email: targetEmail,
+      title: uploaderIsClient ? `📷 ${project.client_name} העלה קובץ` : '📁 קבצים חדשים זמינים',
+      body: uploaderIsClient
+        ? `${fileMeta.name || 'קובץ חדש'} נוסף לפרויקט`
+        : `הצלם העלה קבצים חדשים לפרויקט שלך`,
+      url: projectUrl || '/',
+    });
+  } catch (e) {
+    console.error('push fail', e);
+  }
+
+  // === EMAIL ===
+  try {
+    const subject = uploaderIsClient
+      ? `📷 ${project.client_name} העלה קבצים חדשים`
+      : `קבצים חדשים זמינים לפרויקט שלך`;
+
+    const driveLink = projectUrl
+      ? `<p style="margin:24px 0;text-align:center;"><a href="${projectUrl}" style="background:#FFD700;color:#000;padding:14px 28px;text-decoration:none;border-radius:10px;font-weight:bold;display:inline-block;">פתח את התיקייה ב-Google Drive</a></p>`
+      : '';
+
+    const body = uploaderIsClient
+      ? `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;">
+          <h2 style="color:#111;">📷 ${project.client_name} העלה קבצים</h2>
+          <p style="color:#444;font-size:15px;line-height:1.6;">
+            הלקוח <strong>${project.client_name}</strong> זה עתה העלה קובץ חדש לפרויקט.<br/>
+            ${fileMeta.name ? `<span style="color:#666;font-size:13px;">קובץ: ${fileMeta.name}</span>` : ''}
+          </p>
+          ${driveLink}
+          <p style="color:#999;font-size:12px;margin-top:32px;">KLIKLY · התראה אוטומטית</p>
+        </div>`
+      : `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:560px;padding:24px;">
+          <h2>קבצים חדשים זמינים</h2>
+          <p>הצלם העלה קבצים חדשים לפרויקט שלך. היכנס ל-Klikly לצפייה והורדה.</p>
+        </div>`;
+
     await base44.asServiceRole.integrations.Core.SendEmail({
       to: targetEmail,
-      subject: uploaderIsClient
-        ? `קבצים חדשים מ-${project.client_name}`
-        : `קבצים חדשים זמינים לפרויקט שלך`,
-      body: uploaderIsClient
-        ? `הלקוח ${project.client_name} העלה קבצים חדשים לפרויקט. היכנס ל-Klikly לצפייה.`
-        : `הצלם העלה קבצים חדשים לפרויקט שלך. היכנס ל-Klikly לצפייה והורדה.`,
+      subject,
+      body,
     });
   } catch (e) {
     console.error('email fail', e);
