@@ -71,19 +71,19 @@ export default function Layout({ children, currentPageName }) {
         { name: 'הגדרות', icon: SettingsIcon, page: 'Settings' },
       ];
 
-  // Mobile Bottom Navigation Items
+  // Mobile Bottom Navigation Items — order: Leads → Storage → Tasks → Projects
   const mobileNavItems = isClient
     ? [
         { name: 'לידים', icon: Users, page: 'Leads' },
-        { name: 'פרויקטים', icon: Briefcase, page: 'Projects' },
         { name: 'גלריה', icon: Folder, page: 'FileStorage' },
         { name: 'משימות', icon: CheckCircle2, page: 'Tasks' },
+        { name: 'פרויקטים', icon: Briefcase, page: 'Projects' },
       ]
     : [
         { name: 'לידים', icon: Users, page: 'Leads' },
-        { name: 'פרויקטים', icon: Briefcase, page: 'Projects' },
         { name: 'אחסון', icon: Folder, page: 'FileStorage' },
         { name: 'משימות', icon: CheckCircle2, page: 'Tasks' },
+        { name: 'פרויקטים', icon: Briefcase, page: 'Projects' },
       ];
 
   // Pages that should render without any nav
