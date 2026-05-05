@@ -26,6 +26,7 @@ import TermsOfService from './pages/TermsOfService';
 import AccessibilityPage from './pages/Accessibility';
 import Newsletter from './pages/Newsletter';
 import MagicGallery from './pages/MagicGallery';
+import SystemUpdates from './pages/SystemUpdates';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -157,6 +158,11 @@ const AuthenticatedApp = () => {
       <Route path="/Newsletter" element={
         <LayoutWrapper currentPageName="Newsletter">
           <Newsletter />
+        </LayoutWrapper>
+      } />
+      <Route path="/SystemUpdates" element={
+        <LayoutWrapper currentPageName="SystemUpdates">
+          <SystemUpdates />
         </LayoutWrapper>
       } />
       {Object.entries(Pages).map(([path, Page]) => (

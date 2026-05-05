@@ -21,7 +21,8 @@ import {
   BarChart3,
   X,
   LogOut,
-  Mail
+  Mail,
+  Megaphone
 } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
@@ -68,6 +69,7 @@ export default function Layout({ children, currentPageName }) {
           { name: 'משתמשים', icon: Shield, page: 'AdminUsers' },
           { name: 'מטריצת הרשאות', icon: Shield, page: 'RBACMatrix' },
         ] : []),
+        { name: 'עדכוני מערכת', icon: Megaphone, page: 'SystemUpdates' },
         { name: 'הגדרות', icon: SettingsIcon, page: 'Settings' },
       ];
 
