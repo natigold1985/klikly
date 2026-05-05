@@ -14,10 +14,10 @@ import { toast } from 'sonner';
 //  - onFileUploaded(file) — called optimistically once Drive returns the file metadata
 export default function DriveUploader({ projectId, subfolder = 'edited', onFileUploaded }) {
   const [items, setItems] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
 
-  const handleSelect = (e) => {
-    const picked = Array.from(e.target.files || []);
+  const startUploads = (picked) => {
     if (!picked.length) return;
     const newItems = picked.map((file) => ({
       id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
@@ -27,9 +27,35 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
       error: null,
     }));
     setItems((prev) => [...newItems, ...prev]);
-    // auto-start
     newItems.forEach(uploadOne);
+  };
+
+  const handleSelect = (e) => {
+    const picked = Array.from(e.target.files || []);
+    startUploads(picked);
     e.target.value = '';
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const dropped = Array.from(e.dataTransfer?.files || []).filter(
+      (f) => f.type.startsWith('image/') || f.type.startsWith('video/')
+    );
+    startUploads(dropped);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragging) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
   };
 
   const setItem = (id, patch) =>
@@ -93,11 +119,21 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
     <div className="space-y-3">
       <div
         onClick={() => fileInputRef.current?.click()}
-        className="border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center cursor-pointer hover:border-[#FFD700] hover:bg-amber-50/30 transition-all"
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragEnter={handleDragOver}
+        onDragLeave={handleDragLeave}
+        className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
+          isDragging
+            ? 'border-[#FFD700] bg-amber-50 scale-[1.01] shadow-lg'
+            : 'border-slate-300 hover:border-[#FFD700] hover:bg-amber-50/30'
+        }`}
       >
-        <Upload className="w-10 h-10 mx-auto text-slate-400 mb-2" />
-        <p className="text-slate-700 font-medium">העלה קבצים ל-Google Drive</p>
-        <p className="text-xs text-slate-500 mt-1">תמונות ווידאו · ייכנסו ישירות לתיקיית הפרויקט שלך</p>
+        <Upload className={`w-10 h-10 mx-auto mb-2 transition-colors ${isDragging ? 'text-[#b38f2d]' : 'text-slate-400'}`} />
+        <p className="text-slate-700 font-medium">
+          {isDragging ? 'שחרר כאן כדי להעלות' : 'גרור קבצים לכאן או לחץ לבחירה'}
+        </p>
+        <p className="text-xs text-slate-500 mt-1">תמונות ווידאו · ייכנסו ישירות לתיקיית הפרויקט שלך ב-Drive</p>
         <input
           ref={fileInputRef}
           type="file"

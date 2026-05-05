@@ -159,15 +159,17 @@ export default function DriveProjectView({ project }) {
         }}
       />
 
-      {/* Toolbar */}
+      {/* MASSIVE Send Gallery CTA */}
+      <div className="flex items-center justify-center md:justify-start">
+        <MagicLinkButton project={project} />
+      </div>
+
+      {/* Secondary toolbar */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-2">
-            <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-            רענון
-          </Button>
-          <MagicLinkButton project={project} />
-        </div>
+        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-2">
+          <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+          רענון
+        </Button>
       </div>
 
       {/* Upload zone */}
