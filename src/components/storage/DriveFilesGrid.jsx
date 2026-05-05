@@ -1,14 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Play, FileImage, ExternalLink, Film, Image as ImageIcon, Video as VideoIcon } from 'lucide-react';
+import { Download, Play, FileImage, ExternalLink, Film, Image as ImageIcon, Video as VideoIcon, DownloadCloud, Loader2 } from 'lucide-react';
 
 // Pixieset-style premium gallery grid for Drive files.
 // - Masonry layout (CSS columns) for elegant photo flow
 // - Smooth fade transitions between filter tabs
 // - Real Drive video thumbnails (via thumbnailLink) with subtle play overlay
 // - Click does NOT auto-play; videos open in a new tab on download/view action only
-export default function DriveFilesGrid({ files, onDownload, loading }) {
+export default function DriveFilesGrid({ files, onDownload, onDownloadAll, loading }) {
   const [filter, setFilter] = useState('all');
+  const [bulkDownloading, setBulkDownloading] = useState(false);
 
   const stats = useMemo(() => ({
     total: files?.length || 0,
@@ -43,7 +44,7 @@ export default function DriveFilesGrid({ files, onDownload, loading }) {
 
   return (
     <>
-      {/* Header / Filters */}
+      {/* Header / Filters / Download All */}
       <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
         <div className="text-sm text-slate-600">
           <span className="font-bold text-slate-900 text-lg">{stats.total}</span>
@@ -54,19 +55,38 @@ export default function DriveFilesGrid({ files, onDownload, loading }) {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1">
-          <FilterTab active={filter === 'all'} onClick={() => setFilter('all')}>
-            הכל
-          </FilterTab>
-          {stats.images > 0 && (
-            <FilterTab active={filter === 'photos'} onClick={() => setFilter('photos')}>
-              <ImageIcon className="w-3.5 h-3.5" /> תמונות
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1">
+            <FilterTab active={filter === 'all'} onClick={() => setFilter('all')}>
+              הכל
             </FilterTab>
-          )}
-          {stats.videos > 0 && (
-            <FilterTab active={filter === 'videos'} onClick={() => setFilter('videos')}>
-              <Film className="w-3.5 h-3.5" /> סרטונים
-            </FilterTab>
+            {stats.images > 0 && (
+              <FilterTab active={filter === 'photos'} onClick={() => setFilter('photos')}>
+                <ImageIcon className="w-3.5 h-3.5" /> תמונות
+              </FilterTab>
+            )}
+            {stats.videos > 0 && (
+              <FilterTab active={filter === 'videos'} onClick={() => setFilter('videos')}>
+                <Film className="w-3.5 h-3.5" /> סרטונים
+              </FilterTab>
+            )}
+          </div>
+          {onDownloadAll && filtered.length > 0 && (
+            <button
+              onClick={async () => {
+                setBulkDownloading(true);
+                try {
+                  await onDownloadAll(filtered, filter);
+                } finally {
+                  setTimeout(() => setBulkDownloading(false), 1500);
+                }
+              }}
+              disabled={bulkDownloading}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#FFD700] to-[#E0B82A] text-black font-bold text-sm shadow-md hover:shadow-lg hover:brightness-105 active:scale-95 transition-all disabled:opacity-60"
+            >
+              {bulkDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <DownloadCloud className="w-4 h-4" />}
+              הורד הכל ({filtered.length})
+            </button>
           )}
         </div>
       </div>

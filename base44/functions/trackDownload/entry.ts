@@ -9,7 +9,7 @@ import webpush from 'npm:web-push@3.6.7';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { token, file_name, download_type } = await req.json().catch(() => ({}));
+    const { token, file_name, download_type, file_count } = await req.json().catch(() => ({}));
 
     if (!token) return Response.json({ error: 'token required' }, { status: 400 });
 
@@ -17,15 +17,26 @@ Deno.serve(async (req) => {
     const project = list[0];
     if (!project) return Response.json({ error: 'Invalid token' }, { status: 404 });
 
+    const isDownloadAll = download_type === 'download_all';
+    const countText = file_count ? ` (${file_count} קבצים)` : '';
+
     // Log
     await base44.asServiceRole.entities.SystemLog.create({
       action: 'client_download',
-      details: `[${download_type || 'single'}] ${project.client_name} downloaded ${file_name || 'files'}`,
+      details: `[${download_type || 'single'}] ${project.client_name} downloaded ${file_name || 'files'}${countText}`,
       status: 'success',
       related_entity_type: 'Project',
       related_entity_id: project.id,
       owner_id: project.created_by,
     }).catch(() => {});
+
+    // Persist last bulk-download timestamp + count on project (for tracking)
+    if (isDownloadAll) {
+      await base44.asServiceRole.entities.Project.update(project.id, {
+        last_bulk_download_at: new Date().toISOString(),
+        last_bulk_download_count: file_count || 0,
+      }).catch(() => {});
+    }
 
     // Start 90-day retention on first download
     const isFirst = !project.first_download_at;
@@ -47,9 +58,13 @@ Deno.serve(async (req) => {
             user_email: photographerEmail,
             is_active: true,
           });
+          const title = isDownloadAll ? '🎉 הלקוח הוריד את כל הגלריה' : '⬇️ הלקוח הוריד קבצים';
+          const body = isDownloadAll
+            ? `${project.client_name} הוריד את הגלריה המלאה${countText}`
+            : `${project.client_name}${file_name ? ` הוריד "${file_name}"` : ' הוריד קבצים'}${isFirst ? ' (הורדה ראשונה!)' : ''}`;
           const payload = JSON.stringify({
-            title: '⬇️ הלקוח הוריד קבצים',
-            body: `${project.client_name}${file_name ? ` הוריד "${file_name}"` : ' הוריד קבצים'}${isFirst ? ' (הורדה ראשונה!)' : ''}`,
+            title,
+            body,
             icon: '/icon-192.png',
             url: '/FileStorage',
           });
@@ -68,10 +83,14 @@ Deno.serve(async (req) => {
         }
 
         // Email photographer too
+        const emailSubject = isDownloadAll ? '🎉 הלקוח הוריד את כל הגלריה' : '⬇️ הלקוח הוריד קבצים';
+        const emailBody = isDownloadAll
+          ? `${project.client_name} הוריד את הגלריה המלאה${countText}.\n\nתאריך: ${new Date().toLocaleString('he-IL')}`
+          : `${project.client_name} הוריד${file_name ? ` "${file_name}"` : ' קבצים'}${isFirst ? ' (הורדה ראשונה!)' : ''}.\n\nתאריך: ${new Date().toLocaleString('he-IL')}`;
         await base44.asServiceRole.integrations.Core.SendEmail({
           to: photographerEmail,
-          subject: '⬇️ הלקוח הוריד קבצים',
-          body: `${project.client_name} הוריד${file_name ? ` "${file_name}"` : ' קבצים'}${isFirst ? ' (הורדה ראשונה!)' : ''}.\n\nתאריך: ${new Date().toLocaleString('he-IL')}`,
+          subject: emailSubject,
+          body: emailBody,
         }).catch(() => {});
       } catch (e) {
         console.error('photographer notify failed:', e.message);

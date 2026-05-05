@@ -37,17 +37,24 @@ export default function MagicGallery() {
     window.open(file.download_url, '_blank');
   };
 
-  const handleDownloadAll = async () => {
-    if (!data?.files?.length) return;
+  const handleDownloadAll = async (filesToDownload) => {
+    const list = filesToDownload || data?.files || [];
+    if (!list.length) return;
     setDownloading(true);
-    base44.functions.invoke('trackDownload', { token, file_name: 'ALL', download_type: 'download_all' }).catch(() => {});
+    // Trigger backend webhook — push notification + email + DB log
+    base44.functions.invoke('trackDownload', {
+      token,
+      file_name: 'ALL',
+      download_type: 'download_all',
+      file_count: list.length,
+    }).catch(() => {});
     // Open each file in a new tab — browser will trigger download
-    data.files.forEach((f, i) => {
+    list.forEach((f, i) => {
       setTimeout(() => window.open(f.download_url, '_blank'), i * 250);
     });
     setTimeout(() => {
       setDownloading(false);
-      toast.success('ההורדה החלה — בדוק את חלון הדפדפן');
+      toast.success(`ההורדה החלה (${list.length} קבצים) — הצלם קיבל התראה`);
     }, 1000);
   };
 
@@ -87,12 +94,12 @@ export default function MagicGallery() {
           </div>
           {files.length > 0 && (
             <Button
-              onClick={handleDownloadAll}
+              onClick={() => handleDownloadAll(files)}
               disabled={downloading}
               className="gap-2 shrink-0"
             >
               {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-              <span className="hidden sm:inline">הורד הכל</span>
+              <span className="hidden sm:inline">הורד הכל ({files.length})</span>
             </Button>
           )}
         </div>
@@ -108,7 +115,7 @@ export default function MagicGallery() {
           </div>
         ) : (
           <div className="bg-white text-slate-900 rounded-2xl p-4 md:p-6">
-            <DriveFilesGrid files={files} onDownload={handleDownloadOne} />
+            <DriveFilesGrid files={files} onDownload={handleDownloadOne} onDownloadAll={handleDownloadAll} />
           </div>
         )}
 
