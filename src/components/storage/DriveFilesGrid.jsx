@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Play, FileImage, ExternalLink, Film, Image as ImageIcon, Video as VideoIcon, DownloadCloud, Loader2 } from 'lucide-react';
+import DriveLightbox from './DriveLightbox';
 
 // Pixieset-style premium gallery grid for Drive files.
 // - Masonry layout (CSS columns) for elegant photo flow
@@ -10,6 +11,7 @@ import { Download, Play, FileImage, ExternalLink, Film, Image as ImageIcon, Vide
 export default function DriveFilesGrid({ files, onDownload, onDownloadAll, loading }) {
   const [filter, setFilter] = useState('all');
   const [bulkDownloading, setBulkDownloading] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
 
   const stats = useMemo(() => ({
     total: files?.length || 0,
@@ -109,16 +111,30 @@ export default function DriveFilesGrid({ files, onDownload, onDownloadAll, loadi
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.18, ease: 'easeOut' }}
         >
-          {filtered.map((f) => (
-            <FileTile key={f.id} file={f} onDownload={onDownload} />
+          {filtered.map((f, i) => (
+            <FileTile
+              key={f.id}
+              file={f}
+              onDownload={onDownload}
+              onOpen={() => setLightboxIndex(i)}
+            />
           ))}
         </motion.div>
       </AnimatePresence>
+
+      {lightboxIndex !== null && (
+        <DriveLightbox
+          files={filtered}
+          startIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onDownload={onDownload}
+        />
+      )}
     </>
   );
 }
 
-function FileTile({ file, onDownload }) {
+function FileTile({ file, onDownload, onOpen }) {
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
 
@@ -134,7 +150,10 @@ function FileTile({ file, onDownload }) {
   };
 
   return (
-    <div className="drive-item mb-3 group relative rounded-2xl overflow-hidden bg-slate-100 shadow-sm hover:shadow-2xl transition-all duration-300">
+    <div
+      onClick={onOpen}
+      className="drive-item mb-3 group relative rounded-2xl overflow-hidden bg-slate-100 shadow-sm hover:shadow-2xl transition-all duration-300 cursor-zoom-in"
+    >
       {showThumb ? (
         <>
           {!imgLoaded && (
