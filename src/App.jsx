@@ -25,6 +25,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import AccessibilityPage from './pages/Accessibility';
 import Newsletter from './pages/Newsletter';
+import MagicGallery from './pages/MagicGallery';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -184,6 +185,7 @@ function App() {
           <NavigationTracker />
           <Routes>
             <Route path="/gallery/:id" element={<ClientGallery />} />
+            <Route path="/g/:token" element={<MagicGallery />} />
             <Route path="/quote/view" element={<QuoteView />} />
             <Route path="/contact" element={<PublicLeadForm />} />
             <Route path="*" element={<AuthenticatedApp />} />
