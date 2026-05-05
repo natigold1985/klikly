@@ -204,24 +204,43 @@ export default function Analytics() {
         <Card className="border rounded-2xl">
           <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><BarChart3 className="w-5 h-5 text-purple-500" />התפלגות מקורות לידים</CardTitle></CardHeader>
           <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={sourceData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius="70%"
-                    dataKey="value"
-                    label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
-                    labelLine={false}
-                  >
-                    {sourceData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip formatter={(value, name) => [`${value} לידים`, name]} />
-                  <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: 12 }} />
-                </PieChart>
-              </ResponsiveContainer>
+            <div className="flex flex-col lg:flex-row gap-4 items-center">
+              <div className="h-56 w-full lg:w-1/2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={sourceData}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius="85%"
+                      dataKey="value"
+                      label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                      labelLine={false}
+                    >
+                      {sourceData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip formatter={(value, name) => [`${value} לידים`, name]} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="w-full lg:w-1/2 space-y-2 max-h-56 overflow-y-auto pr-1">
+                {sourceData.map((src, i) => {
+                  const total = sourceData.reduce((s, x) => s + x.value, 0);
+                  const pct = total > 0 ? Math.round((src.value / total) * 100) : 0;
+                  return (
+                    <div key={i} className="flex items-center gap-2 text-xs">
+                      <span
+                        className="w-3 h-3 rounded-sm shrink-0"
+                        style={{ backgroundColor: COLORS[i % COLORS.length] }}
+                      />
+                      <span className="flex-1 min-w-0 truncate text-slate-700" title={src.name}>
+                        {src.name}
+                      </span>
+                      <span className="text-slate-500 shrink-0 font-medium">{pct}% · {src.value}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </CardContent>
         </Card>

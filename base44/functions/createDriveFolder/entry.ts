@@ -39,8 +39,12 @@ Deno.serve(async (req) => {
       'Content-Type': 'application/json'
     };
 
-    // Create main project folder
-    const folderName = `${project.client_name} - ${project.shooting_type || 'צילום'} - ${project.shooting_date || 'TBD'}`;
+    // Create main project folder — sanitize to prevent URL/garbage in folder name
+    const cleanName = (s) => String(s || '').replace(/https?:\/\/\S+/gi, '').replace(/[\\/:*?"<>|]/g, '').trim();
+    const safeClient = cleanName(project.client_name) || 'לקוח';
+    const safeType = cleanName(project.shooting_type) || 'צילום';
+    const safeDate = cleanName(project.shooting_date) || new Date().toISOString().slice(0, 10);
+    const folderName = `${safeClient} - ${safeType} - ${safeDate}`;
     
     const folderRes = await fetch('https://www.googleapis.com/drive/v3/files', {
       method: 'POST',
