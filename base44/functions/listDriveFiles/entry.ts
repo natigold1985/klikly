@@ -67,11 +67,12 @@ Deno.serve(async (req) => {
         name: f.name,
         mime_type: f.mimeType,
         size: f.size ? parseInt(f.size) : 0,
-        thumbnail_url: f.thumbnailLink ? f.thumbnailLink.replace(/=s\d+/, '=s800') : null,
+        thumbnail_url: f.thumbnailLink ? f.thumbnailLink.replace(/=s\d+/, '=s1600') : null,
         view_url: f.webViewLink,
         download_url: `https://drive.google.com/uc?export=download&id=${f.id}`,
         is_video: (f.mimeType || '').startsWith('video/'),
         is_image: (f.mimeType || '').startsWith('image/'),
+        video_duration_ms: f.videoMediaMetadata?.durationMillis ? parseInt(f.videoMediaMetadata.durationMillis) : null,
         modified_time: f.modifiedTime,
       }));
 
@@ -101,7 +102,7 @@ function serializeProject(p, isClient) {
 }
 
 async function fetchFolderFiles(accessToken, folderId, out, parentName = '') {
-  const url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+trashed=false&fields=files(id,name,mimeType,size,thumbnailLink,webViewLink,modifiedTime)&pageSize=200`;
+  const url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+trashed=false&fields=files(id,name,mimeType,size,thumbnailLink,hasThumbnail,webViewLink,webContentLink,videoMediaMetadata,modifiedTime)&pageSize=200`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!res.ok) {
     console.error('Drive list failed', await res.text());
