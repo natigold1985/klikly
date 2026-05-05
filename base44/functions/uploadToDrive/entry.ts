@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
     const driveFile = await uploadRes.json();
 
     // Notify the OTHER party via push + email (bidirectional)
-    notifyUpload(base44, project, me, isProjectClient).catch((e) => console.error('notify failed', e));
+    notifyUpload(base44, project, isProjectClient).catch((e) => console.error('notify failed', e));
 
     return Response.json({
       success: true,
@@ -179,7 +179,7 @@ async function findOrCreateSubfolder(accessToken, rootFolderId, key) {
   return created.id;
 }
 
-async function notifyUpload(base44, project, uploader, uploaderIsClient) {
+async function notifyUpload(base44, project, uploaderIsClient) {
   // Push to the OTHER side
   const targetEmail = uploaderIsClient ? project.created_by : project.client_email;
   if (!targetEmail) return;
