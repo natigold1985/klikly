@@ -15,11 +15,35 @@ export default function ClientUploadDropzone({ token, onUploaded }) {
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
 
   const uploadOne = async (item) => {
+    let progressInterval = null;
     try {
-      setItem(item.id, { status: 'uploading', progress: 15, error: null });
+      setItem(item.id, { status: 'uploading', progress: 5, error: null });
+
+      // Smooth fake-progress (creeps toward 45%) while uploading to temp storage
+      progressInterval = setInterval(() => {
+        setItems((prev) =>
+          prev.map((it) =>
+            it.id === item.id && it.status === 'uploading' && it.progress < 45
+              ? { ...it, progress: Math.min(45, it.progress + 2) }
+              : it
+          )
+        );
+      }, 200);
 
       const { file_url } = await base44.integrations.Core.UploadFile({ file: item.file });
-      setItem(item.id, { progress: 60 });
+      clearInterval(progressInterval);
+      setItem(item.id, { progress: 55 });
+
+      // Creep toward 90% during Drive upload
+      progressInterval = setInterval(() => {
+        setItems((prev) =>
+          prev.map((it) =>
+            it.id === item.id && it.status === 'uploading' && it.progress < 90
+              ? { ...it, progress: Math.min(90, it.progress + 3) }
+              : it
+          )
+        );
+      }, 250);
 
       const res = await base44.functions.invoke('uploadToDrive', {
         token,
@@ -27,6 +51,8 @@ export default function ClientUploadDropzone({ token, onUploaded }) {
         file_name: item.file.name,
         mime_type: item.file.type || 'application/octet-stream',
       });
+      clearInterval(progressInterval);
+
       if (res.status !== 200 || !res.data?.success) {
         throw new Error(res.data?.error || `Status ${res.status}`);
       }
@@ -35,6 +61,7 @@ export default function ClientUploadDropzone({ token, onUploaded }) {
       onUploaded?.(res.data.file);
       setTimeout(() => setItems((p) => p.filter((it) => it.id !== item.id)), 1500);
     } catch (err) {
+      if (progressInterval) clearInterval(progressInterval);
       console.error('Client upload failed:', err);
       setItem(item.id, { status: 'error', error: err.message || 'העלאה נכשלה' });
       toast.error(`נכשל: ${item.file.name}`);

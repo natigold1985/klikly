@@ -62,12 +62,36 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
 
   const uploadOne = async (item) => {
+    let progressInterval = null;
     try {
-      setItem(item.id, { status: 'uploading', progress: 15, error: null });
+      setItem(item.id, { status: 'uploading', progress: 5, error: null });
+
+      // Smooth fake-progress while step 1 runs (creeps toward 45%)
+      progressInterval = setInterval(() => {
+        setItems((prev) =>
+          prev.map((it) =>
+            it.id === item.id && it.status === 'uploading' && it.progress < 45
+              ? { ...it, progress: Math.min(45, it.progress + 2) }
+              : it
+          )
+        );
+      }, 200);
 
       // Step 1: upload to temp storage
       const { file_url } = await base44.integrations.Core.UploadFile({ file: item.file });
-      setItem(item.id, { progress: 60 });
+      clearInterval(progressInterval);
+      setItem(item.id, { progress: 55 });
+
+      // Smooth creep toward 90% while step 2 runs
+      progressInterval = setInterval(() => {
+        setItems((prev) =>
+          prev.map((it) =>
+            it.id === item.id && it.status === 'uploading' && it.progress < 90
+              ? { ...it, progress: Math.min(90, it.progress + 3) }
+              : it
+          )
+        );
+      }, 250);
 
       // Step 2: server pushes the file to the project's Drive subfolder
       const res = await base44.functions.invoke('uploadToDrive', {
@@ -78,12 +102,14 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
         target_subfolder: subfolder,
       });
 
+      clearInterval(progressInterval);
+
       if (res.status !== 200 || !res.data?.success) {
         throw new Error(res.data?.error || `Status ${res.status}`);
       }
 
       setItem(item.id, { status: 'success', progress: 100 });
-      // Optimistic UI: notify parent immediately
+      // Optimistic UI: notify parent immediately so the file appears in the grid
       onFileUploaded?.(res.data.file);
 
       // remove successful items after a short delay so the user sees the ✓
@@ -91,6 +117,7 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
         setItems((prev) => prev.filter((it) => it.id !== item.id));
       }, 1500);
     } catch (err) {
+      if (progressInterval) clearInterval(progressInterval);
       console.error('Upload failed:', err);
       setItem(item.id, { status: 'error', error: err.message || 'העלאה נכשלה' });
       toast.error(`נכשל: ${item.file.name}`);
