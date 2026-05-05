@@ -9,6 +9,7 @@ import MagicLinkButton from './MagicLinkButton';
 import DriveUploader from './DriveUploader';
 import GoogleDriveIcon from './GoogleDriveIcon';
 import LinkDriveFolderDialog from './LinkDriveFolderDialog';
+import DriveFolderUrlEditor from './DriveFolderUrlEditor';
 import { toast } from 'sonner';
 
 // Photographer view: pulls files directly from a project's Google Drive folder.
@@ -139,6 +140,15 @@ export default function DriveProjectView({ project }) {
         </div>
       </a>
 
+      {/* Inline Drive Folder URL editor — always visible, foolproof binding */}
+      <DriveFolderUrlEditor
+        project={project}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: ['driveProjects'] });
+          queryClient.invalidateQueries({ queryKey: ['driveFiles', project.id] });
+        }}
+      />
+
       {/* Toolbar */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2 flex-wrap">
@@ -146,19 +156,6 @@ export default function DriveProjectView({ project }) {
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
             רענון
           </Button>
-          <LinkDriveFolderDialog
-            project={project}
-            onLinked={() => {
-              queryClient.invalidateQueries({ queryKey: ['driveProjects'] });
-              queryClient.invalidateQueries({ queryKey: ['driveFiles', project.id] });
-            }}
-            trigger={
-              <Button variant="outline" size="sm" className="gap-2">
-                <Link2 className="w-4 h-4" />
-                שנה תיקייה
-              </Button>
-            }
-          />
           <MagicLinkButton project={project} />
         </div>
       </div>
