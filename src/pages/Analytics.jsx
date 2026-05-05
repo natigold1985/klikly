@@ -205,17 +205,19 @@ export default function Analytics() {
           <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><BarChart3 className="w-5 h-5 text-purple-500" />התפלגות מקורות לידים</CardTitle></CardHeader>
           <CardContent>
             <div className="flex flex-col lg:flex-row gap-4 items-center">
-              <div className="h-56 w-full lg:w-1/2">
+              <div className="h-56 w-full lg:w-1/2 px-4">
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
+                  <PieChart margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                     <Pie
                       data={sourceData}
                       cx="50%"
                       cy="50%"
-                      outerRadius="85%"
+                      innerRadius="45%"
+                      outerRadius="75%"
+                      paddingAngle={2}
                       dataKey="value"
-                      label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
-                      labelLine={false}
+                      stroke="#fff"
+                      strokeWidth={2}
                     >
                       {sourceData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Pie>
