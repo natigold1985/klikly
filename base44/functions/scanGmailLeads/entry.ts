@@ -31,19 +31,26 @@ function extractBody(payload) {
 // Parse the standard natigold.com WP form. Returns null if it doesn't match.
 function parseWordPressForm(body) {
   if (!body) return null;
+  const lines = body.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
   const get = (label) => {
-    // matches: "label: value" or "label : value"
-    const re = new RegExp(`${label}\\s*[:：]\\s*([^\\n\\r]+)`, 'i');
-    const m = body.match(re);
-    return m ? m[1].trim() : '';
+    // matches: "label: value", "label : value", or label on one line and value on the next line
+    const sameLine = new RegExp(`${label}\\s*[:：]\\s*([^\\n\\r]+)`, 'i');
+    const m = body.match(sameLine);
+    if (m?.[1]?.trim()) return m[1].trim();
+
+    const labelLine = new RegExp(`^${label}\\s*[:：]?$`, 'i');
+    const index = lines.findIndex(line => labelLine.test(line));
+    if (index >= 0) return lines[index + 1] || '';
+
+    return '';
   };
 
-  const name = get('שם') || get('Name');
-  const phone = get('טלפון') || get('Phone');
-  const email = get('אימייל') || get('דואר אלקטרוני') || get('Email');
-  const eventDate = get('תאריך') || get('Date');
-  const eventTime = get('שעה') || get('Time');
-  const sourceUrl = get('URL מקור') || get('Source URL');
+  const name = get('שם פרטי') || get('שם מלא') || get('שם') || get('Name');
+  const phone = get('טלפון') || get('טלפון נייד') || get('Phone');
+  const email = get('אימייל') || get('מייל') || get('דואר אלקטרוני') || get('Email');
+  const eventDate = get('תאריך') || get('תאריך אירוע') || get('Date');
+  const eventTime = get('שעה') || get('שעת אירוע') || get('Time');
+  const sourceUrl = get('URL מקור') || get('דף מקור') || get('Source URL');
 
   if (!name || (!phone && !email)) return null;
 
@@ -125,8 +132,9 @@ Deno.serve(async (req) => {
     let idsToProcess = messageIds;
 
     if (idsToProcess.length === 0) {
-      // Strict: only WP contact-form notifications from natigold.com (the website)
-      const query = encodeURIComponent('newer_than:2d from:natigold.com "הודעה חדשה מאת"');
+      // Scan recent WordPress/contact-form notifications. Some Gmail messages arrive from wordpress@natigold.com,
+      // while others only expose the Hebrew subject/body, so don't rely only on the From header.
+      const query = encodeURIComponent('newer_than:7d ("הודעה חדשה מאת" OR "שם פרטי" OR "טלפון")');
       const listRes = await fetch(
         `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20&q=${query}`,
         { headers: authHeader }
@@ -139,6 +147,7 @@ Deno.serve(async (req) => {
     }
 
     if (idsToProcess.length === 0) {
+      isRunning = false;
       return Response.json({ success: true, found: 0, saved: 0 });
     }
 
@@ -156,12 +165,16 @@ Deno.serve(async (req) => {
       const subject = headers.find(h => h.name === 'Subject')?.value || '';
       const from = headers.find(h => h.name === 'From')?.value || '';
 
-      // Hard filter: must come from natigold.com
+      const text = extractBody(msg.payload);
+
+      // Hard filter: must look like a website/contact-form lead.
       const fromLower = from.toLowerCase();
-      const isWebsiteForm = fromLower.includes('natigold.com') || /הודעה חדשה מאת/i.test(subject);
+      const isWebsiteForm =
+        fromLower.includes('natigold.com') ||
+        /הודעה חדשה מאת/i.test(subject) ||
+        (/שם פרטי|שם מלא|טלפון/i.test(text) && /natigold|צילום|אירועים/i.test(text + ' ' + subject));
       if (!isWebsiteForm) continue;
 
-      const text = extractBody(msg.payload);
       const lead = parseWordPressForm(text);
       if (lead) parsed.push(lead);
     }
@@ -202,6 +215,7 @@ ${unparsed.map(e => `From: ${e.from}\nSubject: ${e.subject}\n${e.body}\n---`).jo
 
     const allLeads = [...parsed, ...llmLeads];
     if (allLeads.length === 0) {
+      isRunning = false;
       return Response.json({ success: true, found: 0, saved: 0, parsed: 0, llmFallback: 0 });
     }
 
