@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowRight, Phone, Mail, Calendar, Edit, 
-  Trash2, Briefcase, Plus, CheckCircle2, DollarSign, FileText
+  Trash2, Briefcase, Plus, CheckCircle2, DollarSign, FileText, ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -170,6 +170,29 @@ export default function LeadDetails() {
                     icon={<DollarSign className="w-4 h-4 text-slate-400 shrink-0" />}
                     formatDisplay={(v) => v ? `₪${Number(v).toLocaleString()}` : null}
                   />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-sm text-slate-500 block mb-1">קישור לפוסט המקורי</label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="flex-1 min-w-0">
+                      <EditableField
+                        value={lead.source_post_url}
+                        onSave={updateField('source_post_url')}
+                        placeholder="הדבק כאן קישור מדויק לפוסט / מודעה"
+                      />
+                    </div>
+                    {lead.source_post_url && (
+                      <a
+                        href={lead.source_post_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-100 text-sm font-bold transition-colors"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        פתח פוסט
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
 

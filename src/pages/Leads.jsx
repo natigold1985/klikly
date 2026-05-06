@@ -138,6 +138,7 @@ export default function Leads() {
     email: '',
     shooting_type: '',
     source: '',
+    source_post_url: '',
     event_date: '',
     budget: '',
     notes: '',
@@ -423,6 +424,15 @@ export default function Leads() {
                     placeholder="פייסבוק / המלצה / גוגל"
                   />
                 </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-1 block">קישור לפוסט המקורי</label>
+                <Input
+                  value={newLead.source_post_url}
+                  onChange={(e) => setNewLead({ ...newLead, source_post_url: e.target.value })}
+                  placeholder="https://..."
+                  dir="ltr"
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

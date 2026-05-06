@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Phone, MessageCircle, Trash2, Zap, Pencil, Undo2 } from 'lucide-react';
+import { Phone, MessageCircle, Trash2, Zap, Pencil, Undo2, ExternalLink } from 'lucide-react';
 import SourceBadge from './SourceBadge';
 import StatusSelect from './StatusSelect';
 import LeadMobileCard from './LeadMobileCard';
@@ -119,6 +119,17 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
                   >
                     <Pencil className="w-4 h-4" />
                   </Link>
+                  {lead.source_post_url && (
+                    <a
+                      href={lead.source_post_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-indigo-500 hover:bg-indigo-600 text-white shadow-sm hover:shadow transition-all active:scale-95"
+                      title="פתח פוסט מקורי"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  )}
                   <a
                     href={getWhatsAppLink(lead)}
                     target="_blank"
