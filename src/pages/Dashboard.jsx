@@ -15,6 +15,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import LeadRadarWidget from '@/components/dashboard/LeadRadarWidget';
 import TaskBoard from '@/components/dashboard/TaskBoard';
 import QuickActions from '@/components/dashboard/QuickActions';
+import LeadQualityDashboard from '@/components/dashboard/LeadQualityDashboard';
 
 export default function Dashboard() {
   const { data: user } = useQuery({
@@ -234,6 +235,9 @@ export default function Dashboard() {
 
         {/* Quick Actions */}
         <QuickActions />
+
+        {/* Lead Quality Summary */}
+        <LeadQualityDashboard leads={leads} />
 
         {/* Task Board — front and center */}
         <TaskBoard tasks={tasks} />
