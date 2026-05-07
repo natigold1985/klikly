@@ -14,13 +14,21 @@ const SUBFOLDER_NAMES = {
   docs: ['חוזים ומסמכים', 'Documents'],
 };
 
+const RAW_EXTENSIONS = ['.nef', '.cr2', '.cr3', '.arw', '.dng', '.raf', '.rw2', '.orf', '.raw'];
+const FIFTEEN_MB = 15 * 1024 * 1024;
+
+function isRawFile(fileName = '', fileSize = 0) {
+  const name = String(fileName).toLowerCase();
+  return RAW_EXTENSIONS.some((ext) => name.endsWith(ext)) || Number(fileSize || 0) >= FIFTEEN_MB;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
-    const { project_id, file_url, file_name, mime_type, target_subfolder, token } = body;
+    const { project_id, file_url, file_name, mime_type, target_subfolder, token, check_only } = body;
 
-    if (!file_url || !file_name) {
+    if (!file_name || (!file_url && !check_only)) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -70,13 +78,14 @@ Deno.serve(async (req) => {
     const subfolderId = await findOrCreateSubfolder(accessToken, rootFolderId, subKey);
 
     const existingFile = await findExistingFileByName(accessToken, subfolderId, file_name);
-    if (existingFile) {
+    if (existingFile || check_only) {
       return Response.json({
         success: true,
-        skipped: true,
-        reason: 'duplicate_file_name',
-        message: 'הקובץ כבר קיים במערכת',
-        file: mapDriveFile(existingFile),
+        exists: !!existingFile,
+        skipped: !!existingFile,
+        reason: existingFile ? 'duplicate_file_name' : null,
+        message: existingFile ? 'הקובץ כבר קיים במערכת' : 'הקובץ לא קיים בתיקייה',
+        file: existingFile ? mapDriveFile(existingFile) : null,
       });
     }
 
@@ -140,8 +149,13 @@ Deno.serve(async (req) => {
     const driveFile = await uploadRes.json();
 
     const countPatch = {};
-    if (subKey === 'raw') countPatch.raw_photos_count = (project.raw_photos_count || 0) + 1;
-    if (subKey === 'edited') countPatch.final_photos_count = (project.final_photos_count || 0) + 1;
+    if (driveFile.mimeType?.startsWith('image/') || driveFile.mimeType?.startsWith('video/')) {
+      if (isRawFile(driveFile.name, driveFile.size)) {
+        countPatch.raw_photos_count = (project.raw_photos_count || 0) + 1;
+      } else {
+        countPatch.final_photos_count = (project.final_photos_count || 0) + 1;
+      }
+    }
     if (Object.keys(countPatch).length > 0) {
       await base44.asServiceRole.entities.Project.update(project.id, countPatch).catch(() => {});
     }

@@ -3,7 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.24';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { token } = await req.json();
+    const { token, pin } = await req.json();
 
     if (!token) {
       return Response.json({ error: 'Token is required' }, { status: 400 });
@@ -18,6 +18,12 @@ Deno.serve(async (req) => {
 
     if (link.expires_at && new Date(link.expires_at) < new Date()) {
       return Response.json({ error: '410 Gone: Link expired', expired: true }, { status: 410 });
+    }
+
+    const projects = await base44.asServiceRole.entities.Project.filter({ id: link.project_id });
+    const project = projects[0];
+    if (project?.gallery_pin && String(pin || '').trim() !== String(project.gallery_pin).trim()) {
+      return Response.json({ error: 'pin_required', pin_required: true }, { status: 403 });
     }
 
     // THE DELIVERY GATEWAY: Return ONLY strictly necessary frontend presentation data.

@@ -7,7 +7,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
-    const { project_id, token } = body;
+    const { project_id, token, pin } = body;
 
     let project = null;
     let isClient = false;
@@ -20,6 +20,9 @@ Deno.serve(async (req) => {
       project = list[0];
       isClient = true;
       if (!project) return Response.json({ error: 'Invalid link' }, { status: 404 });
+      if (project.gallery_pin && String(pin || '').trim() !== String(project.gallery_pin).trim()) {
+        return Response.json({ error: 'pin_required', pin_required: true }, { status: 403 });
+      }
     } else {
       const me = await base44.auth.me();
       if (!me) return Response.json({ error: 'Unauthorized' }, { status: 401 });

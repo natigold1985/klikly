@@ -100,7 +100,7 @@ export default function FileStorage() {
               setSelectedProject(null);
               window.history.replaceState({}, '', '/FileStorage');
             }}
-            className="gap-1.5 text-slate-900 border-slate-300 bg-white hover:bg-slate-50 shadow-sm font-bold"
+            className="gap-2 text-black border-[#FFD700] bg-[#FFD700] hover:bg-[#e6c200] shadow-lg font-extrabold px-5 h-11"
           >
             <ArrowRight className="w-4 h-4" />
             חזור לרשימת הפרויקטים

@@ -116,6 +116,23 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
         );
       }, 200);
 
+      const existsRes = await withRetry(
+        () => base44.functions.invoke('uploadToDrive', {
+          project_id: projectId,
+          file_name: item.file.name,
+          target_subfolder: subfolder,
+          check_only: true,
+        }),
+        item.id
+      );
+
+      if (existsRes.data?.exists) {
+        clearInterval(progressInterval);
+        setItem(item.id, { status: 'skipped', progress: 100, error: 'קיים במערכת' });
+        setUploadStats((prev) => ({ ...prev, completed: prev.completed + 1, skipped: (prev.skipped || 0) + 1 }));
+        return;
+      }
+
       // Step 1: upload to temp storage
       const { file_url } = await withRetry(
         () => base44.integrations.Core.UploadFile({ file: item.file }),

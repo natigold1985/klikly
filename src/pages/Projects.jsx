@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { 
   Plus, Search, Briefcase, Upload, Download, Eye, CheckCircle2, 
-  Smartphone, ExternalLink, RefreshCw, ListTodo, MessageCircle
+  Smartphone, ExternalLink, RefreshCw, ListTodo, MessageCircle, Trash2
 } from 'lucide-react';
 import DeliveryLinkButton from '../components/DeliveryLinkButton';
 import FileUploader from '../components/FileUploader';
@@ -38,6 +38,7 @@ export default function Projects() {
   const [uploadProject, setUploadProject] = useState(null);
   const [showMagicLinkPrompt, setShowMagicLinkPrompt] = useState(null);
   const [showCreateProject, setShowCreateProject] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -117,6 +118,16 @@ export default function Projects() {
     const badge = statusMap[status] || { label: status, color: 'bg-gray-500' };
     return <Badge className={`${badge.color} text-white`}>{badge.label}</Badge>;
   };
+
+  const deleteProjectMutation = useMutation({
+    mutationFn: (projectId) => base44.entities.Project.delete(projectId),
+    onSuccess: () => {
+      toast.success('הפרויקט נמחק');
+      setProjectToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['driveProjects'] });
+    },
+  });
 
   const getStatusIcon = (status) => {
     if (status === 'awaiting_selection') return <Eye className="w-5 h-5 text-[#FFD700]" />;
@@ -206,7 +217,22 @@ export default function Projects() {
                         <p className="text-sm text-slate-600">{project.client_name}</p>
                       </div>
                     </div>
-                    {getStatusBadge(project.status)}
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(project.status)}
+                      {!isClient && (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setProjectToDelete(project);
+                          }}
+                          className="w-9 h-9 rounded-xl bg-red-50 text-red-600 hover:bg-red-600 hover:text-white flex items-center justify-center transition-colors"
+                          title="מחיקת פרויקט"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-2 mb-4">
@@ -284,6 +310,27 @@ export default function Projects() {
           queryClient.invalidateQueries({ queryKey: ['driveProjects'] });
         }}
       />
+
+      <Dialog open={!!projectToDelete} onOpenChange={(open) => !open && setProjectToDelete(null)}>
+        <DialogContent className="sm:max-w-[420px]" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>למחוק את הפרויקט?</DialogTitle>
+            <DialogDescription>
+              הפעולה תמחק את הפרויקט "{projectToDelete?.project_name || projectToDelete?.client_name}" מהמערכת. אי אפשר לבטל את הפעולה.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setProjectToDelete(null)} className="text-slate-900 border-slate-300">ביטול</Button>
+            <Button
+              onClick={() => deleteProjectMutation.mutate(projectToDelete.id)}
+              disabled={deleteProjectMutation.isPending}
+              className="bg-red-600 hover:bg-red-700 text-white shadow-none"
+            >
+              {deleteProjectMutation.isPending ? 'מוחק...' : 'כן, מחק'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Mobile Upload Dialog */}
       <Dialog open={!!uploadProject} onOpenChange={(open) => !open && setUploadProject(null)}>

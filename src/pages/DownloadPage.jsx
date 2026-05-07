@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Loader2, AlertCircle, Camera, Download, ShieldCheck } from 'lucide-react';
+import { Loader2, AlertCircle, Camera, Download, ShieldCheck, LockKeyhole } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function DownloadPage() {
@@ -8,7 +8,9 @@ export default function DownloadPage() {
   const token = urlParams.get('token');
 
   const [linkData, setLinkData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [pin, setPin] = useState('');
+  const [pinRequired, setPinRequired] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -17,7 +19,7 @@ export default function DownloadPage() {
       setLoading(false);
       return;
     }
-    loadLink();
+    setLoading(false);
   }, [token]);
 
   const [downloading, setDownloading] = useState(false);
@@ -25,11 +27,17 @@ export default function DownloadPage() {
   const loadLink = async () => {
     try {
       // Delivery Gateway (Backend Function) - Absolute Isolation
-      const res = await base44.functions.invoke('deliveryGateway', { token });
+      const res = await base44.functions.invoke('deliveryGateway', { token, pin });
       setLinkData(res.data);
+      setPinRequired(false);
       await base44.functions.invoke('trackDeliveryLink', { token, action: 'view' });
     } catch (err) {
-      setError(err.response?.data?.error || 'הקישור לא נמצא או פג תוקף');
+      if (err.response?.data?.pin_required) {
+        setPinRequired(true);
+        setError(pin ? 'קוד הגישה שגוי' : null);
+      } else {
+        setError(err.response?.data?.error || 'הקישור לא נמצא או פג תוקף');
+      }
     } finally {
       setLoading(false);
     }
@@ -69,6 +77,43 @@ export default function DownloadPage() {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center">
         <Loader2 className="w-10 h-10 animate-spin text-[#FFD700]" />
+      </div>
+    );
+  }
+
+  if (pinRequired && token) {
+    return (
+      <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center p-6" dir="rtl">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,215,0,0.08)_0%,rgba(0,0,0,0)_70%)]" />
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            loadLink();
+          }}
+          className="relative z-10 w-full max-w-sm bg-[#0a0a0a] border border-[#FFD700]/20 rounded-3xl p-8 text-center shadow-[0_0_40px_rgba(255,215,0,0.12)]"
+        >
+          <div className="w-16 h-16 mx-auto mb-6 rounded-full border border-[#FFD700]/30 bg-black flex items-center justify-center">
+            <LockKeyhole className="w-7 h-7 text-[#FFD700]" />
+          </div>
+          <h1 className="text-2xl font-extrabold text-[#FFD700] mb-2">קוד גישה לגלריה</h1>
+          <p className="text-white/60 text-sm mb-6">הקלד/י את ה-PIN שקיבלת כדי לפתוח את הקבצים.</p>
+          <input
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            autoFocus
+            inputMode="numeric"
+            placeholder="PIN"
+            className="w-full h-14 rounded-2xl bg-white text-black text-center text-2xl font-bold tracking-[0.35em] outline-none border-2 border-transparent focus:border-[#FFD700] mb-3"
+          />
+          {error && <p className="text-red-400 text-sm mb-3">{error}</p>}
+          <button
+            type="submit"
+            disabled={!pin || loading}
+            className="w-full h-12 rounded-2xl bg-gradient-to-r from-[#D4AF37] to-[#FFD700] text-black font-extrabold disabled:opacity-50"
+          >
+            {loading ? 'בודק...' : 'פתח גלריה'}
+          </button>
+        </form>
       </div>
     );
   }
