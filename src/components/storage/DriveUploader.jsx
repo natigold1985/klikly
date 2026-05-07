@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Upload, X, CheckCircle2, AlertCircle, RotateCw, Image as ImageIcon, Video } from 'lucide-react';
+import { Upload, X, CheckCircle2, AlertCircle, RotateCw, Image as ImageIcon, Video, ShieldCheck } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -35,6 +35,7 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
       total: prev.total + newItems.length,
       completed: prev.completed,
       failed: prev.failed,
+      skipped: prev.skipped || 0,
     }));
     setItems((prev) => [...newItems, ...prev]);
     queueRef.current = [...queueRef.current, ...newItems];
@@ -152,6 +153,12 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
         throw new Error(res.data?.error || `Status ${res.status}`);
       }
 
+      if (res.data?.skipped) {
+        setItem(item.id, { status: 'skipped', progress: 100, error: res.data.message || 'קיים במערכת' });
+        setUploadStats((prev) => ({ ...prev, completed: prev.completed + 1, skipped: (prev.skipped || 0) + 1 }));
+        return;
+      }
+
       setItem(item.id, { status: 'success', progress: 100 });
       setUploadStats((prev) => ({ ...prev, completed: prev.completed + 1 }));
       // Optimistic UI: notify parent immediately so the file appears in the grid
@@ -205,6 +212,9 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
             <p className="text-xs text-blue-700">פעילים עכשיו: {activeCount} · ממתינים בתור: {pendingCount}</p>
           </div>
           <Progress value={overallProgress} className="h-2" />
+          {uploadStats.skipped > 0 && (
+            <p className="text-xs text-emerald-700 mt-2">{uploadStats.skipped} קבצים כבר קיימים במערכת ודולגו בבטחה</p>
+          )}
           {uploadStats.failed > 0 && (
             <p className="text-xs text-red-600 mt-2">{uploadStats.failed} קבצים נכשלו אחרי ניסיונות חוזרים</p>
           )}
@@ -253,7 +263,7 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
                 className={`flex items-center gap-3 p-3 rounded-xl border ${
                   it.status === 'error'
                     ? 'bg-red-50 border-red-200'
-                    : it.status === 'success'
+                    : it.status === 'success' || it.status === 'skipped'
                     ? 'bg-emerald-50 border-emerald-200'
                     : 'bg-slate-50 border-slate-200'
                 }`}
@@ -268,12 +278,21 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
                   {it.status === 'pending' && (
                     <p className="text-xs text-slate-500">ממתין בתור להעלאה בטוחה</p>
                   )}
+                  {it.status === 'skipped' && (
+                    <p className="text-xs text-emerald-700 truncate">קיים במערכת — דולג, לא נוצר עותק כפול</p>
+                  )}
                   {it.status === 'error' && (
                     <p className="text-xs text-red-600 truncate">{it.error}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
                   {it.status === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
+                  {it.status === 'skipped' && (
+                    <div className="flex items-center gap-1 text-emerald-700 text-xs font-bold whitespace-nowrap">
+                      <ShieldCheck className="w-5 h-5" />
+                      קיים במערכת
+                    </div>
+                  )}
                   {it.status === 'error' && (
                     <>
                       <Button size="sm" variant="outline" onClick={() => retry(it.id)} className="h-8 gap-1">

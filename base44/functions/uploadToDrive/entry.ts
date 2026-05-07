@@ -69,6 +69,17 @@ Deno.serve(async (req) => {
     const subKey = target_subfolder || (isProjectClient ? 'client' : 'edited');
     const subfolderId = await findOrCreateSubfolder(accessToken, rootFolderId, subKey);
 
+    const existingFile = await findExistingFileByName(accessToken, subfolderId, file_name);
+    if (existingFile) {
+      return Response.json({
+        success: true,
+        skipped: true,
+        reason: 'duplicate_file_name',
+        message: 'הקובץ כבר קיים במערכת',
+        file: mapDriveFile(existingFile),
+      });
+    }
+
     // Download the source file and stream it to Drive without loading the whole file into RAM
     const fileRes = await fetch(file_url);
     if (!fileRes.ok || !fileRes.body) {
@@ -143,23 +154,44 @@ Deno.serve(async (req) => {
 
     return Response.json({
       success: true,
-      file: {
-        id: driveFile.id,
-        name: driveFile.name,
-        mime_type: driveFile.mimeType,
-        size: driveFile.size ? parseInt(driveFile.size) : 0,
-        thumbnail_url: driveFile.thumbnailLink ? driveFile.thumbnailLink.replace(/=s\d+/, '=s800') : null,
-        view_url: driveFile.webViewLink,
-        download_url: `https://drive.google.com/uc?export=download&id=${driveFile.id}`,
-        is_image: (driveFile.mimeType || '').startsWith('image/'),
-        is_video: (driveFile.mimeType || '').startsWith('video/'),
-      },
+      file: mapDriveFile(driveFile),
     });
   } catch (error) {
     console.error('uploadToDrive error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
+
+function escapeDriveQueryValue(value = '') {
+  return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+function mapDriveFile(file) {
+  return {
+    id: file.id,
+    name: file.name,
+    mime_type: file.mimeType,
+    size: file.size ? parseInt(file.size) : 0,
+    thumbnail_url: file.thumbnailLink ? file.thumbnailLink.replace(/=s\d+/, '=s800') : null,
+    view_url: file.webViewLink,
+    download_url: `https://drive.google.com/uc?export=download&id=${file.id}`,
+    is_image: (file.mimeType || '').startsWith('image/'),
+    is_video: (file.mimeType || '').startsWith('video/'),
+  };
+}
+
+async function findExistingFileByName(accessToken, folderId, fileName) {
+  const q = encodeURIComponent(
+    `'${folderId}' in parents and name='${escapeDriveQueryValue(fileName)}' and trashed=false`
+  );
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,name,thumbnailLink,webViewLink,size,mimeType)&pageSize=1`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.files?.[0] || null;
+}
 
 async function findOrCreateSubfolder(accessToken, rootFolderId, key) {
   const candidateNames = SUBFOLDER_NAMES[key] || [key];
