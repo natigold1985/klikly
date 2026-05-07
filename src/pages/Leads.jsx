@@ -205,10 +205,25 @@ export default function Leads() {
   });
 
   const deleteLeadMutation = useMutation({
-    mutationFn: (id) => base44.entities.Lead.delete(id),
+    mutationFn: async (id) => {
+      try {
+        await base44.entities.Lead.delete(id);
+      } catch (error) {
+        if (!String(error?.message || '').includes('not found')) throw error;
+      }
+      return id;
+    },
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['leads'] });
+      queryClient.setQueriesData({ queryKey: ['leads'] }, (old = []) => old.filter((lead) => lead.id !== id));
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       toast.success("הליד נמחק");
+    },
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      toast.error("לא הצלחתי למחוק את הליד");
     }
   });
 
