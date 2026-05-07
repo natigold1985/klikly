@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
@@ -35,6 +35,26 @@ export default function FileStorage() {
     enabled: !!user && !isClient,
   });
 
+  useEffect(() => {
+    if (!projects.length || selectedProject) return;
+    const params = new URLSearchParams(window.location.search);
+    const clientEmail = params.get('client_email');
+    const projectId = params.get('project_id');
+    if (!clientEmail && !projectId) return;
+
+    const match = projects.find((p) =>
+      (projectId && p.id === projectId) ||
+      (clientEmail && p.client_email?.toLowerCase() === clientEmail.toLowerCase())
+    );
+
+    if (match) {
+      setSelectedProject(match);
+      setSearch(match.client_email || match.client_name || '');
+    } else if (clientEmail) {
+      setSearch(clientEmail);
+    }
+  }, [projects, selectedProject]);
+
   const handleClientDownload = (photo) => {
     base44.functions.invoke('onClientFirstDownload', { file_name: photo.file_name }).catch(() => {});
     window.open(photo.file_url, '_blank');
@@ -64,7 +84,10 @@ export default function FileStorage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setSelectedProject(null)}
+            onClick={() => {
+              setSelectedProject(null);
+              window.history.replaceState({}, '', '/FileStorage');
+            }}
             className="gap-1.5"
           >
             <ArrowRight className="w-4 h-4" />

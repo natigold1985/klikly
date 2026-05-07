@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Shield, User, Mail, Phone, UserPlus, Calendar, Camera, Users as UsersIcon, Pencil, Trash2 } from 'lucide-react';
+import { Shield, User, Mail, Phone, UserPlus, Calendar, Camera, Users as UsersIcon, Pencil, Trash2, MessageCircle, FolderOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import AddUserDialog from '../components/admin/AddUserDialog';
 import EditUserRoleDialog from '../components/admin/EditUserRoleDialog';
@@ -64,6 +64,12 @@ export default function AdminUsers() {
     enabled: !!isAdmin,
   });
 
+  const { data: clientProjects = [] } = useQuery({
+    queryKey: ['adminClientProjects'],
+    queryFn: () => base44.entities.Project.list('-created_date', 300),
+    enabled: !!isAdmin,
+  });
+
   if (!isAdmin) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
@@ -111,7 +117,7 @@ export default function AdminUsers() {
             <UserGrid users={photographers} type="photographer" onEdit={setEditingUser} onDelete={setDeletingUser} currentUserEmail={user?.email} />
           </TabsContent>
           <TabsContent value="clients">
-            <UserGrid users={clients} type="client" onEdit={setEditingUser} onDelete={setDeletingUser} currentUserEmail={user?.email} />
+            <UserGrid users={clients} type="client" projects={clientProjects} onEdit={setEditingUser} onDelete={setDeletingUser} currentUserEmail={user?.email} />
           </TabsContent>
         </Tabs>
       )}
@@ -150,7 +156,7 @@ export default function AdminUsers() {
   );
 }
 
-function UserGrid({ users, type, onEdit, onDelete, currentUserEmail }) {
+function UserGrid({ users, type, projects = [], onEdit, onDelete, currentUserEmail }) {
   if (users.length === 0) {
     return (
       <Card className="border-dashed">
@@ -165,8 +171,17 @@ function UserGrid({ users, type, onEdit, onDelete, currentUserEmail }) {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {users.map((u) => {
         const isUserAdmin = u.role === 'admin' || u.email === 'natigold04@gmail.com';
+        const project = type === 'client'
+          ? projects.find((p) => p.client_email?.toLowerCase() === u.email?.toLowerCase())
+          : null;
+        const phoneDigits = String(u.phone || '').replace(/[^0-9]/g, '');
+        const whatsappPhone = phoneDigits.startsWith('0') ? `972${phoneDigits.slice(1)}` : phoneDigits;
+        const openFiles = () => {
+          const query = project?.id ? `project_id=${project.id}` : `client_email=${encodeURIComponent(u.email || '')}`;
+          window.location.href = `/FileStorage?${query}`;
+        };
         return (
-          <Card key={u.id} className="hover:shadow-lg transition-all border-slate-200 relative group">
+          <Card key={u.id} className="hover:shadow-lg transition-all border-slate-200 relative group overflow-hidden">
             <div className="absolute top-3 left-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-10">
               <button
                 onClick={() => onEdit?.(u)}
@@ -217,9 +232,47 @@ function UserGrid({ users, type, onEdit, onDelete, currentUserEmail }) {
                   <span>{new Date(u.created_date).toLocaleDateString('he-IL')}</span>
                 </div>
               </div>
-              {type === 'client' && u.assigned_photographer_email && (
-                <div className="mt-2 text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded">
-                  משויך לצלם: <span className="font-medium text-slate-700">{u.assigned_photographer_email}</span>
+              {type === 'client' && (
+                <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
+                  {u.assigned_photographer_email && (
+                    <div className="text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded">
+                      משויך לצלם: <span className="font-medium text-slate-700">{u.assigned_photographer_email}</span>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <a
+                      href={u.phone ? `https://wa.me/${whatsappPhone}` : undefined}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => !u.phone && e.preventDefault()}
+                      className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition-all ${
+                        u.phone ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200' : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                      }`}
+                      title="שליחת וואטסאפ"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      וואטסאפ
+                    </a>
+                    <a
+                      href={u.email ? `mailto:${u.email}` : undefined}
+                      className="flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-all"
+                      title="שליחת אימייל"
+                    >
+                      <Mail className="w-4 h-4" />
+                      אימייל
+                    </a>
+                  </div>
+
+                  <Button onClick={openFiles} className="w-full gap-2 text-sm">
+                    <FolderOpen className="w-4 h-4" />
+                    ניהול ושליחת קבצים
+                  </Button>
+                  {!project && (
+                    <p className="text-[11px] text-amber-600 text-center">
+                      לא נמצא פרויקט ללקוח — האחסון ייפתח מסונן לפי האימייל.
+                    </p>
+                  )}
                 </div>
               )}
             </CardContent>
