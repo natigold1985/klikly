@@ -128,6 +128,13 @@ Deno.serve(async (req) => {
 
     const driveFile = await uploadRes.json();
 
+    const countPatch = {};
+    if (subKey === 'raw') countPatch.raw_photos_count = (project.raw_photos_count || 0) + 1;
+    if (subKey === 'edited') countPatch.final_photos_count = (project.final_photos_count || 0) + 1;
+    if (Object.keys(countPatch).length > 0) {
+      await base44.asServiceRole.entities.Project.update(project.id, countPatch).catch(() => {});
+    }
+
     // Notify the OTHER party via push + email + DB log (bidirectional, fire-and-forget)
     notifyUpload(base44, project, isProjectClient, {
       name: driveFile.name,

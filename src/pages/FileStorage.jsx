@@ -24,7 +24,19 @@ export default function FileStorage() {
   // === CLIENT VIEW: their own gallery (legacy, edited photos) ===
   const { data: photos = [], isLoading: loadingPhotos } = useQuery({
     queryKey: ['clientPhotos', user?.email],
-    queryFn: () => base44.entities.Photo.filter({ client_email: user.email, type: 'edited' }, '-created_date', 500),
+    queryFn: async () => {
+      const directPhotos = await base44.entities.Photo.filter({ client_email: user.email, type: 'edited' }, '-created_date', 500);
+      const allProjects = await base44.entities.Project.list('-created_date', 200);
+      const matchingProjects = allProjects.filter((p) => {
+        const emails = Array.isArray(p.client_emails) ? p.client_emails : [];
+        return [p.client_email, ...emails].filter(Boolean).some((email) => email.toLowerCase() === user.email.toLowerCase());
+      });
+      if (!matchingProjects.length) return directPhotos;
+      const projectPhotos = (await Promise.all(
+        matchingProjects.map((p) => base44.entities.Photo.filter({ project_id: p.id, type: 'edited' }, '-created_date', 500))
+      )).flat();
+      return [...directPhotos, ...projectPhotos].filter((photo, index, arr) => arr.findIndex((p) => p.id === photo.id) === index);
+    },
     enabled: !!user && isClient,
   });
 
@@ -44,7 +56,7 @@ export default function FileStorage() {
 
     const match = projects.find((p) =>
       (projectId && p.id === projectId) ||
-      (clientEmail && p.client_email?.toLowerCase() === clientEmail.toLowerCase())
+      (clientEmail && [p.client_email, ...(Array.isArray(p.client_emails) ? p.client_emails : [])].filter(Boolean).some((email) => email.toLowerCase() === clientEmail.toLowerCase()))
     );
 
     if (match) {
@@ -120,7 +132,8 @@ export default function FileStorage() {
       !search ||
       p.project_name?.toLowerCase().includes(search.toLowerCase()) ||
       p.client_name?.toLowerCase().includes(search.toLowerCase()) ||
-      p.client_email?.toLowerCase().includes(search.toLowerCase())
+      p.client_email?.toLowerCase().includes(search.toLowerCase()) ||
+      (Array.isArray(p.client_emails) && p.client_emails.some((email) => email.toLowerCase().includes(search.toLowerCase())))
   );
 
   return (
@@ -198,10 +211,11 @@ function ProjectFolderCard({ project, onClick }) {
           </div>
           <div className="min-w-0 flex-1">
             <p className="font-bold text-slate-900 truncate text-base">{project.project_name || project.client_name}</p>
-            {project.client_email && (
+            {(project.client_email || project.client_emails?.length) && (
               <p className="text-xs text-slate-500 truncate flex items-center gap-1 mt-0.5">
                 <Mail className="w-3 h-3" />
-                {project.client_email}
+                {[project.client_email, ...(Array.isArray(project.client_emails) ? project.client_emails : [])].filter(Boolean)[0]}
+                {Array.isArray(project.client_emails) && project.client_emails.length > 1 ? ` +${project.client_emails.length - 1}` : ''}
               </p>
             )}
             {project.client_phone && (

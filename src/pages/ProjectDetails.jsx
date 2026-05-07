@@ -6,7 +6,8 @@ import { createPageUrl } from '@/utils';
 import { 
   ArrowRight, Phone, Mail, Calendar, MapPin, 
   DollarSign, CheckCircle2, ListTodo, Download, Eye, Upload,
-  Link as LinkIcon, Copy, Lock, RefreshCw, FolderPlus, ExternalLink, Loader2
+  Link as LinkIcon, Copy, Lock, RefreshCw, FolderPlus, ExternalLink, Loader2,
+  Pencil, Plus, Save, X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,14 +33,66 @@ export default function ProjectDetails() {
     enabled: !!projectId,
   });
 
+  const { data: driveStatsData } = useQuery({
+    queryKey: ['projectDriveStats', projectId, project?.drive_folder_url],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listDriveFiles', { project_id: projectId });
+      return res.data;
+    },
+    enabled: !!projectId && !!project?.drive_folder_url && !isClient,
+    refetchInterval: 10000,
+  });
+
+  const [isEditingDetails, setIsEditingDetails] = useState(false);
+  const [detailsForm, setDetailsForm] = useState(null);
+
   const updateProjectMutation = useMutation({
     mutationFn: (data) => base44.entities.Project.update(projectId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['driveProjects'] });
       toast.success('עודכן בהצלחה');
     },
     onError: () => toast.error('שגיאה בעדכון הפרויקט')
   });
+
+  const getProjectEmails = (p) => {
+    const emails = Array.isArray(p?.client_emails) ? p.client_emails : [];
+    return [...new Set([p?.client_email, ...emails].filter(Boolean).map((email) => email.trim()))];
+  };
+
+  const startEditDetails = () => {
+    setDetailsForm({
+      client_name: project.client_name || '',
+      client_phone: project.client_phone || '',
+      client_emails: getProjectEmails(project).length ? getProjectEmails(project) : [''],
+      shooting_date: project.shooting_date || '',
+      shooting_location: project.shooting_location || '',
+      total_price: project.total_price || '',
+    });
+    setIsEditingDetails(true);
+  };
+
+  const updateEmailAt = (index, value) => {
+    setDetailsForm((prev) => ({
+      ...prev,
+      client_emails: prev.client_emails.map((email, i) => (i === index ? value : email)),
+    }));
+  };
+
+  const saveDetails = () => {
+    const emails = [...new Set((detailsForm.client_emails || []).map((email) => email.trim()).filter(Boolean))];
+    updateProjectMutation.mutate({
+      client_name: detailsForm.client_name,
+      client_phone: detailsForm.client_phone,
+      client_email: emails[0] || '',
+      client_emails: emails,
+      shooting_date: detailsForm.shooting_date,
+      shooting_location: detailsForm.shooting_location,
+      total_price: Number(detailsForm.total_price) || null,
+    });
+    setIsEditingDetails(false);
+  };
 
   const handleGeneratePin = () => {
     const newPin = Math.floor(1000 + Math.random() * 9000).toString();
@@ -47,9 +100,11 @@ export default function ProjectDetails() {
   };
 
   const handleCopyGalleryLink = () => {
-    const url = `${window.location.origin}/gallery/${projectId}${project.gallery_pin ? `?pin=${project.gallery_pin}` : ''}`;
-    navigator.clipboard.writeText(url);
-    toast.success('קישור לגלריה הועתק');
+    const pin = project.gallery_pin || '';
+    const url = `${window.location.origin}/gallery/${projectId}${pin ? `?pin=${pin}` : ''}`;
+    const message = `היי ${project.client_name || ''}, הנה הקישור לגלריה הפרטית שלך:\n${url}${pin ? `\n\nקוד הגישה שלך הוא: ${pin}` : ''}`;
+    navigator.clipboard.writeText(message);
+    toast.success('הודעה עם קישור וקוד גישה הועתקה');
   };
 
   const [creatingFolder, setCreatingFolder] = useState(false);
@@ -67,6 +122,14 @@ export default function ProjectDetails() {
 
   if (isLoading) return <div className="p-8 text-center text-white/50">טוען...</div>;
   if (!project) return <div className="p-8 text-center text-white/50">פרויקט לא נמצא</div>;
+
+  const driveFiles = driveStatsData?.files || [];
+  const rawCount = driveFiles.filter((file) => /גלמים|raw/i.test(file.parent_name || '')).length;
+  const editedCount = driveFiles.filter((file) => /ערוכות|edited/i.test(file.parent_name || '')).length;
+  const liveRawCount = driveFiles.length ? rawCount : (project.raw_photos_count || 0);
+  const liveEditedCount = driveFiles.length ? editedCount : (project.final_photos_count || 0);
+  const liveSelectedCount = project.selected_photos_count || 0;
+  const projectEmails = getProjectEmails(project);
 
   const getStatusBadge = (status) => {
     const statusMap = {
@@ -98,48 +161,101 @@ export default function ProjectDetails() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
           <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
-            <CardHeader className="border-b border-slate-100">
+            <CardHeader className="border-b border-slate-100 flex flex-row items-center justify-between">
               <CardTitle>פרטי הפרויקט</CardTitle>
+              {isEditingDetails ? (
+                <div className="flex items-center gap-2">
+                  <Button size="sm" onClick={saveDetails} className="gap-1">
+                    <Save className="w-4 h-4" /> שמור
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setIsEditingDetails(false)} className="gap-1 text-slate-900 border-slate-300">
+                    <X className="w-4 h-4" /> ביטול
+                  </Button>
+                </div>
+              ) : (
+                <Button size="sm" variant="outline" onClick={startEditDetails} className="gap-1 text-slate-900 border-slate-300">
+                  <Pencil className="w-4 h-4" /> עריכה
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="pt-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
                 <div>
                   <label className="text-sm text-slate-500 block mb-1">שם הלקוח</label>
-                  <div className="font-medium">{project.client_name}</div>
+                  {isEditingDetails ? (
+                    <Input value={detailsForm?.client_name || ''} onChange={(e) => setDetailsForm({ ...detailsForm, client_name: e.target.value })} />
+                  ) : (
+                    <div className="font-medium">{project.client_name}</div>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm text-slate-500 block mb-1">טלפון</label>
-                  <div className="font-medium flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-slate-400" />
-                    {project.client_phone || 'לא הוזן'}
-                  </div>
+                  {isEditingDetails ? (
+                    <Input value={detailsForm?.client_phone || ''} onChange={(e) => setDetailsForm({ ...detailsForm, client_phone: e.target.value })} />
+                  ) : (
+                    <div className="font-medium flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-slate-400" />
+                      {project.client_phone || 'לא הוזן'}
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <label className="text-sm text-slate-500 block mb-1">אימייל</label>
-                  <div className="font-medium flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-slate-400" />
-                    {project.client_email || 'לא הוזן'}
-                  </div>
+                <div className="sm:col-span-2">
+                  <label className="text-sm text-slate-500 block mb-1">אימיילים מורשים</label>
+                  {isEditingDetails ? (
+                    <div className="space-y-2">
+                      {(detailsForm?.client_emails || ['']).map((email, index) => (
+                        <div key={index} className="flex gap-2">
+                          <Input value={email} onChange={(e) => updateEmailAt(index, e.target.value)} placeholder="client@email.com" dir="ltr" />
+                          {index === (detailsForm?.client_emails || []).length - 1 && (
+                            <Button type="button" size="icon" variant="outline" onClick={() => setDetailsForm({ ...detailsForm, client_emails: [...(detailsForm?.client_emails || []), ''] })} className="text-slate-900 border-slate-300">
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {(projectEmails.length ? projectEmails : ['לא הוזן']).map((email) => (
+                        <div key={email} className="font-medium flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-slate-400" />
+                          {email}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm text-slate-500 block mb-1">תאריך צילום</label>
                   <div className="font-medium flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-slate-400" />
-                    {project.shooting_date ? new Date(project.shooting_date).toLocaleDateString('he-IL') : 'לא נקבע'}
+                    {isEditingDetails ? (
+                      <Input type="date" value={detailsForm?.shooting_date || ''} onChange={(e) => setDetailsForm({ ...detailsForm, shooting_date: e.target.value })} />
+                    ) : (
+                      project.shooting_date ? new Date(project.shooting_date).toLocaleDateString('he-IL') : 'לא נקבע'
+                    )}
                   </div>
                 </div>
                 <div>
                   <label className="text-sm text-slate-500 block mb-1">מיקום</label>
                   <div className="font-medium flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-slate-400" />
-                    {project.shooting_location || 'לא צוין'}
+                    {isEditingDetails ? (
+                      <Input value={detailsForm?.shooting_location || ''} onChange={(e) => setDetailsForm({ ...detailsForm, shooting_location: e.target.value })} />
+                    ) : (
+                      project.shooting_location || 'לא צוין'
+                    )}
                   </div>
                 </div>
                 <div>
                   <label className="text-sm text-slate-500 block mb-1">מחיר</label>
                   <div className="font-medium flex items-center gap-2">
                     <DollarSign className="w-4 h-4 text-slate-400" />
-                    {project.total_price ? `₪${project.total_price.toLocaleString()}` : 'לא צוין'}
+                    {isEditingDetails ? (
+                      <Input type="number" value={detailsForm?.total_price || ''} onChange={(e) => setDetailsForm({ ...detailsForm, total_price: e.target.value })} />
+                    ) : (
+                      project.total_price ? `₪${project.total_price.toLocaleString()}` : 'לא צוין'
+                    )}
                   </div>
                 </div>
               </div>
@@ -156,21 +272,21 @@ export default function ProjectDetails() {
                   <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2">
                     <Upload className="w-5 h-5 text-slate-500" />
                   </div>
-                  <div className="text-2xl font-bold text-slate-800">{project.raw_photos_count || 0}</div>
+                  <div className="text-2xl font-bold text-slate-800">{liveRawCount}</div>
                   <div className="text-xs text-slate-500">גולמיות</div>
                 </div>
                 <div className="text-center">
                   <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-2">
                     <Eye className="w-5 h-5 text-purple-600" />
                   </div>
-                  <div className="text-2xl font-bold text-slate-800">{project.selected_photos_count || 0}</div>
+                  <div className="text-2xl font-bold text-slate-800">{liveSelectedCount}</div>
                   <div className="text-xs text-slate-500">נבחרו ע"י לקוח</div>
                 </div>
                 <div className="text-center">
                   <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-2">
                     <CheckCircle2 className="w-5 h-5 text-green-600" />
                   </div>
-                  <div className="text-2xl font-bold text-slate-800">{project.final_photos_count || 0}</div>
+                  <div className="text-2xl font-bold text-slate-800">{liveEditedCount}</div>
                   <div className="text-xs text-slate-500">ערוכות ומוכנות</div>
                 </div>
               </div>

@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
-const MAX_CONCURRENT_UPLOADS = 3;
+const MAX_CONCURRENT_UPLOADS = 4;
 
 // Drive uploader with optimistic UI + retry. Uploads each file directly to the
 // project's Drive subfolder via the `uploadToDrive` backend function.

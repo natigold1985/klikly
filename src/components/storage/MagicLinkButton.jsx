@@ -12,7 +12,7 @@ export default function MagicLinkButton({ project }) {
   const link = project?.client_access_token
     ? `${window.location.origin}/g/${project.client_access_token}`
     : '';
-  const defaultMessage = `היי ${project?.client_name || ''} 👋\n\nהגלריה שלך מוכנה! ✨\n\nאפשר לצפות בכל התמונות ולהוריד אותן ישירות מהקישור הבא:\n${link}\n\nתהנה/י`;
+  const defaultMessage = `היי ${project?.client_name || ''} 👋\n\nהגלריה שלך מוכנה! ✨\n\nאפשר לצפות בכל התמונות ולהוריד אותן ישירות מהקישור הבא:\n${link}\n${project?.gallery_pin ? `\nקוד הגישה שלך הוא: ${project.gallery_pin}\n` : ''}\nתהנה/י`;
 
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -28,9 +28,9 @@ export default function MagicLinkButton({ project }) {
   }
 
   const copy = async () => {
-    await navigator.clipboard.writeText(link);
+    await navigator.clipboard.writeText(message);
     setCopied(true);
-    toast.success('הקישור הועתק');
+    toast.success('ההודעה עם הקישור הועתקה');
     setTimeout(() => setCopied(false), 2000);
   };
 

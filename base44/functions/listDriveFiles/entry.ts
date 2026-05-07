@@ -82,6 +82,7 @@ Deno.serve(async (req) => {
         is_image: (f.mimeType || '').startsWith('image/'),
         video_duration_ms: f.videoMediaMetadata?.durationMillis ? parseInt(f.videoMediaMetadata.durationMillis) : null,
         modified_time: f.modifiedTime,
+        parent_name: f.parent_name || '',
       }));
 
     return Response.json({
