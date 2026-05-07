@@ -22,6 +22,32 @@
       "type": "string",
       "description": "\u05e1\u05d5\u05d2 \u05e6\u05d9\u05dc\u05d5\u05dd (\u05d7\u05ea\u05d5\u05e0\u05d4, \u05d1\u05e8 \u05de\u05e6\u05d5\u05d5\u05d4, \u05d0\u05d9\u05e8\u05d5\u05e2\u05d9\u05dd \u05d5\u05db\u05d5')"
     },
+    "pipeline": {
+      "type": "string",
+      "enum": [
+        "defense_industry",
+        "events_b2b",
+        "ai_webinar"
+      ],
+      "description": "Pipeline / \u05e6\u05d9\u05e0\u05d5\u05e8 \u05de\u05db\u05d9\u05e8\u05d4 \u05e9\u05dc \u05d4\u05dc\u05d9\u05d3"
+    },
+    "pipeline_stage": {
+      "type": "string",
+      "enum": [
+        "lead_found",
+        "outreach",
+        "procurement_check",
+        "contract_closed",
+        "quote_sent",
+        "follow_up",
+        "logistics_coordination",
+        "completed",
+        "registered_webinar",
+        "watched_webinar",
+        "consultation_meeting"
+      ],
+      "description": "\u05e9\u05dc\u05d1 \u05d1\u05ea\u05d5\u05da \u05d4-Pipeline"
+    },
     "status": {
       "type": "string",
       "enum": [
@@ -128,7 +154,7 @@
     "is_filtered": {
       "type": "boolean",
       "default": false,
-      "description": "\u05d4\u05d0\u05dd \u05d4\u05dc\u05d9\u05d3 \u05e1\u05d5\u05e0\u05df \u05d0\u05d5\u05d8\u05d5\u05de\u05d8\u05d9\u05ea \u05db\u05dc\u05d0 \u05e8\u05dc\u05d5\u05d5\u05e0\u05d8\u05d9 (\u05d6\u05d1\u05dc / \u05dc\u05dc\u05d0 \u05d8\u05dc\u05e4\u05d5\u05df \u05ea\u05e7\u05d9\u05df / \u05e9\u05dd \u05d7\u05e1\u05e8 \u05de\u05e9\u05de\u05e2\u05d5\u05ea)"
+      "description": "\u05d4\u05d0\u05dd \u05d4\u05dc\u05d9\u05d3 \u05e1\u05d5\u05e0\u05df \u05d0\u05d5\u05d8\u05d5\u05de\u05d8\u05d9\u05ea \u05db\u05dc\u05d0 \u05e8\u05dc\u05d5\u05d5\u05e0\u05d8\u05d9"
     },
     "filter_reason": {
       "type": "string",
@@ -137,7 +163,7 @@
     "synced_to_filtered_sheet": {
       "type": "boolean",
       "default": false,
-      "description": "\u05d4\u05d0\u05dd \u05d4\u05dc\u05d9\u05d3 \u05db\u05d1\u05e8 \u05e1\u05d5\u05e0\u05db\u05e8\u05df \u05dc\u05d2\u05d9\u05dc\u05d9\u05d5\u05df '\u05de\u05e1\u05d5\u05e0\u05e0\u05d9\u05dd' \u05d1\u05d2\u05d5\u05d2\u05dc \u05e9\u05d9\u05d8\u05e1"
+      "description": "\u05d4\u05d0\u05dd \u05d4\u05dc\u05d9\u05d3 \u05db\u05d1\u05e8 \u05e1\u05d5\u05e0\u05db\u05e8\u05df \u05dc\u05d2\u05d9\u05dc\u05d9\u05d5\u05df \u05de\u05e1\u05d5\u05e0\u05e0\u05d9\u05dd \u05d1\u05d2\u05d5\u05d2\u05dc \u05e9\u05d9\u05d8\u05e1"
     }
   },
   "required": [

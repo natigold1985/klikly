@@ -58,6 +58,13 @@ function extractContact(text) {
   return { phone, email };
 }
 
+function isValidContact(phone, email) {
+  const digits = String(phone || '').replace(/[^0-9]/g, '');
+  const hasPhone = digits.length === 10 && !/^(\d)\1+$/.test(digits);
+  const hasEmail = !!(email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim()));
+  return hasPhone || hasEmail;
+}
+
 function normalizeUrl(rawUrl = '') {
   let url = rawUrl.replace(/[\]"'<>]+$/g, '').trim();
   if (!url.startsWith('http')) return '';
@@ -211,6 +218,10 @@ Deno.serve(async (req) => {
       }
       const { phone, email } = extractContact(text);
       const platform = platformFromSubjectAndFrom(subject, from, reachable.url);
+      if (!isValidContact(phone, email)) {
+        rejected++;
+        continue;
+      }
 
       const candidate = {
         title: (subject || matched[0]).substring(0, 200),

@@ -72,7 +72,13 @@ function parseWordPressForm(body) {
   const fallbackPhone = phone || (body.match(/(?:\+972|0)(?:[\d\s\-()]){8,}/)?.[0] || '');
   const fallbackEmail = email || (body.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || '');
 
-  if (!name || (!fallbackPhone && !fallbackEmail)) return null;
+  const phoneDigits = String(fallbackPhone || '').replace(/[^0-9]/g, '');
+  const hasValidPhone = phoneDigits.length === 10 && !/^(\d)\1+$/.test(phoneDigits);
+  const hasValidEmail = !!(fallbackEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(fallbackEmail).trim()));
+  const hasFullName = String(name || '').trim().split(/\s+/).filter(Boolean).length >= 2;
+  const hasSourceUrl = /^https?:\/\//i.test(sourceUrl || '');
+
+  if (!hasFullName || (!hasValidPhone && !hasValidEmail) || !hasSourceUrl) return null;
 
   // Detect shooting type from source URL or body
   let shooting_type = '';
@@ -97,6 +103,7 @@ function parseWordPressForm(body) {
     email: fallbackEmail,
     shooting_type,
     notes: noteParts.join(', '),
+    source_post_url: sourceUrl,
   };
 }
 
@@ -284,6 +291,9 @@ ${unparsed.map(e => `From: ${e.from}\nSubject: ${e.subject}\n${e.body}\n---`).jo
         notes: l.notes || '',
         status: 'new',
         source: 'natigold.com (Gmail)',
+        source_post_url: l.source_post_url,
+        pipeline: /webinar|וובינר|ai|בינה מלאכותית/i.test(`${l.notes || ''} ${l.source_post_url || ''}`) ? 'ai_webinar' : 'events_b2b',
+        pipeline_stage: /webinar|וובינר|ai|בינה מלאכותית/i.test(`${l.notes || ''} ${l.source_post_url || ''}`) ? 'registered_webinar' : 'quote_sent',
         last_contact_date: new Date().toISOString(),
       })));
     }

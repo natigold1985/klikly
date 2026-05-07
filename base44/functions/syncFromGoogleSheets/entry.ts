@@ -12,7 +12,7 @@ const HEADER_KEYS = {
     type:    ['type', 'סוג', 'סוג שירות', 'service', 'shoot type'],
     address: ['address', 'כתובת', 'city', 'עיר'],
     notes:   ['note', 'הערה', 'הערות', 'message', 'הודעה', 'תוכן הודעה', 'תיאור'],
-    link:    ['link', 'קישור', 'url', 'קישור ליצירת קשר', 'קישור ליד'],
+    link:    ['link', 'קישור', 'url', 'source url', 'source_url', 'קישור מקור', 'קישור ליצירת קשר', 'קישור ליד'],
     company: ['company', 'חברה', 'תפקיד', 'role', 'job', 'position'],
     status:  ['סטטוס', 'status'],
 };
@@ -59,25 +59,60 @@ function tabNameToSource(tabName) {
 function isValidPhone(phone) {
     if (!phone) return false;
     const digits = String(phone).replace(/[^0-9]/g, '');
-    return digits.length >= 9 && digits.length <= 13;
+    return digits.length === 10 && !/^(\d)\1+$/.test(digits);
+}
+
+function isValidEmail(email) {
+    return !!(email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim()));
+}
+
+function isFullName(name) {
+    const clean = String(name || '').trim();
+    const low = clean.toLowerCase();
+    const bad = ['לא ידוע', 'unknown', 'test', 'בדיקה', 'n/a', '-', '?', 'ללא שם', 'ללא'];
+    if (!clean || bad.includes(low)) return false;
+    const parts = clean.split(/\s+/).filter(Boolean);
+    if (parts.length < 2) return false;
+    if (/מנהל|מנהלת|אחראי|אחראית|marcom|marketing|communications|manager|תפקיד|חברה|מחלקה/i.test(clean)) return false;
+    return true;
+}
+
+function extractSourceUrl(...fragments) {
+    const text = fragments.filter(Boolean).join(' ');
+    const match = text.match(/https?:\/\/[^\s|,]+/i);
+    return match ? match[0].replace(/[)\]"'<>]+$/g, '') : '';
+}
+
+function classifyPipeline(source = '', notes = '', shootingType = '') {
+    const text = [source, notes, shootingType].join(' ').toLowerCase();
+    if (/רפאל|אלביט|תעא|תעשייה אווירית|iai|rafael|elbit|defense|ביטחון|ביטחונית/.test(text)) {
+        return { pipeline: 'defense_industry', pipeline_stage: 'lead_found' };
+    }
+    if (/webinar|וובינר|ai|בינה מלאכותית|תדמית ai/.test(text)) {
+        return { pipeline: 'ai_webinar', pipeline_stage: 'registered_webinar' };
+    }
+    return { pipeline: 'events_b2b', pipeline_stage: 'quote_sent' };
 }
 
 // Detect junk/irrelevant leads — these should NOT be created as real leads.
-function detectJunkLead(name, phone, email, source = '', notes = '', shootingType = '') {
+function detectJunkLead(name, phone, email, source = '', notes = '', shootingType = '', sourceUrl = '') {
     const cleanName = String(name || '').trim();
-    const lowName = cleanName.toLowerCase();
-    const text = [cleanName, source, notes, shootingType].filter(Boolean).join(' ').toLowerCase();
-    const digits = String(phone || '').replace(/[^0-9]/g, '');
-    const hasValidEmail = !!(email && /\S+@\S+\.\S+/.test(String(email)));
-    const hasValidPhone = digits.length >= 9 && digits.length <= 13;
+    const text = [cleanName, source, notes, shootingType, sourceUrl].filter(Boolean).join(' ').toLowerCase();
 
-    if (!hasValidPhone && !hasValidEmail) {
-        return { isJunk: true, reason: 'no_contact_method' };
+    if (!isValidPhone(phone) && !isValidEmail(email)) {
+        return { isJunk: true, reason: 'no_valid_contact_method' };
     }
 
-    const junkNames = ['לא ידוע', 'unknown', 'test', 'בדיקה', 'n/a', '-', '?', 'ללא שם', 'ללא'];
-    if (!cleanName || junkNames.some(j => lowName === j) || lowName.includes('ליד ללא שם')) {
-        return { isJunk: true, reason: 'no_name' };
+    if (!isFullName(cleanName)) {
+        return { isJunk: true, reason: 'invalid_full_name' };
+    }
+
+    if (!sourceUrl || !/^https?:\/\//i.test(sourceUrl)) {
+        return { isJunk: true, reason: 'missing_source_url' };
+    }
+
+    if (text.includes('linkedin') && !isValidPhone(phone) && !isValidEmail(email)) {
+        return { isJunk: true, reason: 'linkedin_without_real_contact' };
     }
 
     const junkTextPatterns = [
@@ -264,9 +299,10 @@ Deno.serve(async (req) => {
                 if (companyCol) notesParts.push(`חברה/תפקיד: ${companyCol}`);
                 if (linkCol) notesParts.push(`קישור: ${linkCol}`);
                 const notes = notesParts.join(' | ');
+                const sourceUrl = extractSourceUrl(linkCol, notesCol, sourceCol);
 
-                // Need either a name or a phone to be a usable lead
-                if (!name && !isValidPhone(phone)) { tabSkipped++; skipped++; continue; }
+                const strictValidation = detectJunkLead(name, phone, email, detectedSource, notes, typeCol, sourceUrl);
+                if (strictValidation.isJunk) { tabSkipped++; skipped++; continue; }
 
                 // Find existing record by phone, then email, then name+source
                 let match = null;
@@ -294,22 +330,21 @@ Deno.serve(async (req) => {
                         Object.assign(match, updates);
                     }
                 } else {
-                    const finalName = name || (email || phone || 'לא ידוע');
-                    const junk = detectJunkLead(finalName, phone, email, detectedSource, notes, typeCol);
-                    if (junk.isJunk) {
-                        tabSkipped++; skipped++;
-                        continue;
-                    }
+                    const finalName = name;
+                    const pipelineData = classifyPipeline(detectedSource, notes, typeCol);
 
                     const created = await base44.asServiceRole.entities.Lead.create({
                         name: finalName,
                         phone: phone || '',
                         email: email || undefined,
                         source: detectedSource,
+                        source_post_url: sourceUrl,
                         shooting_type: typeCol || undefined,
                         address: addressCol || undefined,
                         notes: notes || undefined,
                         status: 'new',
+                        pipeline: pipelineData.pipeline,
+                        pipeline_stage: pipelineData.pipeline_stage,
                         last_contact_date: new Date().toISOString(),
                         is_filtered: false,
                     });
