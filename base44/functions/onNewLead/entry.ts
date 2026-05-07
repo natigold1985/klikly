@@ -11,6 +11,15 @@ Deno.serve(async (req) => {
         const lead = payload.data;
         if (!lead) return Response.json({ success: true, message: 'No lead data' });
 
+        const phoneDigits = String(lead.phone || '').replace(/[^0-9]/g, '');
+        const hasValidPhone = phoneDigits.length === 10 && !/^(\d)\1+$/.test(phoneDigits);
+        const hasValidEmail = !!(lead.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(lead.email).trim()));
+        const hasFullName = String(lead.name || '').trim().split(/\s+/).filter(Boolean).length >= 2;
+        const hasSourceUrl = /^https?:\/\//i.test(String(lead.source_post_url || '').trim());
+        if (!hasFullName || (!hasValidPhone && !hasValidEmail) || !hasSourceUrl || lead.is_filtered) {
+            return Response.json({ success: true, skipped: 'lead_failed_quality_gate' });
+        }
+
         // Log the action
         await base44.asServiceRole.entities.SystemLog.create({
             action: 'Lead Created Automation',

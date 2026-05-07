@@ -68,6 +68,7 @@ Deno.serve(async (req) => {
 
     let added = 0;
     let updated = 0;
+    const leadsToCreate = [];
 
     const classifyPipeline = (row) => {
       const text = [row.source, row.source_post_url, row.notes, row.shooting_type].filter(Boolean).join(' ').toLowerCase();
@@ -109,8 +110,8 @@ Deno.serve(async (req) => {
           updated++;
         }
       } else {
-        // Insert new
-        await base44.entities.Lead.create({
+        // Collect new leads and create them in one batch to reduce DB operations
+        leadsToCreate.push({
           name: row.name,
           phone: row.phone,
           email: row.email || undefined,
@@ -128,6 +129,10 @@ Deno.serve(async (req) => {
         });
         added++;
       }
+    }
+
+    if (leadsToCreate.length > 0) {
+      await base44.entities.Lead.bulkCreate(leadsToCreate);
     }
 
     // Notify user about credit usage (ExtractDataFromUploadedFile uses AI credits)

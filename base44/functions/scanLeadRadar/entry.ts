@@ -93,13 +93,39 @@ function extractUrls(text, html) {
   return Array.from(urls).slice(0, 8);
 }
 
+function preprocessHtmlForAi(html = '') {
+  const title = (html.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1] || '';
+  const meta = Array.from(html.matchAll(/<meta[^>]+(?:name|property)=["'](?:description|og:title|og:description|twitter:title|twitter:description)["'][^>]+content=["']([^"']+)["'][^>]*>/gi))
+    .map(match => match[1]);
+  const jsonLd = Array.from(html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi))
+    .map(match => match[1].replace(/<[^>]+>/g, ' ').slice(0, 1200));
+  const bodyText = html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, ' ')
+    .replace(/<svg[\s\S]*?<\/svg>/gi, ' ')
+    .replace(/<br\s*\/?>|<\/p>|<\/div>|<\/li>|<\/h[1-6]>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return [title, ...meta, ...jsonLd, bodyText]
+    .filter(Boolean)
+    .join('\n')
+    .slice(0, 2500);
+}
+
 async function getReachableUrl(urls) {
   for (const url of urls.slice(0, 3)) {
     try {
       const res = await fetch(url, { method: 'GET', redirect: 'follow' });
       if (res.ok) {
         const contentType = res.headers.get('content-type') || '';
-        const pageText = contentType.includes('text/html') ? (await res.text()).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 500) : '';
+        const pageText = contentType.includes('text/html') ? preprocessHtmlForAi(await res.text()) : '';
         return { url: res.url || url, pageText };
       }
     } catch {
@@ -122,7 +148,7 @@ function platformFromSubjectAndFrom(subject = '', from = '', sourceUrl = '') {
 
 async function validateLeadWithAi(base44, candidate) {
   const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
-    prompt: `סנן ליד לצלם אירועים בישראל. אשר רק אם אדם/עסק מחפש צילום עכשיו. פסול: מאמר, קורס, שירות שהצלם מוכר, עמוד שגיאה, תוכן כללי.
+  prompt: `סנן ליד לצלם אירועים בישראל על בסיס טקסט מזוקק בלבד (Meta / JSON-LD / Text nodes), לא HTML מלא. אשר רק אם אדם/עסק מחפש צילום עכשיו. פסול: מאמר, קורס, שירות שהצלם מוכר, עמוד שגיאה, תוכן כללי.
 כותרת: ${candidate.title}
 קישור: ${candidate.source_url}
 טקסט: ${candidate.snippet}
@@ -204,8 +230,13 @@ Deno.serve(async (req) => {
       if (matched.length === 0) continue;
 
       const urls = extractUrls(text, html);
-      const reachable = await getReachableUrl(urls);
-      if (!reachable.url || existingUrls.has(reachable.url)) {
+      if (urls.length === 0 || urls.some(url => existingUrls.has(url))) {
+        rejected++;
+        continue;
+      }
+
+      const { phone, email } = extractContact(text);
+      if (!isValidContact(phone, email)) {
         rejected++;
         continue;
       }
@@ -216,12 +247,14 @@ Deno.serve(async (req) => {
         rejected++;
         continue;
       }
-      const { phone, email } = extractContact(text);
-      const platform = platformFromSubjectAndFrom(subject, from, reachable.url);
-      if (!isValidContact(phone, email)) {
+
+      const reachable = await getReachableUrl(urls);
+      if (!reachable.url || existingUrls.has(reachable.url)) {
         rejected++;
         continue;
       }
+
+      const platform = platformFromSubjectAndFrom(subject, from, reachable.url);
 
       const candidate = {
         title: (subject || matched[0]).substring(0, 200),

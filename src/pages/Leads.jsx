@@ -131,6 +131,7 @@ export default function Leads() {
   const [showAiAssist, setShowAiAssist] = useState(false);
   const [aiLead, setAiLead] = useState(null);
   const [autoFollowUpLead, setAutoFollowUpLead] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(50);
   
   const [newLead, setNewLead] = useState({
     name: '',
@@ -157,8 +158,8 @@ export default function Leads() {
   const { data: leads = [], isLoading } = useQuery({
     queryKey: ['leads', user?.email, isAdmin],
     queryFn: () => isAdmin
-      ? base44.entities.Lead.list('-created_date', 500)
-      : base44.entities.Lead.filter({ created_by: user.email }, '-created_date', 200),
+      ? base44.entities.Lead.list('-created_date', 300)
+      : base44.entities.Lead.filter({ created_by: user.email }, '-created_date', 150),
     enabled: !!user,
   });
 
@@ -347,6 +348,12 @@ export default function Leads() {
       const dB = new Date(b.created_date || 0).getTime();
       return dB - dA;
     });
+
+  const visibleLeads = filteredLeads.slice(0, visibleCount);
+
+  React.useEffect(() => {
+    setVisibleCount(50);
+  }, [searchTerm, statusFilter, activeTab, viewMode]);
 
   const getStatusBadge = (status) => {
     const statusMap = {
@@ -635,7 +642,7 @@ export default function Leads() {
 
       {/* Lead Count */}
       <div className="flex items-center justify-between">
-        <p className="text-xs text-slate-500">{filteredLeads.length} לידים</p>
+        <p className="text-xs text-slate-500">מציג {Math.min(visibleLeads.length, filteredLeads.length)} מתוך {filteredLeads.length} לידים</p>
       </div>
 
       {/* Leads Display */}
@@ -651,7 +658,7 @@ export default function Leads() {
         </Card>
       ) : viewMode === 'table' ? (
         <LeadTableView 
-          leads={filteredLeads} 
+          leads={visibleLeads} 
           projectsByLeadId={projectsByLeadId}
           onStatusChange={(id, status) => updateLeadMutation.mutate({ id, data: { status } })}
           onDelete={(id) => { if (confirm('למחוק את הליד?')) deleteLeadMutation.mutate(id); }}
@@ -665,7 +672,7 @@ export default function Leads() {
         <Card className="border shadow-sm overflow-hidden h-[600px] relative z-0">
           <MapContainer center={[31.0461, 34.8516]} zoom={7} style={{ height: '100%', width: '100%', zIndex: 1 }}>
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            {filteredLeads.map((lead) => (
+            {visibleLeads.map((lead) => (
               lead.address ? (
                 <Marker key={lead.id} position={[31.0461 + (Math.random() - 0.5) * 2, 34.8516 + (Math.random() - 0.5) * 2]}>
                   <Popup>
@@ -682,7 +689,7 @@ export default function Leads() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-full box-border">
-          {filteredLeads.map((lead) => (
+          {visibleLeads.map((lead) => (
             <SwipeableLeadCard 
               key={lead.id} 
               lead={lead} 
@@ -690,6 +697,14 @@ export default function Leads() {
               getStatusBadge={getStatusBadge} 
             />
           ))}
+        </div>
+      )}
+
+      {filteredLeads.length > visibleLeads.length && (
+        <div className="flex justify-center pt-2">
+          <Button variant="secondary" onClick={() => setVisibleCount((count) => count + 50)}>
+            טען עוד 50 לידים
+          </Button>
         </div>
       )}
     </div>

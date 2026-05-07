@@ -85,6 +85,18 @@ export default function LeadQualityDashboard({ leads = [] }) {
           })}
         </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {[
+            'Scraping שולח ל-AI רק Meta / JSON-LD / Text nodes עד 2,500 תווים — לא HTML מלא.',
+            'Fail-Fast עוצר לידים לא תקינים בשרת לפני Push / Webhooks / פעולות המשך.',
+            'ייבוא קבצים ו-Google Sheets מבצעים Dedup מקומי ו-Bulk Create במקום יצירה אחת-אחת.',
+          ].map((text) => (
+            <div key={text} className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-medium text-emerald-800 leading-relaxed">
+              {text}
+            </div>
+          ))}
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-1 p-4 rounded-xl border border-red-200 bg-red-50">
             <div className="flex items-center gap-2 mb-2">
