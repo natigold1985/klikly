@@ -99,12 +99,28 @@ export default function DriveProjectView({ project, onProjectDeleted }) {
 
   const handleDeleteProject = async () => {
     setDeleting(true);
-    await base44.entities.Project.delete(project.id);
-    toast.success('הפרויקט נמחק מהמערכת');
+    await base44.functions.invoke('deleteDriveItem', {
+      project_id: project.id,
+      delete_project_folder: true,
+      delete_project_record: true,
+    });
+    toast.success('הפרויקט והתיקייה נמחקו');
     queryClient.invalidateQueries({ queryKey: ['driveProjects'] });
     setDeleting(false);
     setDeleteOpen(false);
     onProjectDeleted?.();
+  };
+
+  const handleDeleteFile = async (file) => {
+    if (!window.confirm(`למחוק את "${file.name}" מ-Google Drive?`)) return;
+    await base44.functions.invoke('deleteDriveItem', {
+      project_id: project.id,
+      file_id: file.id,
+    });
+    toast.success('הקובץ נמחק מ-Google Drive');
+    setOptimistic((prev) => prev.filter((item) => item.id !== file.id));
+    queryClient.invalidateQueries({ queryKey: ['driveFiles', project.id] });
+    refetch();
   };
 
   // === No folder yet — show prominent Connect/Create button + Link existing ===
@@ -235,6 +251,7 @@ export default function DriveProjectView({ project, onProjectDeleted }) {
             loading={isLoading}
             onDownload={handleDownload}
             onDownloadAll={handleDownloadAll}
+            onDeleteFile={handleDeleteFile}
           />
         </CardContent>
       </Card>
@@ -247,7 +264,7 @@ export default function DriveProjectView({ project, onProjectDeleted }) {
               האם למחוק את הפרויקט?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              פעולה זו תמחק את הפרויקט מהמערכת ואת הקישור שלו ל-Drive. הקבצים עצמם ב-Google Drive לא יימחקו אוטומטית.
+              פעולה זו תמחק את הפרויקט מהמערכת וגם את תיקיית הפרויקט ב-Google Drive.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2">

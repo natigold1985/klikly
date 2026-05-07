@@ -1,11 +1,11 @@
 import React, { useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Upload, X, CheckCircle2, AlertCircle, RotateCw, Image as ImageIcon, Video, ShieldCheck } from 'lucide-react';
+import { Upload, X, CheckCircle2, AlertCircle, RotateCw, Image as ImageIcon, Video, ShieldCheck, FileText, Music } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
-const MAX_CONCURRENT_UPLOADS = 4;
+const MAX_CONCURRENT_UPLOADS = 2;
 
 // Drive uploader with optimistic UI + retry. Uploads each file directly to the
 // project's Drive subfolder via the `uploadToDrive` backend function.
@@ -52,9 +52,7 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-    const dropped = Array.from(e.dataTransfer?.files || []).filter(
-      (f) => f.type.startsWith('image/') || f.type.startsWith('video/')
-    );
+    const dropped = Array.from(e.dataTransfer?.files || []);
     startUploads(dropped);
   };
 
@@ -133,38 +131,38 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
         return;
       }
 
-      // Step 1: upload to temp storage
-      const { file_url } = await withRetry(
-        () => base44.integrations.Core.UploadFile({ file: item.file }),
-        item.id
-      );
-      clearInterval(progressInterval);
-      setItem(item.id, { progress: 55 });
-
-      // Smooth creep toward 90% while step 2 runs
-      progressInterval = setInterval(() => {
-        setItems((prev) =>
-          prev.map((it) =>
-            it.id === item.id && it.status === 'uploading' && it.progress < 90
-              ? { ...it, progress: Math.min(90, it.progress + 3) }
-              : it
-          )
-        );
-      }, 250);
-
-      // Step 2: server pushes the file to the project's Drive subfolder
-      const res = await withRetry(
+      const initRes = await withRetry(
         () => base44.functions.invoke('uploadToDrive', {
           project_id: projectId,
-          file_url,
           file_name: item.file.name,
           mime_type: item.file.type || 'application/octet-stream',
+          file_size: item.file.size,
           target_subfolder: subfolder,
+          direct_upload_init: true,
         }),
         item.id
       );
 
+      const uploadUrl = initRes.data?.upload_url;
+      if (!uploadUrl) throw new Error(initRes.data?.error || 'לא התקבלה כתובת העלאה מ-Google Drive');
       clearInterval(progressInterval);
+      setItem(item.id, { progress: 45 });
+
+      const driveFile = await uploadDirectToDrive(uploadUrl, item.file, (progress) => {
+        setItem(item.id, { progress: Math.max(45, Math.min(95, progress)) });
+      });
+
+      const res = await withRetry(
+        () => base44.functions.invoke('uploadToDrive', {
+          project_id: projectId,
+          file_name: item.file.name,
+          mime_type: item.file.type || 'application/octet-stream',
+          target_subfolder: subfolder,
+          direct_upload_complete: true,
+          drive_file: driveFile,
+        }),
+        item.id
+      );
 
       if (res.status !== 200 || !res.data?.success) {
         throw new Error(res.data?.error || `Status ${res.status}`);
@@ -213,8 +211,33 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
     return Math.round((bytes / Math.pow(k, i)) * 10) / 10 + ' ' + sizes[i];
   };
 
-  const Icon = (type) =>
-    type?.startsWith('video/') ? Video : ImageIcon;
+  const uploadDirectToDrive = (uploadUrl, file, onProgress) => new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', uploadUrl);
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable) return;
+      onProgress(45 + Math.round((event.loaded / event.total) * 50));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(JSON.parse(xhr.responseText || '{}'));
+      } else {
+        reject(new Error(`Google Drive upload failed (${xhr.status})`));
+      }
+    };
+    xhr.onerror = () => reject(new Error('שגיאת רשת בהעלאה ל-Google Drive'));
+    xhr.send(file);
+  });
+
+  const Icon = (type, name = '') => {
+    const lower = String(name).toLowerCase();
+    if (type?.startsWith('video/')) return Video;
+    if (type?.startsWith('audio/')) return Music;
+    if (type?.startsWith('image/')) return ImageIcon;
+    if (type?.includes('pdf') || ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv'].some((ext) => lower.endsWith(ext))) return FileText;
+    return FileText;
+  };
 
   const activeCount = items.filter((it) => it.status === 'uploading').length;
   const pendingCount = items.filter((it) => it.status === 'pending').length;
@@ -258,13 +281,13 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
           <Upload className="w-4 h-4" />
           העלאת קבצים
         </Button>
-        <p className="text-xs text-slate-500 mt-3">תמונות ווידאו · ייכנסו ישירות לתיקיית הפרויקט שלך ב-Drive</p>
+        <p className="text-xs text-slate-500 mt-3">תמונות, וידאו, מסמכים ואודיו · העלאה ישירה ויציבה ל-Google Drive</p>
         <input
           ref={fileInputRef}
           id={`drive-file-input-${projectId}`}
           type="file"
           multiple
-          accept="image/*,video/*"
+          accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
           onChange={handleSelect}
           className="hidden"
         />
@@ -273,7 +296,7 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
       {items.length > 0 && (
         <div className="space-y-2">
           {items.map((it) => {
-            const FileIcon = Icon(it.file.type);
+            const FileIcon = Icon(it.file.type, it.file.name);
             return (
               <div
                 key={it.id}

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Play, FileImage, ExternalLink, Film, Image as ImageIcon, Video as VideoIcon, DownloadCloud, Loader2, Copy, MessageCircle } from 'lucide-react';
+import { Download, Play, FileImage, ExternalLink, Film, Image as ImageIcon, Video as VideoIcon, DownloadCloud, Loader2, Copy, MessageCircle, FileText, Music, Trash2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import DriveLightbox from './DriveLightbox';
@@ -10,7 +10,7 @@ import DriveLightbox from './DriveLightbox';
 // - Smooth fade transitions between filter tabs
 // - Real Drive video thumbnails (via thumbnailLink) with subtle play overlay
 // - Click does NOT auto-play; videos open in a new tab on download/view action only
-export default function DriveFilesGrid({ files, project, onDownload, onDownloadAll, loading }) {
+export default function DriveFilesGrid({ files, project, onDownload, onDownloadAll, onDeleteFile, loading }) {
   const [filter, setFilter] = useState('all');
   const [bulkDownloading, setBulkDownloading] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
@@ -19,12 +19,16 @@ export default function DriveFilesGrid({ files, project, onDownload, onDownloadA
     total: files?.length || 0,
     images: files?.filter((f) => f.is_image).length || 0,
     videos: files?.filter((f) => f.is_video).length || 0,
+    documents: files?.filter((f) => f.is_document || isDocumentFile(f)).length || 0,
+    audio: files?.filter((f) => f.is_audio || isAudioFile(f)).length || 0,
   }), [files]);
 
   const filtered = useMemo(() => {
     if (!files) return [];
     if (filter === 'photos') return files.filter((f) => f.is_image);
     if (filter === 'videos') return files.filter((f) => f.is_video);
+    if (filter === 'documents') return files.filter((f) => f.is_document || isDocumentFile(f));
+    if (filter === 'audio') return files.filter((f) => f.is_audio || isAudioFile(f));
     return files;
   }, [files, filter]);
 
@@ -55,7 +59,7 @@ export default function DriveFilesGrid({ files, project, onDownload, onDownloadA
           <span className="mr-1">קבצים</span>
           {(stats.images > 0 || stats.videos > 0) && (
             <span className="text-xs text-slate-400 mr-2">
-              · {stats.images} תמונות, {stats.videos} סרטונים
+              · {stats.images} תמונות, {stats.videos} סרטונים, {stats.documents} מסמכים, {stats.audio} אודיו
             </span>
           )}
         </div>
@@ -72,6 +76,16 @@ export default function DriveFilesGrid({ files, project, onDownload, onDownloadA
             {stats.videos > 0 && (
               <FilterTab active={filter === 'videos'} onClick={() => setFilter('videos')}>
                 <Film className="w-3.5 h-3.5" /> סרטונים
+              </FilterTab>
+            )}
+            {stats.documents > 0 && (
+              <FilterTab active={filter === 'documents'} onClick={() => setFilter('documents')}>
+                <FileText className="w-3.5 h-3.5" /> מסמכים
+              </FilterTab>
+            )}
+            {stats.audio > 0 && (
+              <FilterTab active={filter === 'audio'} onClick={() => setFilter('audio')}>
+                <Music className="w-3.5 h-3.5" /> אודיו
               </FilterTab>
             )}
           </div>
@@ -119,6 +133,7 @@ export default function DriveFilesGrid({ files, project, onDownload, onDownloadA
               file={f}
               project={project}
               onDownload={onDownload}
+              onDeleteFile={onDeleteFile}
               onOpen={() => setLightboxIndex(i)}
             />
           ))}
@@ -137,13 +152,15 @@ export default function DriveFilesGrid({ files, project, onDownload, onDownloadA
   );
 }
 
-function FileTile({ file, project, onDownload, onOpen }) {
+function FileTile({ file, project, onDownload, onDeleteFile, onOpen }) {
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
   const [sharing, setSharing] = useState(false);
 
   const showThumb = file.thumbnail_url && !imgFailed;
   const isVideo = file.is_video;
+  const isAudio = file.is_audio || isAudioFile(file);
+  const isDocument = file.is_document || isDocumentFile(file);
 
   const formatDuration = (ms) => {
     if (!ms) return null;
@@ -218,6 +235,10 @@ function FileTile({ file, project, onDownload, onOpen }) {
         }`} style={{ aspectRatio: '4/3' }}>
           {isVideo ? (
             <VideoIcon className="w-12 h-12 text-white/60" />
+          ) : isAudio ? (
+            <Music className="w-12 h-12 text-purple-500" />
+          ) : isDocument ? (
+            <FileText className="w-12 h-12 text-blue-500" />
           ) : (
             <FileImage className="w-12 h-12 text-slate-400" />
           )}
@@ -283,6 +304,18 @@ function FileTile({ file, project, onDownload, onOpen }) {
               <MessageCircle className="w-4 h-4" />
             </button>
           )}
+          {onDeleteFile && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteFile(file);
+              }}
+              className="w-9 h-9 rounded-full bg-red-600 text-white flex items-center justify-center hover:scale-110 shadow-md transition-all"
+              title="מחיקה"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
           {file.view_url && (
             <a
               href={file.view_url}
@@ -299,6 +332,16 @@ function FileTile({ file, project, onDownload, onOpen }) {
       </div>
     </div>
   );
+}
+
+function isAudioFile(file = {}) {
+  const lower = String(file.name || '').toLowerCase();
+  return String(file.mime_type || '').startsWith('audio/') || ['.mp3', '.wav', '.m4a', '.aac', '.ogg'].some((ext) => lower.endsWith(ext));
+}
+
+function isDocumentFile(file = {}) {
+  const lower = String(file.name || '').toLowerCase();
+  return String(file.mime_type || '').includes('pdf') || ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv'].some((ext) => lower.endsWith(ext));
 }
 
 function FilterTab({ active, onClick, children }) {

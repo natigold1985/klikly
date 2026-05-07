@@ -30,28 +30,29 @@ export default function ClientUploadDropzone({ token, onUploaded }) {
         );
       }, 200);
 
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: item.file });
+      const initRes = await base44.functions.invoke('uploadToDrive', {
+        token,
+        file_name: item.file.name,
+        mime_type: item.file.type || 'application/octet-stream',
+        file_size: item.file.size,
+        direct_upload_init: true,
+      });
+      const uploadUrl = initRes.data?.upload_url;
+      if (!uploadUrl) throw new Error(initRes.data?.error || 'לא התקבלה כתובת העלאה מ-Google Drive');
       clearInterval(progressInterval);
-      setItem(item.id, { progress: 55 });
+      setItem(item.id, { progress: 45 });
 
-      // Creep toward 90% during Drive upload
-      progressInterval = setInterval(() => {
-        setItems((prev) =>
-          prev.map((it) =>
-            it.id === item.id && it.status === 'uploading' && it.progress < 90
-              ? { ...it, progress: Math.min(90, it.progress + 3) }
-              : it
-          )
-        );
-      }, 250);
+      const driveFile = await uploadDirectToDrive(uploadUrl, item.file, (progress) => {
+        setItem(item.id, { progress: Math.max(45, Math.min(95, progress)) });
+      });
 
       const res = await base44.functions.invoke('uploadToDrive', {
         token,
-        file_url,
         file_name: item.file.name,
         mime_type: item.file.type || 'application/octet-stream',
+        direct_upload_complete: true,
+        drive_file: driveFile,
       });
-      clearInterval(progressInterval);
 
       if (res.status !== 200 || !res.data?.success) {
         throw new Error(res.data?.error || `Status ${res.status}`);
@@ -67,6 +68,25 @@ export default function ClientUploadDropzone({ token, onUploaded }) {
       toast.error(`נכשל: ${item.file.name}`);
     }
   };
+
+  const uploadDirectToDrive = (uploadUrl, file, onProgress) => new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', uploadUrl);
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable) return;
+      onProgress(45 + Math.round((event.loaded / event.total) * 50));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(JSON.parse(xhr.responseText || '{}'));
+      } else {
+        reject(new Error(`Google Drive upload failed (${xhr.status})`));
+      }
+    };
+    xhr.onerror = () => reject(new Error('שגיאת רשת בהעלאה ל-Google Drive'));
+    xhr.send(file);
+  });
 
   const handleSelect = (e) => {
     const picked = Array.from(e.target.files || []);
@@ -103,7 +123,7 @@ export default function ClientUploadDropzone({ token, onUploaded }) {
           ref={inputRef}
           type="file"
           multiple
-          accept="image/*,video/*"
+          accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
           onChange={handleSelect}
           className="hidden"
         />

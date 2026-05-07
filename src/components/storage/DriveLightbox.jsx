@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { X, ChevronLeft, ChevronRight, Download, ExternalLink, Loader2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Download, ExternalLink, Loader2, FileText, Music } from 'lucide-react';
 
 // Premium Pixieset-style lightbox for Drive files.
 // - Smooth fade transitions between items
@@ -120,6 +120,22 @@ export default function DriveLightbox({ files, startIndex = 0, onClose, onDownlo
               title={file.name}
             />
           </div>
+        ) : file.is_audio ? (
+          <div className="w-full max-w-xl bg-white/10 border border-white/15 rounded-2xl p-8 text-center">
+            <Music className="w-16 h-16 text-purple-300 mx-auto mb-4" />
+            <p className="text-white font-bold mb-4">{file.name}</p>
+            <a href={file.view_url || file.download_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white text-black font-bold">
+              <ExternalLink className="w-4 h-4" /> פתח ב-Google Drive
+            </a>
+          </div>
+        ) : file.is_document ? (
+          <div className="w-full max-w-xl bg-white/10 border border-white/15 rounded-2xl p-8 text-center">
+            <FileText className="w-16 h-16 text-blue-300 mx-auto mb-4" />
+            <p className="text-white font-bold mb-4">{file.name}</p>
+            <a href={file.view_url || file.download_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white text-black font-bold">
+              <ExternalLink className="w-4 h-4" /> פתח ב-Google Drive
+            </a>
+          </div>
         ) : (
           <>
             {!loaded && (
@@ -163,7 +179,7 @@ export default function DriveLightbox({ files, startIndex = 0, onClose, onDownlo
                   <img src={f.thumbnail_url} alt="" className="w-full h-full object-cover" loading="lazy" />
                 ) : (
                   <div className="w-full h-full bg-slate-800 flex items-center justify-center text-white text-xs">
-                    {f.is_video ? '▶' : '·'}
+                    {f.is_video ? '▶' : f.is_audio ? '♪' : f.is_document ? 'PDF' : '·'}
                   </div>
                 )}
                 {f.is_video && (

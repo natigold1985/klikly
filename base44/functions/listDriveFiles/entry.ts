@@ -85,6 +85,9 @@ Deno.serve(async (req) => {
         download_url: `https://drive.google.com/uc?export=download&id=${f.id}`,
         is_video: (f.mimeType || '').startsWith('video/'),
         is_image: (f.mimeType || '').startsWith('image/'),
+        is_audio: (f.mimeType || '').startsWith('audio/'),
+        is_document: isDocumentFile(f.name, f.mimeType),
+        is_folder: false,
         video_duration_ms: f.videoMediaMetadata?.durationMillis ? parseInt(f.videoMediaMetadata.durationMillis) : null,
         modified_time: f.modifiedTime,
         parent_name: f.parent_name || '',
@@ -106,6 +109,11 @@ async function getCurrentUser(base44) {
   } catch (_) {
     return null;
   }
+}
+
+function isDocumentFile(name = '', mimeType = '') {
+  const lower = String(name).toLowerCase();
+  return String(mimeType).includes('pdf') || ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv'].some((ext) => lower.endsWith(ext));
 }
 
 function serializeProject(p, isClient) {

@@ -26,9 +26,9 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
-    const { project_id, file_url, file_name, mime_type, target_subfolder, token, check_only } = body;
+    const { project_id, file_url, file_name, mime_type, target_subfolder, token, check_only, direct_upload_init, direct_upload_complete, drive_file_id, drive_file, file_size } = body;
 
-    if (!file_name || (!file_url && !check_only)) {
+    if (!file_name || (!file_url && !check_only && !direct_upload_init && !direct_upload_complete)) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -73,6 +73,36 @@ Deno.serve(async (req) => {
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('googledrive');
 
+    if (direct_upload_complete) {
+      let completedFile = drive_file || null;
+      if (!completedFile && drive_file_id) {
+        const metaRes = await fetch(`https://www.googleapis.com/drive/v3/files/${drive_file_id}?fields=id,name,thumbnailLink,webViewLink,size,mimeType`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (metaRes.ok) completedFile = await metaRes.json();
+      }
+      if (!completedFile) return Response.json({ error: 'Missing uploaded file metadata' }, { status: 400 });
+
+      const countPatch = {};
+      if ((completedFile.mimeType || '').startsWith('image/') || (completedFile.mimeType || '').startsWith('video/')) {
+        if (isRawFile(completedFile.name, completedFile.size)) {
+          countPatch.raw_photos_count = (project.raw_photos_count || 0) + 1;
+        } else {
+          countPatch.final_photos_count = (project.final_photos_count || 0) + 1;
+        }
+      }
+      if (Object.keys(countPatch).length > 0) {
+        await base44.asServiceRole.entities.Project.update(project.id, countPatch).catch(() => {});
+      }
+
+      notifyUpload(base44, project, isProjectClient, {
+        name: completedFile.name,
+        size: completedFile.size ? parseInt(completedFile.size) : 0,
+      }).catch((e) => console.error('notify failed', e));
+
+      return Response.json({ success: true, file: mapDriveFile(completedFile) });
+    }
+
     // Pick subfolder. Photographer => edited (default). Client => client.
     const subKey = target_subfolder || (isProjectClient ? 'client' : 'edited');
     const subfolderId = await findOrCreateSubfolder(accessToken, rootFolderId, subKey);
@@ -87,6 +117,33 @@ Deno.serve(async (req) => {
         message: existingFile ? 'הקובץ כבר קיים במערכת' : 'הקובץ לא קיים בתיקייה',
         file: existingFile ? mapDriveFile(existingFile) : null,
       });
+    }
+
+    if (direct_upload_init) {
+      const metadata = {
+        name: file_name,
+        parents: [subfolderId],
+        mimeType: mime_type || 'application/octet-stream',
+      };
+      const sessionRes = await fetch(
+        'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,thumbnailLink,webViewLink,size,mimeType',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json; charset=UTF-8',
+            'X-Upload-Content-Type': metadata.mimeType,
+            ...(file_size ? { 'X-Upload-Content-Length': String(file_size) } : {}),
+          },
+          body: JSON.stringify(metadata),
+        }
+      );
+
+      if (!sessionRes.ok) {
+        return Response.json({ error: 'Failed to create Drive upload session', details: await sessionRes.text() }, { status: 502 });
+      }
+
+      return Response.json({ success: true, upload_url: sessionRes.headers.get('Location') });
     }
 
     // Download the source file and stream it to Drive without loading the whole file into RAM
@@ -191,7 +248,14 @@ function mapDriveFile(file) {
     download_url: `https://drive.google.com/uc?export=download&id=${file.id}`,
     is_image: (file.mimeType || '').startsWith('image/'),
     is_video: (file.mimeType || '').startsWith('video/'),
+    is_audio: (file.mimeType || '').startsWith('audio/'),
+    is_document: isDocumentFile(file.name, file.mimeType),
   };
+}
+
+function isDocumentFile(name = '', mimeType = '') {
+  const lower = String(name).toLowerCase();
+  return String(mimeType).includes('pdf') || ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv'].some((ext) => lower.endsWith(ext));
 }
 
 async function findExistingFileByName(accessToken, folderId, fileName) {
