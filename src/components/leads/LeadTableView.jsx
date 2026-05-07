@@ -35,15 +35,15 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
       </div>
 
       {/* Desktop: table */}
-      <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <table className="w-full text-sm table-fixed" dir="rtl">
+      <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto overflow-y-hidden">
+      <table className="min-w-[1180px] w-full text-sm table-fixed" dir="rtl">
         <colgroup>
+          <col className="w-[16%]" />
+          <col className="w-[11%]" />
           <col className="w-[18%]" />
           <col className="w-[12%]" />
-          <col className="w-[13%]" />
-          <col className="w-[13%]" />
-          <col className="w-[19%]" />
           <col className="w-[25%]" />
+          <col className="w-[18%]" />
         </colgroup>
         <thead>
           <tr className="bg-gradient-to-l from-[#FFD700] to-[#E5B800] text-black">
@@ -89,9 +89,9 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
                 </div>
               </td>
 
-              <td className="py-3 px-4 max-w-0">
+              <td className="py-3 px-4">
                 {displayPhone ? (
-                  <a href={`tel:${displayPhone}`} className="text-sm font-bold text-slate-900 hover:text-blue-600 tracking-wide block truncate" dir="ltr" title={displayPhone}>
+                  <a href={`tel:${displayPhone}`} className="text-sm font-bold text-slate-900 hover:text-blue-600 tracking-wide block select-text whitespace-nowrap" dir="ltr" title={displayPhone}>
                     {displayPhone}
                   </a>
                 ) : (
@@ -103,8 +103,8 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
                 <StatusSelect value={lead.status} onChange={(val) => onStatusChange(lead.id, val)} />
               </td>
 
-              <td className="py-3 px-4 max-w-0">
-                <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed" title={combinedNotes}>
+              <td className="py-3 px-4">
+                <p className="text-xs text-slate-600 leading-relaxed select-text whitespace-normal break-words" title={combinedNotes}>
                   {combinedNotes || <span className="text-slate-300">—</span>}
                 </p>
               </td>
