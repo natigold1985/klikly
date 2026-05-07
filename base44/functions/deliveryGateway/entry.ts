@@ -20,11 +20,6 @@ Deno.serve(async (req) => {
       return Response.json({ error: '410 Gone: Link expired', expired: true }, { status: 410 });
     }
 
-    // Delivery Tracking: Register view in the CRM silently
-    await base44.asServiceRole.entities.DeliveryLink.update(link.id, {
-      view_count: (link.view_count || 0) + 1,
-    });
-
     // THE DELIVERY GATEWAY: Return ONLY strictly necessary frontend presentation data.
     // Zero CRM entity data, zero IDs, zero financial/status info.
     return Response.json({

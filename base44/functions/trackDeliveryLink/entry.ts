@@ -1,9 +1,9 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { token } = await req.json();
+    const { token, action = 'view', fileName = '' } = await req.json();
 
     if (!token) {
       return Response.json({ error: 'Token is required' }, { status: 400 });
@@ -22,18 +22,28 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Link expired' }, { status: 410 });
     }
 
-    // Update tracking data
-    const newViewCount = (link.view_count || 0) + 1;
-    const updateData = {
-      view_count: newViewCount,
-      is_downloaded: true,
-      downloaded_at: link.downloaded_at || new Date().toISOString(),
-    };
+    const isDownload = action === 'download';
+    const newViewCount = isDownload ? (link.view_count || 0) : (link.view_count || 0) + 1;
+    const downloadTimestamp = new Date().toISOString();
+    const updateData = isDownload
+      ? { is_downloaded: true, downloaded_at: downloadTimestamp }
+      : { view_count: newViewCount };
 
     await base44.asServiceRole.entities.DeliveryLink.update(link.id, updateData);
 
+    if (isDownload) {
+      await base44.asServiceRole.entities.Activity.create({
+        related_to_type: 'project',
+        related_to_id: link.project_id,
+        activity_type: 'selection_made',
+        title: 'הלקוח לחץ להורדה',
+        description: `${link.client_name || 'לקוח'} לחץ על הורדת ${fileName || 'הקבצים'}`,
+        metadata: { token, fileName, event: 'download_clicked' }
+      });
+    }
+
     // Send email notification to photographer on first download
-    if (!link.is_downloaded && link.photographer_email) {
+    if (isDownload && !link.is_downloaded && link.photographer_email) {
       await base44.asServiceRole.integrations.Core.SendEmail({
         to: link.photographer_email,
         subject: `הקבצים של משפחת ${link.client_name} הורדו בהצלחה`,
@@ -55,7 +65,9 @@ Deno.serve(async (req) => {
       file_url: link.file_url,
       project_title: link.project_title,
       client_name: link.client_name,
-      view_count: newViewCount
+      view_count: newViewCount,
+      downloaded_at: isDownload ? updateData.downloaded_at : link.downloaded_at,
+      is_downloaded: isDownload ? true : !!link.is_downloaded
     });
 
   } catch (error) {

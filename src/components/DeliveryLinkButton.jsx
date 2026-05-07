@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link2, Copy, CheckCircle2, Loader2, ExternalLink } from 'lucide-react';
+import { Link2, Copy, CheckCircle2, Loader2, ExternalLink, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { createPageUrl } from '@/utils';
@@ -32,6 +32,7 @@ export default function DeliveryLinkButton({ project }) {
   });
 
   const existingLink = existingLinks[0];
+  const downloadedAt = existingLink?.downloaded_at ? new Date(existingLink.downloaded_at) : null;
 
   const createLinkMutation = useMutation({
     mutationFn: async () => {
@@ -124,18 +125,18 @@ export default function DeliveryLinkButton({ project }) {
                   <p className="text-2xl font-bold text-slate-800">{existingLink.view_count || 0}</p>
                   <p className="text-xs text-slate-500">כניסות ללינק</p>
                 </div>
-                <div className="p-3 rounded-lg bg-slate-50 border text-center">
-                  {existingLink.is_downloaded ? (
+                <div className={`p-3 rounded-lg border text-center ${downloadedAt ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'}`}>
+                  {downloadedAt ? (
                     <>
-                      <p className="text-2xl font-bold text-green-600">✅</p>
-                      <p className="text-xs text-slate-500">
-                        הורד ב-{new Date(existingLink.downloaded_at).toLocaleDateString('he-IL')}
+                      <CheckCircle2 className="w-7 h-7 text-green-600 mx-auto mb-1" />
+                      <p className="text-xs font-bold text-green-800">
+                        הורד ב-{downloadedAt.toLocaleDateString('he-IL')} {downloadedAt.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </>
                   ) : (
                     <>
-                      <p className="text-2xl font-bold text-orange-500">⏳</p>
-                      <p className="text-xs text-slate-500">טרם הורד</p>
+                      <Clock className="w-7 h-7 text-orange-500 mx-auto mb-1" />
+                      <p className="text-xs font-bold text-orange-700">טרם הורד</p>
                     </>
                   )}
                 </div>

@@ -110,19 +110,23 @@ function serializeProject(p, isClient) {
 }
 
 async function fetchFolderFiles(accessToken, folderId, out, parentName = '') {
-  const url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+trashed=false&fields=files(id,name,mimeType,size,thumbnailLink,hasThumbnail,webViewLink,webContentLink,videoMediaMetadata,modifiedTime)&pageSize=200`;
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-  if (!res.ok) {
-    console.error('Drive list failed', await res.text());
-    return;
-  }
-  const data = await res.json();
-  for (const f of data.files || []) {
-    if (f.mimeType === 'application/vnd.google-apps.folder') {
-      // Recurse one level into subfolders
-      await fetchFolderFiles(accessToken, f.id, out, f.name);
-    } else {
-      out.push({ ...f, parent_name: parentName });
+  let pageToken = '';
+  do {
+    const tokenParam = pageToken ? `&pageToken=${pageToken}` : '';
+    const url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+trashed=false&fields=nextPageToken,files(id,name,mimeType,size,thumbnailLink,hasThumbnail,webViewLink,webContentLink,videoMediaMetadata,modifiedTime)&pageSize=1000${tokenParam}`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!res.ok) {
+      console.error('Drive list failed', await res.text());
+      return;
     }
-  }
+    const data = await res.json();
+    for (const f of data.files || []) {
+      if (f.mimeType === 'application/vnd.google-apps.folder') {
+        await fetchFolderFiles(accessToken, f.id, out, f.name);
+      } else {
+        out.push({ ...f, parent_name: parentName });
+      }
+    }
+    pageToken = data.nextPageToken || '';
+  } while (pageToken);
 }

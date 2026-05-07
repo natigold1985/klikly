@@ -27,6 +27,7 @@ export default function DownloadPage() {
       // Delivery Gateway (Backend Function) - Absolute Isolation
       const res = await base44.functions.invoke('deliveryGateway', { token });
       setLinkData(res.data);
+      await base44.functions.invoke('trackDeliveryLink', { token, action: 'view' });
     } catch (err) {
       setError(err.response?.data?.error || 'הקישור לא נמצא או פג תוקף');
     } finally {
@@ -47,9 +48,10 @@ export default function DownloadPage() {
       
       const presignedUrl = urlRes.data.url;
 
-      // 2. Fire Download Webhook
-      await base44.functions.invoke('onClientDownload', {
+      // 2. Track actual download click in DB
+      await base44.functions.invoke('trackDeliveryLink', {
         token,
+        action: 'download',
         fileName
       });
 
