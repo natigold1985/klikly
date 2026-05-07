@@ -10,6 +10,7 @@ import {
 import DeliveryLinkButton from '../components/DeliveryLinkButton';
 import FileUploader from '../components/FileUploader';
 import ProductionStatusTracker from '../components/projects/ProductionStatusTracker';
+import CreateProjectDialog from '../components/projects/CreateProjectDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -36,6 +37,7 @@ export default function Projects() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [uploadProject, setUploadProject] = useState(null);
   const [showMagicLinkPrompt, setShowMagicLinkPrompt] = useState(null);
+  const [showCreateProject, setShowCreateProject] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -92,6 +94,7 @@ export default function Projects() {
 
   const filteredProjects = projects.filter((project) => {
     const matchesSearch = 
+      (project.project_name && project.project_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       project.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (project.client_email && project.client_email.toLowerCase().includes(searchTerm.toLowerCase()));
     
@@ -125,13 +128,19 @@ export default function Projects() {
   return (
     <div className="space-y-6 pb-20">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-3xl font-extrabold text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.4)] tracking-wider">
             פרויקטים
           </h1>
           <p className="text-slate-600 mt-1">נהל את כל הפרויקטים הפעילים שלך</p>
         </div>
+        {!isClient && (
+          <Button onClick={() => setShowCreateProject(true)} className="gap-2">
+            <Plus className="w-5 h-5" />
+            פרויקט חדש
+          </Button>
+        )}
       </div>
 
       {/* Filters */}
@@ -192,11 +201,9 @@ export default function Projects() {
                       </div>
                       <div>
                         <h3 className="font-bold text-slate-800 group-hover:text-[#C5A028] transition-colors">
-                          {project.client_name}
+                          {project.project_name || project.client_name}
                         </h3>
-                        {project.shooting_type && (
-                          <p className="text-sm text-slate-600">{project.shooting_type}</p>
-                        )}
+                        <p className="text-sm text-slate-600">{project.client_name}</p>
                       </div>
                     </div>
                     {getStatusBadge(project.status)}
@@ -268,6 +275,15 @@ export default function Projects() {
           ))}
         </div>
       )}
+
+      <CreateProjectDialog
+        open={showCreateProject}
+        onOpenChange={setShowCreateProject}
+        onCreated={() => {
+          queryClient.invalidateQueries({ queryKey: ['projects'] });
+          queryClient.invalidateQueries({ queryKey: ['driveProjects'] });
+        }}
+      />
 
       {/* Mobile Upload Dialog */}
       <Dialog open={!!uploadProject} onOpenChange={(open) => !open && setUploadProject(null)}>

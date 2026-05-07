@@ -41,10 +41,10 @@ Deno.serve(async (req) => {
 
     // Create main project folder — sanitize to prevent URL/garbage in folder name
     const cleanName = (s) => String(s || '').replace(/https?:\/\/\S+/gi, '').replace(/[\\/:*?"<>|]/g, '').trim();
+    const safeProject = cleanName(project.project_name) || cleanName(project.shooting_type) || 'פרויקט';
     const safeClient = cleanName(project.client_name) || 'לקוח';
-    const safeType = cleanName(project.shooting_type) || 'צילום';
     const safeDate = cleanName(project.shooting_date) || new Date().toISOString().slice(0, 10);
-    const folderName = `${safeClient} - ${safeType} - ${safeDate}`;
+    const folderName = `${safeProject} - ${safeClient} - ${safeDate}`;
     
     const folderRes = await fetch('https://www.googleapis.com/drive/v3/files', {
       method: 'POST',

@@ -95,7 +95,7 @@ export default function FileStorage() {
           </Button>
           <div className="text-left flex-1 min-w-0">
             <h1 className="text-lg md:text-xl font-bold text-slate-900 truncate">
-              {selectedProject.client_name}
+              {selectedProject.project_name || selectedProject.client_name}
             </h1>
             <p className="text-xs text-slate-500 truncate">
               {selectedProject.client_email || selectedProject.shooting_type}
@@ -118,6 +118,7 @@ export default function FileStorage() {
   const filtered = projects.filter(
     (p) =>
       !search ||
+      p.project_name?.toLowerCase().includes(search.toLowerCase()) ||
       p.client_name?.toLowerCase().includes(search.toLowerCase()) ||
       p.client_email?.toLowerCase().includes(search.toLowerCase())
   );
@@ -196,7 +197,7 @@ function ProjectFolderCard({ project, onClick }) {
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-bold text-slate-900 truncate text-base">{project.client_name}</p>
+            <p className="font-bold text-slate-900 truncate text-base">{project.project_name || project.client_name}</p>
             {project.client_email && (
               <p className="text-xs text-slate-500 truncate flex items-center gap-1 mt-0.5">
                 <Mail className="w-3 h-3" />
