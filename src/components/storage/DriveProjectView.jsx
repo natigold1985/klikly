@@ -3,13 +3,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, FolderOpen, RefreshCw, Cloud, Loader2, Link2 } from 'lucide-react';
+import { ExternalLink, FolderOpen, RefreshCw, Cloud, Loader2, Link2, Upload } from 'lucide-react';
 import DriveFilesGrid from './DriveFilesGrid';
 import MagicLinkButton from './MagicLinkButton';
 import DriveUploader from './DriveUploader';
 import GoogleDriveIcon from './GoogleDriveIcon';
 import LinkDriveFolderDialog from './LinkDriveFolderDialog';
 import DriveFolderUrlEditor from './DriveFolderUrlEditor';
+import DriveCreateFolderDialog from './DriveCreateFolderDialog';
 import { toast } from 'sonner';
 
 // Photographer view: pulls files directly from a project's Google Drive folder.
@@ -166,14 +167,25 @@ export default function DriveProjectView({ project }) {
 
       {/* Secondary toolbar */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            size="sm"
+            onClick={() => document.getElementById('drive-upload-zone')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+            className="gap-2"
+          >
+            <Upload className="w-4 h-4" />
+            העלאת קבצים
+          </Button>
+          <DriveCreateFolderDialog projectId={project.id} onCreated={() => refetch()} />
+        </div>
+        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-2 text-slate-900 border-slate-300">
           <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
           רענון
         </Button>
       </div>
 
       {/* Upload zone */}
-      <Card>
+      <Card id="drive-upload-zone">
         <CardContent className="p-5">
           <DriveUploader
             projectId={project.id}
@@ -188,6 +200,7 @@ export default function DriveProjectView({ project }) {
         <CardContent className="p-6">
           <DriveFilesGrid
             files={files}
+            project={project}
             loading={isLoading}
             onDownload={handleDownload}
             onDownloadAll={handleDownloadAll}

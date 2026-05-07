@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Play, FileImage, ExternalLink, Film, Image as ImageIcon, Video as VideoIcon, DownloadCloud, Loader2 } from 'lucide-react';
+import { Download, Play, FileImage, ExternalLink, Film, Image as ImageIcon, Video as VideoIcon, DownloadCloud, Loader2, Copy, MessageCircle } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
+import { toast } from 'sonner';
 import DriveLightbox from './DriveLightbox';
 
 // Pixieset-style premium gallery grid for Drive files.
@@ -8,7 +10,7 @@ import DriveLightbox from './DriveLightbox';
 // - Smooth fade transitions between filter tabs
 // - Real Drive video thumbnails (via thumbnailLink) with subtle play overlay
 // - Click does NOT auto-play; videos open in a new tab on download/view action only
-export default function DriveFilesGrid({ files, onDownload, onDownloadAll, loading }) {
+export default function DriveFilesGrid({ files, project, onDownload, onDownloadAll, loading }) {
   const [filter, setFilter] = useState('all');
   const [bulkDownloading, setBulkDownloading] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
@@ -115,6 +117,7 @@ export default function DriveFilesGrid({ files, onDownload, onDownloadAll, loadi
             <FileTile
               key={f.id}
               file={f}
+              project={project}
               onDownload={onDownload}
               onOpen={() => setLightboxIndex(i)}
             />
@@ -134,9 +137,10 @@ export default function DriveFilesGrid({ files, onDownload, onDownloadAll, loadi
   );
 }
 
-function FileTile({ file, onDownload, onOpen }) {
+function FileTile({ file, project, onDownload, onOpen }) {
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   const showThumb = file.thumbnail_url && !imgFailed;
   const isVideo = file.is_video;
@@ -147,6 +151,41 @@ function FileTile({ file, onDownload, onOpen }) {
     const m = Math.floor(total / 60);
     const s = total % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const getShareLink = async () => {
+    setSharing(true);
+    const res = await base44.functions.invoke('getDriveShareLink', {
+      project_id: project?.id,
+      file_id: file.id,
+    });
+    setSharing(false);
+    if (!res.data?.success) throw new Error(res.data?.error || 'לא ניתן ליצור קישור');
+    return res.data.url;
+  };
+
+  const handleCopyLink = async (e) => {
+    e.stopPropagation();
+    try {
+      const url = await getShareLink();
+      await navigator.clipboard.writeText(url);
+      toast.success('הקישור הועתק');
+    } catch (error) {
+      toast.error(error.message || 'לא הצלחתי להעתיק קישור');
+    }
+  };
+
+  const handleWhatsApp = async (e) => {
+    e.stopPropagation();
+    try {
+      const url = await getShareLink();
+      const phoneDigits = String(project?.client_phone || '').replace(/[^0-9]/g, '');
+      const whatsappPhone = phoneDigits.startsWith('0') ? `972${phoneDigits.slice(1)}` : phoneDigits;
+      const message = `היי ${project?.client_name || ''}, מצורף קישור לקובץ מהפרויקט שלך:\n${url}`;
+      window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`, '_blank');
+    } catch (error) {
+      toast.error(error.message || 'לא הצלחתי לפתוח וואטסאפ');
+    }
   };
 
   return (
@@ -220,6 +259,26 @@ function FileTile({ file, onDownload, onOpen }) {
           >
             <Download className="w-4 h-4" />
           </button>
+          {project?.id && (
+            <button
+              onClick={handleCopyLink}
+              disabled={sharing}
+              className="w-9 h-9 rounded-full bg-white/90 text-slate-900 flex items-center justify-center hover:scale-110 shadow-md transition-all disabled:opacity-60"
+              title="העתק קישור"
+            >
+              {sharing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
+            </button>
+          )}
+          {project?.id && project?.client_phone && (
+            <button
+              onClick={handleWhatsApp}
+              disabled={sharing}
+              className="w-9 h-9 rounded-full bg-emerald-500 text-white flex items-center justify-center hover:scale-110 shadow-md transition-all disabled:opacity-60"
+              title="שלח בוואטסאפ"
+            >
+              <MessageCircle className="w-4 h-4" />
+            </button>
+          )}
           {file.view_url && (
             <a
               href={file.view_url}

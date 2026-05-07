@@ -160,7 +160,11 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
         <p className="text-slate-700 font-medium">
           {isDragging ? 'שחרר כאן כדי להעלות' : 'גרור קבצים לכאן או לחץ לבחירה'}
         </p>
-        <p className="text-xs text-slate-500 mt-1">תמונות ווידאו · ייכנסו ישירות לתיקיית הפרויקט שלך ב-Drive</p>
+        <Button type="button" className="mt-4 gap-2">
+          <Upload className="w-4 h-4" />
+          העלאת קבצים
+        </Button>
+        <p className="text-xs text-slate-500 mt-3">תמונות ווידאו · ייכנסו ישירות לתיקיית הפרויקט שלך ב-Drive</p>
         <input
           ref={fileInputRef}
           type="file"
