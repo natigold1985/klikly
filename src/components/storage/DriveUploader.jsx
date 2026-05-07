@@ -16,6 +16,8 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
   const [items, setItems] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
+  const queueRef = useRef([]);
+  const processingRef = useRef(false);
 
   const startUploads = (picked) => {
     if (!picked.length) return;
@@ -27,7 +29,8 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
       error: null,
     }));
     setItems((prev) => [...newItems, ...prev]);
-    newItems.forEach(uploadOne);
+    queueRef.current = [...queueRef.current, ...newItems];
+    processQueue();
   };
 
   const handleSelect = (e) => {
@@ -61,6 +64,36 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
   const setItem = (id, patch) =>
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
 
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  const isRateLimit = (err) => err?.status === 429 || err?.response?.status === 429 || /rate limit/i.test(err?.message || '');
+
+  const withRetry = async (fn, itemId) => {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      try {
+        return await fn();
+      } catch (err) {
+        if (!isRateLimit(err) || attempt === 4) throw err;
+        const waitSeconds = 8 + attempt * 6;
+        setItem(itemId, { error: `ממתין ${waitSeconds} שניות בגלל עומס זמני...` });
+        await sleep(waitSeconds * 1000);
+      }
+    }
+  };
+
+  const processQueue = async () => {
+    if (processingRef.current) return;
+    processingRef.current = true;
+
+    while (queueRef.current.length > 0) {
+      const nextItem = queueRef.current.shift();
+      await uploadOne(nextItem);
+      await sleep(1500);
+    }
+
+    processingRef.current = false;
+  };
+
   const uploadOne = async (item) => {
     let progressInterval = null;
     try {
@@ -78,7 +111,10 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
       }, 200);
 
       // Step 1: upload to temp storage
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: item.file });
+      const { file_url } = await withRetry(
+        () => base44.integrations.Core.UploadFile({ file: item.file }),
+        item.id
+      );
       clearInterval(progressInterval);
       setItem(item.id, { progress: 55 });
 
@@ -94,13 +130,16 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
       }, 250);
 
       // Step 2: server pushes the file to the project's Drive subfolder
-      const res = await base44.functions.invoke('uploadToDrive', {
-        project_id: projectId,
-        file_url,
-        file_name: item.file.name,
-        mime_type: item.file.type || 'application/octet-stream',
-        target_subfolder: subfolder,
-      });
+      const res = await withRetry(
+        () => base44.functions.invoke('uploadToDrive', {
+          project_id: projectId,
+          file_url,
+          file_name: item.file.name,
+          mime_type: item.file.type || 'application/octet-stream',
+          target_subfolder: subfolder,
+        }),
+        item.id
+      );
 
       clearInterval(progressInterval);
 
@@ -126,7 +165,10 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
 
   const retry = (id) => {
     const item = items.find((i) => i.id === id);
-    if (item) uploadOne(item);
+    if (!item) return;
+    setItem(id, { status: 'pending', progress: 0, error: null });
+    queueRef.current = [...queueRef.current, item];
+    processQueue();
   };
 
   const remove = (id) => setItems((prev) => prev.filter((i) => i.id !== id));
@@ -198,6 +240,9 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
                     <span className="text-xs text-slate-500 flex-shrink-0">{fmt(it.file.size)}</span>
                   </div>
                   {it.status === 'uploading' && <Progress value={it.progress} className="h-1.5" />}
+                  {it.status === 'pending' && (
+                    <p className="text-xs text-slate-500">ממתין בתור להעלאה בטוחה</p>
+                  )}
                   {it.status === 'error' && (
                     <p className="text-xs text-red-600 truncate">{it.error}</p>
                   )}
