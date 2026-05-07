@@ -1,7 +1,5 @@
-// Lead Radar — discovers potential leads from Gmail (forwarded posts, group emails, alerts)
-// using deterministic keyword matching. NO LLM credits used.
-// If users want web-radar features, those should be added via Gmail alerts/Google Alerts forwarded
-// to the connected mailbox.
+// Lead Radar — scans Gmail alerts/forwards and saves only actionable, relevant leads.
+// Uses AI validation so irrelevant posts and broken/missing links are not shown in the radar.
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 const KEYWORDS = [
@@ -14,6 +12,41 @@ const KEYWORDS = [
   'wedding photographer', 'bar mitzvah photographer', 'corporate photographer',
 ];
 
+function b64decode(data = '') {
+  try {
+    const binary = atob(data.replace(/-/g, '+').replace(/_/g, '/'));
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    return new TextDecoder('utf-8').decode(bytes);
+  } catch {
+    return '';
+  }
+}
+
+function extractMessageContent(payload) {
+  let text = '';
+  let html = '';
+
+  const walk = (part) => {
+    if (!part) return;
+    if (part.mimeType === 'text/plain' && part.body?.data) text += b64decode(part.body.data) + '\n';
+    if (part.mimeType === 'text/html' && part.body?.data) html += b64decode(part.body.data) + '\n';
+    if (part.parts) part.parts.forEach(walk);
+  };
+
+  walk(payload);
+
+  const readableHtml = html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>|<\/div>|<\/li>|<\/tr>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+
+  return { text: `${text}\n${readableHtml}`.trim(), html };
+}
+
 function pickKeywords(text) {
   const lower = text.toLowerCase();
   return KEYWORDS.filter(k => lower.includes(k.toLowerCase()));
@@ -25,14 +58,88 @@ function extractContact(text) {
   return { phone, email };
 }
 
-function platformFromSubjectAndFrom(subject = '', from = '') {
-  const s = (subject + ' ' + from).toLowerCase();
+function normalizeUrl(rawUrl = '') {
+  let url = rawUrl.replace(/[\]"'<>]+$/g, '').trim();
+  if (!url.startsWith('http')) return '';
+
+  try {
+    const parsed = new URL(url);
+    const nestedUrl = parsed.searchParams.get('url') || parsed.searchParams.get('q') || parsed.searchParams.get('u');
+    if (nestedUrl?.startsWith('http')) url = nestedUrl;
+  } catch {
+    return '';
+  }
+
+  return url;
+}
+
+function extractUrls(text, html) {
+  const combined = `${text}\n${html}`;
+  const urls = new Set();
+  const matches = combined.match(/https?:\/\/[^\s"'<>]+/g) || [];
+  for (const match of matches) {
+    const url = normalizeUrl(match);
+    if (!url) continue;
+    if (/google\.com\/alerts|accounts\.google|mail\.google|unsubscribe|support\.google/i.test(url)) continue;
+    urls.add(url);
+  }
+  return Array.from(urls).slice(0, 8);
+}
+
+async function getReachableUrl(urls) {
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { method: 'GET', redirect: 'follow' });
+      if (res.ok) {
+        const contentType = res.headers.get('content-type') || '';
+        const pageText = contentType.includes('text/html') ? (await res.text()).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 1200) : '';
+        return { url: res.url || url, pageText };
+      }
+    } catch {
+      // Broken links are ignored.
+    }
+  }
+  return { url: '', pageText: '' };
+}
+
+function platformFromSubjectAndFrom(subject = '', from = '', sourceUrl = '') {
+  const s = `${subject} ${from} ${sourceUrl}`.toLowerCase();
   if (s.includes('linkedin')) return 'linkedin';
   if (s.includes('facebook') || s.includes('פייסבוק')) return 'facebook';
   if (s.includes('instagram') || s.includes('אינסטגרם')) return 'instagram';
+  if (s.includes('xplace')) return 'job_board';
   if (s.includes('forum') || s.includes('פורום')) return 'forum';
   if (s.includes('jobs') || s.includes('דרושים')) return 'job_board';
   return 'other';
+}
+
+async function validateLeadWithAi(base44, candidate) {
+  const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
+    prompt: `בדוק אם הפרסום הבא הוא ליד אמיתי ורלוונטי לצלם אירועים בישראל.
+
+שמור רק אם מדובר באדם/עסק שמחפש שירותי צילום, צלם, צילום אירוע, חתונה, בר/בת מצווה, וידאו או צילום עסקי.
+פסול אם זה מאמר, מודעה לא קשורה, קורס, שירות שהצלם מוכר, עמוד שגיאה, תוכן כללי, או אם אי אפשר להבין שמישהו מחפש צלם.
+
+כותרת: ${candidate.title}
+קישור: ${candidate.source_url}
+טקסט מהמייל: ${candidate.snippet}
+טקסט מהעמוד: ${candidate.pageText || 'לא זמין'}
+מילות מפתח: ${candidate.keywords_matched}
+
+החזר JSON בלבד.`,
+    response_json_schema: {
+      type: 'object',
+      properties: {
+        is_relevant: { type: 'boolean' },
+        relevance_score: { type: 'number' },
+        reason: { type: 'string' },
+        clean_title: { type: 'string' }
+      },
+      required: ['is_relevant', 'relevance_score', 'reason']
+    }
+  });
+
+  return result;
 }
 
 Deno.serve(async (req) => {
@@ -41,14 +148,15 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
+    const body = await req.json().catch(() => ({}));
+    const dryRun = body.dry_run === true;
+
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
     const authHeader = { Authorization: `Bearer ${accessToken}` };
 
-    // Find emails that look like leads (Google Alerts, LinkedIn notifications, group forwards)
     const queries = [
       'newer_than:14d (subject:"Google Alert" OR from:googlealerts-noreply@google.com)',
       'newer_than:14d ("דרוש צלם" OR "מחפש צלם" OR "מחפשת צלמת" OR "photographer needed")',
-      // LinkedIn-specific: notifications, jobs, posts mentioning photographer needs
       'newer_than:14d from:linkedin.com',
       'newer_than:14d (from:jobs-noreply@linkedin.com OR from:jobs-listings@linkedin.com OR from:notifications-noreply@linkedin.com)',
       'newer_than:14d (subject:"linkedin" AND ("photographer" OR "צלם" OR "videographer"))',
@@ -66,66 +174,73 @@ Deno.serve(async (req) => {
     }
 
     if (messageIds.size === 0) {
-      return Response.json({ success: true, found: 0, saved: 0, summary: 'אין תוצאות חדשות בתיבת המייל' });
+      return Response.json({ success: true, found: 0, saved: 0, rejected: 0, summary: 'אין תוצאות חדשות בתיבת המייל' });
     }
 
     const discovered = [];
+    let rejected = 0;
+
     for (const id of Array.from(messageIds).slice(0, 25)) {
       const res = await fetch(
         `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=full`,
         { headers: authHeader }
       );
       if (!res.ok) continue;
+
       const msg = await res.json();
       const headers = msg.payload?.headers || [];
       const subject = headers.find(h => h.name === 'Subject')?.value || '';
       const from = headers.find(h => h.name === 'From')?.value || '';
-
-      let text = '';
-      const walk = (p) => {
-        if (!p) return;
-        if (p.mimeType === 'text/plain' && p.body?.data) {
-          try { text += atob(p.body.data.replace(/-/g, '+').replace(/_/g, '/')) + '\n'; } catch {}
-        }
-        if (p.parts) p.parts.forEach(walk);
-      };
-      walk(msg.payload);
-
+      const { text, html } = extractMessageContent(msg.payload);
       const matched = pickKeywords(text);
+
       if (matched.length === 0) continue;
 
-      // Find a representative line / link
-      const linkMatch = text.match(/https?:\/\/[^\s)]+/);
-      const sourceUrl = linkMatch ? linkMatch[0] : '';
-      const { phone, email } = extractContact(text);
+      const urls = extractUrls(text, html);
+      const reachable = await getReachableUrl(urls);
+      if (!reachable.url) {
+        rejected++;
+        continue;
+      }
 
-      // Use the first 200 chars of the matching paragraph as snippet
       const idx = text.toLowerCase().indexOf(matched[0].toLowerCase());
-      const snippet = text.substring(Math.max(0, idx - 50), Math.min(text.length, idx + 200)).trim();
+      const snippet = text.substring(Math.max(0, idx - 80), Math.min(text.length, idx + 350)).trim();
+      const { phone, email } = extractContact(text);
+      const platform = platformFromSubjectAndFrom(subject, from, reachable.url);
 
-      const platform = platformFromSubjectAndFrom(subject, from);
-      discovered.push({
+      const candidate = {
         title: (subject || matched[0]).substring(0, 200),
         platform,
         snippet,
-        source_url: sourceUrl,
+        source_url: reachable.url,
+        pageText: reachable.pageText,
         keywords_matched: matched.join(', '),
-        // LinkedIn results get a small relevance boost since they're more targeted
-        relevance_score: Math.min(10, (platform === 'linkedin' ? 5 : 4) + matched.length * 2),
         contact_info: [phone, email].filter(Boolean).join(' / ') || 'N/A',
+      };
+
+      const ai = await validateLeadWithAi(base44, candidate);
+      if (!ai.is_relevant || Number(ai.relevance_score || 0) < 7) {
+        rejected++;
+        continue;
+      }
+
+      discovered.push({
+        ...candidate,
+        title: (ai.clean_title || candidate.title).substring(0, 200),
+        relevance_score: Math.min(10, Math.max(1, Number(ai.relevance_score || 7))),
+        notes: ai.reason || '',
       });
     }
 
     if (discovered.length === 0) {
-      return Response.json({ success: true, found: 0, saved: 0, summary: 'לא נמצאו פוסטים רלוונטיים' });
+      return Response.json({ success: true, found: 0, saved: 0, rejected, summary: `לא נמצאו פוסטים רלוונטיים עם קישור תקין. נפסלו ${rejected}.` });
     }
 
-    // Dedup by title
-    const existing = await base44.entities.PotentialLead.filter({}, '-created_date', 100);
-    const existingTitles = new Set(existing.map(e => e.title?.toLowerCase().trim()));
-    const newOnes = discovered.filter(l => l.title && !existingTitles.has(l.title.toLowerCase().trim()));
+    const existing = await base44.entities.PotentialLead.filter({}, '-created_date', 150);
+    const existingKeys = new Set(existing.map(e => `${e.source_url || ''}|${e.title || ''}`.toLowerCase().trim()));
+    const newOnes = discovered.filter(l => l.title && l.source_url && !existingKeys.has(`${l.source_url}|${l.title}`.toLowerCase().trim()));
 
-    if (newOnes.length > 0) {
+    if (newOnes.length > 0 && !dryRun) {
       await base44.entities.PotentialLead.bulkCreate(newOnes.map(l => ({
         title: l.title.substring(0, 200),
         platform: l.platform,
@@ -134,6 +249,7 @@ Deno.serve(async (req) => {
         keywords_matched: l.keywords_matched,
         relevance_score: l.relevance_score,
         contact_info: l.contact_info,
+        notes: l.notes,
         status: 'new',
       })));
     }
@@ -141,8 +257,10 @@ Deno.serve(async (req) => {
     return Response.json({
       success: true,
       found: discovered.length,
-      saved: newOnes.length,
-      summary: `סריקה הושלמה: ${discovered.length} פוסטים, ${newOnes.length} חדשים`,
+      saved: dryRun ? 0 : newOnes.length,
+      rejected,
+      dryRun,
+      summary: `סריקה חכמה הושלמה: ${discovered.length} רלוונטיים, ${rejected} נפסלו, ${dryRun ? 0 : newOnes.length} נשמרו`,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
