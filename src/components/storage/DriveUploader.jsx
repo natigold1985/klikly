@@ -5,6 +5,8 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
+const MAX_CONCURRENT_UPLOADS = 3;
+
 // Drive uploader with optimistic UI + retry. Uploads each file directly to the
 // project's Drive subfolder via the `uploadToDrive` backend function.
 //
@@ -15,9 +17,10 @@ import { toast } from 'sonner';
 export default function DriveUploader({ projectId, subfolder = 'edited', onFileUploaded }) {
   const [items, setItems] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [uploadStats, setUploadStats] = useState({ total: 0, completed: 0, failed: 0 });
   const fileInputRef = useRef(null);
   const queueRef = useRef([]);
-  const processingRef = useRef(false);
+  const activeUploadsRef = useRef(0);
 
   const startUploads = (picked) => {
     if (!picked.length) return;
@@ -27,6 +30,11 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
       progress: 0,
       status: 'pending',
       error: null,
+    }));
+    setUploadStats((prev) => ({
+      total: prev.total + newItems.length,
+      completed: prev.completed,
+      failed: prev.failed,
     }));
     setItems((prev) => [...newItems, ...prev]);
     queueRef.current = [...queueRef.current, ...newItems];
@@ -69,29 +77,26 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
   const isRateLimit = (err) => err?.status === 429 || err?.response?.status === 429 || /rate limit/i.test(err?.message || '');
 
   const withRetry = async (fn, itemId) => {
-    for (let attempt = 0; attempt < 5; attempt += 1) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
         return await fn();
       } catch (err) {
-        if (!isRateLimit(err) || attempt === 4) throw err;
-        const waitSeconds = 8 + attempt * 6;
-        setItem(itemId, { error: `ממתין ${waitSeconds} שניות בגלל עומס זמני...` });
-        await sleep(waitSeconds * 1000);
+        if (!isRateLimit(err) || attempt === 2) throw err;
+        setItem(itemId, { error: `עומס זמני, ניסיון נוסף בעוד 2 שניות...` });
+        await sleep(2000);
       }
     }
   };
 
-  const processQueue = async () => {
-    if (processingRef.current) return;
-    processingRef.current = true;
-
-    while (queueRef.current.length > 0) {
+  const processQueue = () => {
+    while (activeUploadsRef.current < MAX_CONCURRENT_UPLOADS && queueRef.current.length > 0) {
       const nextItem = queueRef.current.shift();
-      await uploadOne(nextItem);
-      await sleep(1500);
+      activeUploadsRef.current += 1;
+      uploadOne(nextItem).finally(() => {
+        activeUploadsRef.current -= 1;
+        processQueue();
+      });
     }
-
-    processingRef.current = false;
   };
 
   const uploadOne = async (item) => {
@@ -148,6 +153,7 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
       }
 
       setItem(item.id, { status: 'success', progress: 100 });
+      setUploadStats((prev) => ({ ...prev, completed: prev.completed + 1 }));
       // Optimistic UI: notify parent immediately so the file appears in the grid
       onFileUploaded?.(res.data.file);
 
@@ -159,6 +165,7 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
       if (progressInterval) clearInterval(progressInterval);
       console.error('Upload failed:', err);
       setItem(item.id, { status: 'error', error: err.message || 'העלאה נכשלה' });
+      setUploadStats((prev) => ({ ...prev, failed: prev.failed + 1 }));
       toast.error(`נכשל: ${item.file.name}`);
     }
   };
@@ -167,6 +174,7 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
     const item = items.find((i) => i.id === id);
     if (!item) return;
     setItem(id, { status: 'pending', progress: 0, error: null });
+    setUploadStats((prev) => ({ ...prev, total: prev.total + 1 }));
     queueRef.current = [...queueRef.current, item];
     processQueue();
   };
@@ -184,8 +192,25 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
   const Icon = (type) =>
     type?.startsWith('video/') ? Video : ImageIcon;
 
+  const activeCount = items.filter((it) => it.status === 'uploading').length;
+  const pendingCount = items.filter((it) => it.status === 'pending').length;
+  const overallProgress = uploadStats.total ? Math.round(((uploadStats.completed + uploadStats.failed) / uploadStats.total) * 100) : 0;
+
   return (
     <div className="space-y-3">
+      {uploadStats.total > 0 && uploadStats.completed + uploadStats.failed < uploadStats.total && (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4" dir="rtl">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <p className="font-bold text-blue-900">הועלו {uploadStats.completed} מתוך {uploadStats.total} קבצים</p>
+            <p className="text-xs text-blue-700">פעילים עכשיו: {activeCount} · ממתינים בתור: {pendingCount}</p>
+          </div>
+          <Progress value={overallProgress} className="h-2" />
+          {uploadStats.failed > 0 && (
+            <p className="text-xs text-red-600 mt-2">{uploadStats.failed} קבצים נכשלו אחרי ניסיונות חוזרים</p>
+          )}
+        </div>
+      )}
+
       <div
         onClick={() => fileInputRef.current?.click()}
         onDrop={handleDrop}

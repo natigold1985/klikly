@@ -69,14 +69,13 @@ Deno.serve(async (req) => {
     const subKey = target_subfolder || (isProjectClient ? 'client' : 'edited');
     const subfolderId = await findOrCreateSubfolder(accessToken, rootFolderId, subKey);
 
-    // Download the source file from the temp URL and stream to Drive (multipart upload)
+    // Download the source file and stream it to Drive without loading the whole file into RAM
     const fileRes = await fetch(file_url);
-    if (!fileRes.ok) {
+    if (!fileRes.ok || !fileRes.body) {
       return Response.json({ error: 'Failed to fetch source file' }, { status: 502 });
     }
-    const fileBlob = await fileRes.blob();
 
-    // Multipart upload to Drive
+    // Multipart upload to Drive using a streaming body
     const metadata = {
       name: file_name,
       parents: [subfolderId],
@@ -94,14 +93,19 @@ Deno.serve(async (req) => {
       `Content-Type: ${metadata.mimeType}\r\n\r\n`;
 
     const encoder = new TextEncoder();
-    const headerBytes = encoder.encode(metadataPart + filePartHeader);
-    const footerBytes = encoder.encode(closeDelim);
-    const fileBytes = new Uint8Array(await fileBlob.arrayBuffer());
-
-    const bodyBytes = new Uint8Array(headerBytes.length + fileBytes.length + footerBytes.length);
-    bodyBytes.set(headerBytes, 0);
-    bodyBytes.set(fileBytes, headerBytes.length);
-    bodyBytes.set(footerBytes, headerBytes.length + fileBytes.length);
+    const uploadBody = new ReadableStream({
+      async start(controller) {
+        controller.enqueue(encoder.encode(metadataPart + filePartHeader));
+        const reader = fileRes.body.getReader();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          controller.enqueue(value);
+        }
+        controller.enqueue(encoder.encode(closeDelim));
+        controller.close();
+      }
+    });
 
     const uploadRes = await fetch(
       'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,thumbnailLink,webViewLink,size,mimeType',
@@ -111,7 +115,8 @@ Deno.serve(async (req) => {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': `multipart/related; boundary=${boundary}`,
         },
-        body: bodyBytes,
+        body: uploadBody,
+        duplex: 'half',
       }
     );
 
