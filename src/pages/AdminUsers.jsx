@@ -232,8 +232,7 @@ function UserGrid({ users, type, projects = [], onEdit, onDelete, currentUserEma
                   <span>{new Date(u.created_date).toLocaleDateString('he-IL')}</span>
                 </div>
               </div>
-              {type === 'client' && (
-                <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
+              <div className="mt-4 pt-4 border-t border-slate-100 space-y-3 bg-white">
                   {u.assigned_photographer_email && (
                     <div className="text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded">
                       משויך לצלם: <span className="font-medium text-slate-700">{u.assigned_photographer_email}</span>
@@ -266,15 +265,14 @@ function UserGrid({ users, type, projects = [], onEdit, onDelete, currentUserEma
 
                   <Button onClick={openFiles} className="w-full gap-2 text-sm">
                     <FolderOpen className="w-4 h-4" />
-                    ניהול ושליחת קבצים
+                    מעבר לתיקיית קבצים
                   </Button>
-                  {!project && (
+                  {type === 'client' && !project && (
                     <p className="text-[11px] text-amber-600 text-center">
                       לא נמצא פרויקט ללקוח — האחסון ייפתח מסונן לפי האימייל.
                     </p>
                   )}
                 </div>
-              )}
             </CardContent>
           </Card>
         );

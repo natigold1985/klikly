@@ -167,6 +167,7 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
         <p className="text-xs text-slate-500 mt-3">תמונות ווידאו · ייכנסו ישירות לתיקיית הפרויקט שלך ב-Drive</p>
         <input
           ref={fileInputRef}
+          id={`drive-file-input-${projectId}`}
           type="file"
           multiple
           accept="image/*,video/*"

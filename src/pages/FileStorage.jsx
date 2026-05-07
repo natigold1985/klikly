@@ -103,7 +103,13 @@ export default function FileStorage() {
           </div>
         </div>
 
-        <DriveProjectView project={selectedProject} />
+        <DriveProjectView
+          project={selectedProject}
+          onProjectDeleted={() => {
+            setSelectedProject(null);
+            window.history.replaceState({}, '', '/FileStorage');
+          }}
+        />
       </div>
     );
   }

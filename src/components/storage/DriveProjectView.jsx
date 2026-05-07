@@ -3,7 +3,17 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, FolderOpen, RefreshCw, Cloud, Loader2, Link2, Upload } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { ExternalLink, FolderOpen, RefreshCw, Cloud, Loader2, Link2, Upload, Trash2 } from 'lucide-react';
 import DriveFilesGrid from './DriveFilesGrid';
 import MagicLinkButton from './MagicLinkButton';
 import DriveUploader from './DriveUploader';
@@ -15,9 +25,11 @@ import { toast } from 'sonner';
 
 // Photographer view: pulls files directly from a project's Google Drive folder.
 // Zero-cost — files stay in the photographer's Drive account.
-export default function DriveProjectView({ project }) {
+export default function DriveProjectView({ project, onProjectDeleted }) {
   const queryClient = useQueryClient();
   const [creating, setCreating] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   // Optimistic files appear immediately on upload (before refetch finishes)
   const [optimistic, setOptimistic] = useState([]);
 
@@ -83,6 +95,16 @@ export default function DriveProjectView({ project }) {
         );
       });
     }, 1500);
+  };
+
+  const handleDeleteProject = async () => {
+    setDeleting(true);
+    await base44.entities.Project.delete(project.id);
+    toast.success('הפרויקט נמחק מהמערכת');
+    queryClient.invalidateQueries({ queryKey: ['driveProjects'] });
+    setDeleting(false);
+    setDeleteOpen(false);
+    onProjectDeleted?.();
   };
 
   // === No folder yet — show prominent Connect/Create button + Link existing ===
@@ -170,13 +192,22 @@ export default function DriveProjectView({ project }) {
         <div className="flex items-center gap-2 flex-wrap">
           <Button
             size="sm"
-            onClick={() => document.getElementById('drive-upload-zone')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+            onClick={() => document.getElementById(`drive-file-input-${project.id}`)?.click()}
             className="gap-2"
           >
             <Upload className="w-4 h-4" />
-            העלאת קבצים
+            העלאת קובץ
           </Button>
           <DriveCreateFolderDialog projectId={project.id} onCreated={() => refetch()} />
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setDeleteOpen(true)}
+            className="gap-2 bg-red-600 hover:bg-red-700 text-white"
+          >
+            <Trash2 className="w-4 h-4" />
+            מחק פרויקט
+          </Button>
         </div>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-2 text-slate-900 border-slate-300">
           <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
@@ -207,6 +238,30 @@ export default function DriveProjectView({ project }) {
           />
         </CardContent>
       </Card>
+
+      <AlertDialog open={deleteOpen} onOpenChange={(open) => !deleting && setDeleteOpen(open)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-700">
+              <Trash2 className="w-5 h-5" />
+              האם למחוק את הפרויקט?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              פעולה זו תמחק את הפרויקט מהמערכת ואת הקישור שלו ל-Drive. הקבצים עצמם ב-Google Drive לא יימחקו אוטומטית.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel disabled={deleting}>ביטול</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteProject}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {deleting ? 'מוחק...' : 'כן, מחק פרויקט'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
