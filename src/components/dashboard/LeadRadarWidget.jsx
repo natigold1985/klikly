@@ -57,10 +57,10 @@ export default function LeadRadarWidget() {
             רדאר לידים
           </CardTitle>
           <p className="text-[11px] text-slate-400 mt-1">
-            סורק את ה-Gmail המחובר (Google Alerts, LinkedIn, פוסטים שהועברו) — אינטגרציה ישירה, ללא צריכת קרדיטים.
+            סורק את ה-Gmail המחובר ומפעיל AI רק אחרי סינון קשיח וקישור תקין — כדי לחסוך בבדיקות מיותרות.
           </p>
           <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-            ⚡ ללא קרדיטים
+            ⚡ סינון חסכוני
           </span>
         </div>
         <Button

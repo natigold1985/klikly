@@ -87,12 +87,12 @@ function extractUrls(text, html) {
 }
 
 async function getReachableUrl(urls) {
-  for (const url of urls) {
+  for (const url of urls.slice(0, 3)) {
     try {
       const res = await fetch(url, { method: 'GET', redirect: 'follow' });
       if (res.ok) {
         const contentType = res.headers.get('content-type') || '';
-        const pageText = contentType.includes('text/html') ? (await res.text()).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 1200) : '';
+        const pageText = contentType.includes('text/html') ? (await res.text()).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 500) : '';
         return { url: res.url || url, pageText };
       }
     } catch {
@@ -115,18 +115,12 @@ function platformFromSubjectAndFrom(subject = '', from = '', sourceUrl = '') {
 
 async function validateLeadWithAi(base44, candidate) {
   const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
-    prompt: `בדוק אם הפרסום הבא הוא ליד אמיתי ורלוונטי לצלם אירועים בישראל.
-
-שמור רק אם מדובר באדם/עסק שמחפש שירותי צילום, צלם, צילום אירוע, חתונה, בר/בת מצווה, וידאו או צילום עסקי.
-פסול אם זה מאמר, מודעה לא קשורה, קורס, שירות שהצלם מוכר, עמוד שגיאה, תוכן כללי, או אם אי אפשר להבין שמישהו מחפש צלם.
-
+    prompt: `סנן ליד לצלם אירועים בישראל. אשר רק אם אדם/עסק מחפש צילום עכשיו. פסול: מאמר, קורס, שירות שהצלם מוכר, עמוד שגיאה, תוכן כללי.
 כותרת: ${candidate.title}
 קישור: ${candidate.source_url}
-טקסט מהמייל: ${candidate.snippet}
-טקסט מהעמוד: ${candidate.pageText || 'לא זמין'}
-מילות מפתח: ${candidate.keywords_matched}
-
-החזר JSON בלבד.`,
+טקסט: ${candidate.snippet}
+עמוד: ${candidate.pageText || ''}
+החזר JSON.`, 
     response_json_schema: {
       type: 'object',
       properties: {
@@ -177,10 +171,16 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, found: 0, saved: 0, rejected: 0, summary: 'אין תוצאות חדשות בתיבת המייל' });
     }
 
+    const existing = await base44.entities.PotentialLead.filter({}, '-created_date', 150);
+    const existingUrls = new Set(existing.map(e => e.source_url).filter(Boolean));
+    const existingKeys = new Set(existing.map(e => `${e.source_url || ''}|${e.title || ''}`.toLowerCase().trim()));
+
     const discovered = [];
     let rejected = 0;
+    let aiChecks = 0;
+    const maxAiChecks = 6;
 
-    for (const id of Array.from(messageIds).slice(0, 25)) {
+    for (const id of Array.from(messageIds).slice(0, 20)) {
       const res = await fetch(
         `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=full`,
         { headers: authHeader }
@@ -198,13 +198,17 @@ Deno.serve(async (req) => {
 
       const urls = extractUrls(text, html);
       const reachable = await getReachableUrl(urls);
-      if (!reachable.url) {
+      if (!reachable.url || existingUrls.has(reachable.url)) {
         rejected++;
         continue;
       }
 
       const idx = text.toLowerCase().indexOf(matched[0].toLowerCase());
-      const snippet = text.substring(Math.max(0, idx - 80), Math.min(text.length, idx + 350)).trim();
+      const snippet = text.substring(Math.max(0, idx - 60), Math.min(text.length, idx + 220)).trim();
+      if (snippet.length < 40 || aiChecks >= maxAiChecks) {
+        rejected++;
+        continue;
+      }
       const { phone, email } = extractContact(text);
       const platform = platformFromSubjectAndFrom(subject, from, reachable.url);
 
@@ -218,6 +222,7 @@ Deno.serve(async (req) => {
         contact_info: [phone, email].filter(Boolean).join(' / ') || 'N/A',
       };
 
+      aiChecks++;
       const ai = await validateLeadWithAi(base44, candidate);
       if (!ai.is_relevant || Number(ai.relevance_score || 0) < 7) {
         rejected++;
@@ -236,8 +241,6 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, found: 0, saved: 0, rejected, summary: `לא נמצאו פוסטים רלוונטיים עם קישור תקין. נפסלו ${rejected}.` });
     }
 
-    const existing = await base44.entities.PotentialLead.filter({}, '-created_date', 150);
-    const existingKeys = new Set(existing.map(e => `${e.source_url || ''}|${e.title || ''}`.toLowerCase().trim()));
     const newOnes = discovered.filter(l => l.title && l.source_url && !existingKeys.has(`${l.source_url}|${l.title}`.toLowerCase().trim()));
 
     if (newOnes.length > 0 && !dryRun) {
@@ -260,7 +263,8 @@ Deno.serve(async (req) => {
       saved: dryRun ? 0 : newOnes.length,
       rejected,
       dryRun,
-      summary: `סריקה חכמה הושלמה: ${discovered.length} רלוונטיים, ${rejected} נפסלו, ${dryRun ? 0 : newOnes.length} נשמרו`,
+      aiChecks,
+      summary: `סריקה חסכונית הושלמה: ${discovered.length} רלוונטיים, ${rejected} נפסלו, ${aiChecks} בדיקות AI, ${dryRun ? 0 : newOnes.length} נשמרו`,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
