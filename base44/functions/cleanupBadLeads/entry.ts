@@ -48,6 +48,11 @@ const isJunkLead = (lead) => {
     'קורס sba',
     'תגובה על פוסט',
     'contact form\nevent-photography',
+    'photography-course',
+    'natigold.com/photography-course',
+    'קורס צילום',
+    'צרו קשר',
+    'עמוד נחיתה',
   ];
 
   for (const p of junkPatterns) {
@@ -74,7 +79,7 @@ const isJunkLead = (lead) => {
   if (st.includes('natigold.com') || st.includes('שבעה ימים להבין הכל') || st.includes('אני נתי גולד')) {
     return true;
   }
-  if (notes.includes('natigold.com/photography-course') || notes.includes('שבעה ימים להבין הכל') || notes.includes('אני נתי גולד')) {
+  if (notes.includes('natigold.com/photography-course') || notes.includes('photography-course') || notes.includes('קורס צילום') || notes.includes('שבעה ימים להבין הכל') || notes.includes('אני נתי גולד')) {
     return true;
   }
 

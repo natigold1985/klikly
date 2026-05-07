@@ -40,9 +40,16 @@ Deno.serve(async (req) => {
       return Response.json({ error: extracted.details || 'Failed to extract data' }, { status: 400 });
     }
 
-    const rows = extracted.output.leads.filter(l => l.name && l.phone);
+    const rows = extracted.output.leads.filter(l => {
+      const text = [l.name, l.source, l.notes, l.shooting_type].filter(Boolean).join(' ').toLowerCase();
+      const phoneDigits = String(l.phone || '').replace(/[^0-9]/g, '');
+      const hasRealPhone = phoneDigits.length >= 9 && phoneDigits.length <= 13;
+      const hasRealName = l.name && !['לא ידוע', 'unknown', 'test', 'בדיקה', 'n/a', '-', '?'].includes(String(l.name).trim().toLowerCase());
+      const isMarketingOrCourse = /photography-course|קורס צילום|קורס|שבעה ימים להבין הכל|אני נתי גולד|צרו קשר|landing page/i.test(text);
+      return hasRealName && hasRealPhone && !isMarketingOrCourse;
+    });
     if (rows.length === 0) {
-      return Response.json({ error: 'No valid leads found (need name + phone)' }, { status: 400 });
+      return Response.json({ error: 'No real leads found (need real name + valid phone)' }, { status: 400 });
     }
 
     // Fetch existing leads for dedup (scoped to user)

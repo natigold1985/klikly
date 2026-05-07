@@ -62,24 +62,42 @@ function isValidPhone(phone) {
     return digits.length >= 9 && digits.length <= 13;
 }
 
-// Detect junk/irrelevant leads — used to mark them as is_filtered on creation.
-// A lead with a valid email is considered reachable even without a phone (B2B contacts).
-function detectJunkLead(name, phone, email) {
+// Detect junk/irrelevant leads — these should NOT be created as real leads.
+function detectJunkLead(name, phone, email, source = '', notes = '', shootingType = '') {
     const cleanName = String(name || '').trim();
     const lowName = cleanName.toLowerCase();
+    const text = [cleanName, source, notes, shootingType].filter(Boolean).join(' ').toLowerCase();
     const digits = String(phone || '').replace(/[^0-9]/g, '');
     const hasValidEmail = !!(email && /\S+@\S+\.\S+/.test(String(email)));
     const hasValidPhone = digits.length >= 9 && digits.length <= 13;
 
-    // Need at least one reachable channel (phone or email)
     if (!hasValidPhone && !hasValidEmail) {
         return { isJunk: true, reason: 'no_contact_method' };
     }
 
-    // Placeholder / nameless leads
     const junkNames = ['לא ידוע', 'unknown', 'test', 'בדיקה', 'n/a', '-', '?', 'ללא שם', 'ללא'];
     if (!cleanName || junkNames.some(j => lowName === j) || lowName.includes('ליד ללא שם')) {
         return { isJunk: true, reason: 'no_name' };
+    }
+
+    const junkTextPatterns = [
+        'natigold.com/photography-course',
+        'photography-course',
+        'קורס צילום',
+        'קורס',
+        'הדרכה',
+        'שבעה ימים להבין הכל',
+        'אני נתי גולד',
+        'צרו קשר',
+        'עמוד נחיתה',
+        'landing page',
+        'facebook page',
+        'פייסבוק page',
+        'linkedin.com/jobs',
+        'דרושים',
+    ];
+    if (junkTextPatterns.some(pattern => text.includes(pattern))) {
+        return { isJunk: true, reason: 'marketing_or_non_person_lead' };
     }
 
     return { isJunk: false, reason: null };
@@ -277,7 +295,12 @@ Deno.serve(async (req) => {
                     }
                 } else {
                     const finalName = name || (email || phone || 'לא ידוע');
-                    const junk = detectJunkLead(finalName, phone, email);
+                    const junk = detectJunkLead(finalName, phone, email, detectedSource, notes, typeCol);
+                    if (junk.isJunk) {
+                        tabSkipped++; skipped++;
+                        continue;
+                    }
+
                     const created = await base44.asServiceRole.entities.Lead.create({
                         name: finalName,
                         phone: phone || '',
@@ -288,8 +311,7 @@ Deno.serve(async (req) => {
                         notes: notes || undefined,
                         status: 'new',
                         last_contact_date: new Date().toISOString(),
-                        is_filtered: junk.isJunk,
-                        filter_reason: junk.reason || undefined,
+                        is_filtered: false,
                     });
                     tabAdded++; added++;
 
