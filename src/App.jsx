@@ -45,8 +45,17 @@ const AuthenticatedApp = () => {
     queryKey: ['teamMemberAccess', user?.email],
     queryFn: async () => {
       if (!user?.email) return null;
-      const list = await base44.entities.TeamMember.filter({ email: user.email.toLowerCase() });
-      const member = list[0] || null;
+      const normalizedEmail = user.email.toLowerCase();
+      const directList = await base44.entities.TeamMember.filter({ email: normalizedEmail });
+      let member = directList.find((m) => m.is_active !== false) || null;
+      if (!member) {
+        const allMembers = await base44.entities.TeamMember.list('-created_date', 500);
+        member = allMembers.find((m) =>
+          m.is_active !== false &&
+          Array.isArray(m.emails) &&
+          m.emails.map((email) => String(email).toLowerCase()).includes(normalizedEmail)
+        ) || null;
+      }
       // Sync role from TeamMember -> User entity so the rest of the app (Layout, FileStorage, etc.)
       // sees the correct role (e.g. 'client').
       if (member && member.role && member.role !== user.role) {

@@ -124,8 +124,13 @@ export default function ProjectDetails() {
   if (!project) return <div className="p-8 text-center text-white/50">פרויקט לא נמצא</div>;
 
   const driveFiles = driveStatsData?.files || [];
-  const rawCount = driveFiles.filter((file) => /גלמים|raw/i.test(file.parent_name || '')).length;
-  const editedCount = driveFiles.filter((file) => /ערוכות|edited/i.test(file.parent_name || '')).length;
+  const rawExtensions = ['.nef', '.cr2', '.cr3', '.arw', '.dng', '.raf', '.rw2', '.orf', '.raw'];
+  const isRawFile = (file) => {
+    const name = String(file.name || '').toLowerCase();
+    return rawExtensions.some((ext) => name.endsWith(ext)) || (file.size || 0) >= 15 * 1024 * 1024;
+  };
+  const rawCount = driveFiles.filter(isRawFile).length;
+  const editedCount = driveFiles.filter((file) => !isRawFile(file)).length;
   const liveRawCount = driveFiles.length ? rawCount : (project.raw_photos_count || 0);
   const liveEditedCount = driveFiles.length ? editedCount : (project.final_photos_count || 0);
   const liveSelectedCount = project.selected_photos_count || 0;

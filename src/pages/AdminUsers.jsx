@@ -3,9 +3,10 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Shield, User, Mail, Phone, UserPlus, Calendar, Camera, Users as UsersIcon, Pencil, Trash2, MessageCircle, FolderOpen } from 'lucide-react';
+import { Shield, User, Mail, Phone, UserPlus, Calendar, Camera, Users as UsersIcon, Pencil, Trash2, MessageCircle, FolderOpen, Merge, Plus, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
 import AddUserDialog from '../components/admin/AddUserDialog';
 import EditUserRoleDialog from '../components/admin/EditUserRoleDialog';
@@ -24,6 +25,8 @@ export default function AdminUsers() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
+  const [mergePrimary, setMergePrimary] = useState(null);
+  const [isMerging, setIsMerging] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
 
@@ -41,6 +44,29 @@ export default function AdminUsers() {
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const handleMergeClients = async (secondaryUser) => {
+    if (!mergePrimary || !secondaryUser || mergePrimary.id === secondaryUser.id) return;
+    setIsMerging(true);
+    const res = await base44.functions.invoke('mergeClients', {
+      primary_user_id: mergePrimary.id,
+      secondary_user_id: secondaryUser.id,
+    });
+    if (res.data?.success) {
+      toast.success(`לקוחות אוחדו — ${res.data.emails?.length || 0} מיילים נשמרו`);
+      setMergePrimary(null);
+      queryClient.invalidateQueries({ queryKey: ['adminAllUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['adminClientProjects'] });
+    } else {
+      toast.error(res.data?.error || 'שגיאה באיחוד לקוחות');
+    }
+    setIsMerging(false);
+  };
+
+  const handleClientEmailsSaved = () => {
+    queryClient.invalidateQueries({ queryKey: ['adminAllUsers'] });
+    queryClient.invalidateQueries({ queryKey: ['adminClientProjects'] });
   };
 
   const { data: user } = useQuery({
@@ -83,7 +109,7 @@ export default function AdminUsers() {
   }
 
   const photographers = allUsers.filter(u => u.role === 'admin' || u.role === 'user');
-  const clients = allUsers.filter(u => u.role === 'client');
+  const clients = allUsers.filter(u => u.role === 'client' && u.is_active !== false);
 
   return (
     <div className="space-y-6 pb-20" dir="rtl">
@@ -117,7 +143,29 @@ export default function AdminUsers() {
             <UserGrid users={photographers} type="photographer" onEdit={setEditingUser} onDelete={setDeletingUser} currentUserEmail={user?.email} />
           </TabsContent>
           <TabsContent value="clients">
-            <UserGrid users={clients} type="client" projects={clientProjects} onEdit={setEditingUser} onDelete={setDeletingUser} currentUserEmail={user?.email} />
+            {mergePrimary && (
+              <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 flex items-center justify-between gap-3">
+                <div className="text-sm text-amber-900">
+                  בחר כרטיס לקוח נוסף למיזוג עם <strong>{mergePrimary.full_name || mergePrimary.email}</strong>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => setMergePrimary(null)} className="text-slate-900 border-slate-300">
+                  ביטול איחוד
+                </Button>
+              </div>
+            )}
+            <UserGrid
+              users={clients}
+              type="client"
+              projects={clientProjects}
+              onEdit={setEditingUser}
+              onDelete={setDeletingUser}
+              currentUserEmail={user?.email}
+              mergePrimary={mergePrimary}
+              isMerging={isMerging}
+              onStartMerge={setMergePrimary}
+              onConfirmMerge={handleMergeClients}
+              onEmailsSaved={handleClientEmailsSaved}
+            />
           </TabsContent>
         </Tabs>
       )}
@@ -156,7 +204,7 @@ export default function AdminUsers() {
   );
 }
 
-function UserGrid({ users, type, projects = [], onEdit, onDelete, currentUserEmail }) {
+function UserGrid({ users, type, projects = [], onEdit, onDelete, currentUserEmail, mergePrimary, isMerging, onStartMerge, onConfirmMerge, onEmailsSaved }) {
   if (users.length === 0) {
     return (
       <Card className="border-dashed">
@@ -171,8 +219,12 @@ function UserGrid({ users, type, projects = [], onEdit, onDelete, currentUserEma
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {users.map((u) => {
         const isUserAdmin = u.role === 'admin' || u.email === 'natigold04@gmail.com';
+        const userEmails = [u.email, ...(Array.isArray(u.emails) ? u.emails : [])].filter(Boolean);
         const project = type === 'client'
-          ? projects.find((p) => p.client_email?.toLowerCase() === u.email?.toLowerCase())
+          ? projects.find((p) => {
+              const projectEmails = [p.client_email, ...(Array.isArray(p.client_emails) ? p.client_emails : [])].filter(Boolean);
+              return projectEmails.some((email) => userEmails.map((e) => e.toLowerCase()).includes(email.toLowerCase()));
+            })
           : null;
         const phoneDigits = String(u.phone || '').replace(/[^0-9]/g, '');
         const whatsappPhone = phoneDigits.startsWith('0') ? `972${phoneDigits.slice(1)}` : phoneDigits;
@@ -211,6 +263,7 @@ function UserGrid({ users, type, projects = [], onEdit, onDelete, currentUserEma
                     <Mail className="w-3 h-3" />
                     <span className="truncate">{u.email}</span>
                   </div>
+                  {type === 'client' && <ClientEmailEditor user={u} onSaved={onEmailsSaved} />}
                   {u.phone && (
                     <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
                       <Phone className="w-3 h-3" />
@@ -263,6 +316,18 @@ function UserGrid({ users, type, projects = [], onEdit, onDelete, currentUserEma
                     </a>
                   </div>
 
+                  {type === 'client' && (
+                    <Button
+                      onClick={() => mergePrimary ? onConfirmMerge?.(u) : onStartMerge?.(u)}
+                      disabled={isMerging || mergePrimary?.id === u.id}
+                      variant="outline"
+                      className="w-full gap-2 text-sm text-slate-900 border-slate-300 bg-white hover:bg-slate-50"
+                    >
+                      <Merge className="w-4 h-4" />
+                      {mergePrimary ? (mergePrimary.id === u.id ? 'לקוח ראשי נבחר' : 'מזג לתוך הלקוח הנבחר') : 'איחוד לקוח'}
+                    </Button>
+                  )}
+
                   <Button onClick={openFiles} className="w-full gap-2 text-sm">
                     <FolderOpen className="w-4 h-4" />
                     מעבר לתיקיית קבצים
@@ -277,6 +342,64 @@ function UserGrid({ users, type, projects = [], onEdit, onDelete, currentUserEma
           </Card>
         );
       })}
+    </div>
+  );
+}
+
+function ClientEmailEditor({ user, onSaved }) {
+  const initialEmails = [user.email, ...(Array.isArray(user.emails) ? user.emails : [])].filter(Boolean);
+  const [editing, setEditing] = useState(false);
+  const [emails, setEmails] = useState(initialEmails.length ? initialEmails : ['']);
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    const res = await base44.functions.invoke('updateClientEmails', { user_id: user.id, emails });
+    if (res.data?.success) {
+      toast.success('המיילים של הלקוח עודכנו');
+      setEditing(false);
+      onSaved?.();
+    } else {
+      toast.error(res.data?.error || 'שגיאה בעדכון מיילים');
+    }
+    setSaving(false);
+  };
+
+  if (!editing) {
+    return (
+      <button
+        onClick={() => setEditing(true)}
+        className="mt-2 text-[11px] text-blue-700 hover:text-blue-900 font-bold flex items-center gap-1"
+      >
+        <Plus className="w-3 h-3" />
+        {emails.length > 1 ? `עריכת ${emails.length} מיילים` : 'הוסף מייל נוסף'}
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-2 space-y-2 rounded-xl border border-blue-100 bg-blue-50/40 p-2">
+      {emails.map((email, index) => (
+        <Input
+          key={index}
+          value={email}
+          dir="ltr"
+          className="h-8 text-xs bg-white"
+          placeholder="client@email.com"
+          onChange={(e) => setEmails((prev) => prev.map((item, i) => i === index ? e.target.value : item))}
+        />
+      ))}
+      <div className="flex gap-1">
+        <Button size="sm" variant="outline" onClick={() => setEmails([...emails, ''])} className="h-8 text-slate-900 border-slate-300 bg-white">
+          <Plus className="w-3 h-3" />
+        </Button>
+        <Button size="sm" onClick={save} disabled={saving} className="h-8 flex-1">
+          <Save className="w-3 h-3" /> שמור
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => setEditing(false)} className="h-8 text-slate-900 border-slate-300 bg-white">
+          <X className="w-3 h-3" />
+        </Button>
+      </div>
     </div>
   );
 }
