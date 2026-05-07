@@ -200,14 +200,21 @@ export default function ProjectDetails() {
                   )}
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="text-sm text-slate-500 block mb-1">אימיילים מורשים</label>
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <label className="text-sm text-slate-500 block">אימיילים מורשים</label>
+                    {!isEditingDetails && (
+                      <Button size="sm" variant="outline" onClick={startEditDetails} className="h-8 px-3 gap-1 text-slate-900 border-slate-300 bg-white hover:bg-slate-50">
+                        <Pencil className="w-3.5 h-3.5" /> עריכת מיילים
+                      </Button>
+                    )}
+                  </div>
                   {isEditingDetails ? (
                     <div className="space-y-2">
                       {(detailsForm?.client_emails || ['']).map((email, index) => (
                         <div key={index} className="flex gap-2">
                           <Input value={email} onChange={(e) => updateEmailAt(index, e.target.value)} placeholder="client@email.com" dir="ltr" />
                           {index === (detailsForm?.client_emails || []).length - 1 && (
-                            <Button type="button" size="icon" variant="outline" onClick={() => setDetailsForm({ ...detailsForm, client_emails: [...(detailsForm?.client_emails || []), ''] })} className="text-slate-900 border-slate-300">
+                            <Button type="button" size="icon" variant="outline" onClick={() => setDetailsForm({ ...detailsForm, client_emails: [...(detailsForm?.client_emails || []), ''] })} className="text-slate-900 border-slate-300 bg-white hover:bg-slate-50" title="הוסף מייל נוסף">
                               <Plus className="w-4 h-4" />
                             </Button>
                           )}

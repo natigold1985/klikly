@@ -41,8 +41,8 @@ export default function DriveLightbox({ files, startIndex = 0, onClose, onDownlo
 
   // Drive image high-res preview (s2400 ~= ample resolution; falls back to view_url)
   const fullImageSrc = file.thumbnail_url
-    ? file.thumbnail_url.replace(/=s\d+/, '=s2400')
-    : null;
+    ? file.thumbnail_url.replace(/=s\d+/, '=s2400').replace(/sz=w\d+/, 'sz=w2400')
+    : (file.view_url || file.download_url || null);
 
   // Drive video preview embed — uses Drive's native player, no auto-download
   const videoEmbedSrc = file.is_video ? `https://drive.google.com/file/d/${file.id}/preview` : null;

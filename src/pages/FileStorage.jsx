@@ -100,12 +100,13 @@ export default function FileStorage() {
               setSelectedProject(null);
               window.history.replaceState({}, '', '/FileStorage');
             }}
-            className="gap-1.5"
+            className="gap-1.5 text-slate-900 border-slate-300 bg-white hover:bg-slate-50 shadow-sm font-bold"
           >
             <ArrowRight className="w-4 h-4" />
-            חזרה לכל הפרויקטים
+            חזור לרשימת הפרויקטים
           </Button>
           <div className="text-left flex-1 min-w-0">
+            <div className="text-[11px] text-slate-400 mb-0.5">אחסון קבצים / {selectedProject.client_name}</div>
             <h1 className="text-lg md:text-xl font-bold text-slate-900 truncate">
               {selectedProject.project_name || selectedProject.client_name}
             </h1>

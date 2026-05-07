@@ -191,7 +191,7 @@ function FileTile({ file, project, onDownload, onOpen }) {
   return (
     <div
       onClick={onOpen}
-      className="drive-item mb-3 group relative rounded-2xl overflow-hidden bg-slate-100 shadow-sm hover:shadow-2xl transition-all duration-300 cursor-zoom-in"
+      className="drive-item mb-3 group relative rounded-2xl overflow-hidden bg-slate-100 shadow-sm hover:shadow-2xl transition-all duration-300 cursor-zoom-in" title="לחץ להגדלה"
     >
       {showThumb ? (
         <>
@@ -242,6 +242,10 @@ function FileTile({ file, project, onDownload, onOpen }) {
           </div>
         </>
       )}
+
+      <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity rounded-full bg-black/60 text-white text-[11px] font-bold px-2.5 py-1 pointer-events-none">
+        לחץ להגדלה
+      </div>
 
       {/* Hover overlay with actions */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-between p-3 pointer-events-none">
