@@ -21,14 +21,22 @@ export default function ClientGallery() {
     const [fullscreenImage, setFullscreenImage] = useState(null);
     const [photoComments, setPhotoComments] = useState({});
 
-    // Parse PIN from URL if present
+    // Parse PIN from URL if present, or bypass for logged-in admins
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
         const urlPin = urlParams.get('pin');
         if (urlPin) {
             setPin(urlPin);
             handleLogin(urlPin);
+            return;
         }
+        base44.auth.isAuthenticated().then(async (isAuthed) => {
+            if (!isAuthed) return;
+            const me = await base44.auth.me();
+            if (me?.role === 'admin' || me?.email === 'natigold04@gmail.com') {
+                handleLogin('__admin__');
+            }
+        }).catch(() => {});
     }, [id]);
 
     const handleLogin = async (currentPin = pin) => {
@@ -184,7 +192,7 @@ export default function ClientGallery() {
                                     onClick={() => setFullscreenImage(photo)}
                                 >
                                     <img 
-                                        src={photo.thumbnail} 
+                                        src={photo.thumbnail || photo.url || photo.view_url} 
                                         alt="Gallery Image" 
                                         className={`w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105 ${isSelected ? 'ring-4 ring-[#FFD700]' : ''}`}
                                         loading="lazy"
@@ -234,7 +242,7 @@ export default function ClientGallery() {
                         <button className="absolute top-6 left-6 text-white/50 hover:text-white z-50">✕ סגור</button>
                         <div className="relative max-w-full max-h-[85vh] flex flex-col md:flex-row items-center justify-center gap-6" onClick={(e) => e.stopPropagation()}>
                             <img 
-                                src={fullscreenImage.url} 
+                                src={fullscreenImage.url || fullscreenImage.thumbnail || fullscreenImage.view_url} 
                                 alt="Fullscreen" 
                                 className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
                             />

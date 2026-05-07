@@ -20,7 +20,6 @@ function generateToken() {
 
 export default function DeliveryLinkButton({ project }) {
   const [open, setOpen] = useState(false);
-  const [fileUrl, setFileUrl] = useState('');
   const [fileSizeLabel, setFileSizeLabel] = useState('');
   const [copied, setCopied] = useState(false);
   const queryClient = useQueryClient();
@@ -40,7 +39,7 @@ export default function DeliveryLinkButton({ project }) {
       return base44.entities.DeliveryLink.create({
         project_id: project.id,
         token,
-        file_url: fileUrl,
+        file_url: project.drive_folder_url || '',
         photographer_email: project.created_by,
         client_name: project.client_name,
         project_title: project.shooting_type || project.client_name,
@@ -147,16 +146,8 @@ export default function DeliveryLinkButton({ project }) {
               <p className="text-sm text-slate-600">
                 צור לינק ייחודי ללקוח להורדת הקבצים. הצלם יקבל התראה כשהלקוח יוריד.
               </p>
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-1 block">
-                  קישור לקובץ/תיקיה *
-                </label>
-                <Input
-                  value={fileUrl}
-                  onChange={(e) => setFileUrl(e.target.value)}
-                  placeholder="https://drive.google.com/..."
-                />
-                <p className="text-xs text-slate-500 mt-1">קישור ל-Google Drive, Dropbox, WeTransfer וכו'</p>
+              <div className="p-3 rounded-xl bg-blue-50 border border-blue-100 text-sm text-blue-800">
+                הלינק ייפתח ישירות מתיקיית Google Drive שמחוברת לפרויקט.
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-700 mb-1 block">
@@ -170,7 +161,7 @@ export default function DeliveryLinkButton({ project }) {
               </div>
               <Button
                 onClick={() => createLinkMutation.mutate()}
-                disabled={!fileUrl || createLinkMutation.isPending}
+                disabled={!project.drive_folder_url || createLinkMutation.isPending}
                 className="w-full bg-gradient-to-r from-[#D4AF37] to-[#C5A028] hover:from-[#C5A028] hover:to-[#D4AF37] text-black font-bold"
               >
                 {createLinkMutation.isPending ? (

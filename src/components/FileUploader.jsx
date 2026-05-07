@@ -45,22 +45,23 @@ export default function FileUploader({ projectId, onUploadComplete, acceptedType
         f.id === fileItem.id ? { ...f, progress: 60 } : f
       ));
 
-      // Step 2: Transfer to BunnyCDN securely via backend
-      const response = await base44.functions.invoke('transferToBunny', {
-        fileUrl: tempUrl,
-        fileName: fileItem.file.name,
-        fileType: fileItem.file.type,
-        projectId: projectId
+      // Step 2: Upload to the project's Google Drive folder only
+      const response = await base44.functions.invoke('uploadToDrive', {
+        project_id: projectId,
+        file_url: tempUrl,
+        file_name: fileItem.file.name,
+        mime_type: fileItem.file.type || 'application/octet-stream',
+        target_subfolder: 'edited',
       });
       
-      const { finalUrl } = response.data;
+      const driveFile = response.data?.file;
 
       setFiles(prev => prev.map(f => 
-        f.id === fileItem.id ? { ...f, progress: 100, status: 'success', uploadedUrl: finalUrl } : f
+        f.id === fileItem.id ? { ...f, progress: 100, status: 'success', uploadedUrl: driveFile?.view_url } : f
       ));
 
       return {
-        file_url: finalUrl,
+        file_url: driveFile?.download_url || driveFile?.view_url,
         file_name: fileItem.file.name,
         file_size: fileItem.file.size,
         type: fileItem.file.type
@@ -122,7 +123,7 @@ export default function FileUploader({ projectId, onUploadComplete, acceptedType
       >
         <Upload className="w-12 h-12 mx-auto text-slate-400 mb-3" />
         <p className="text-slate-700 font-medium mb-1">לחץ להעלאת קבצים</p>
-        <p className="text-sm text-slate-500">תמונות ווידאו עד 500MB</p>
+        <p className="text-sm text-slate-500">תמונות ווידאו נשמרים ישירות ב-Google Drive</p>
         <input
           ref={fileInputRef}
           type="file"

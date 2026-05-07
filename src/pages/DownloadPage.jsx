@@ -19,6 +19,13 @@ export default function DownloadPage() {
       setLoading(false);
       return;
     }
+    base44.auth.isAuthenticated().then(async (isAuthed) => {
+      if (!isAuthed) return;
+      const me = await base44.auth.me();
+      if (me?.role === 'admin' || me?.email === 'natigold04@gmail.com') {
+        loadLink();
+      }
+    }).catch(() => {});
     setLoading(false);
   }, [token]);
 
@@ -47,24 +54,18 @@ export default function DownloadPage() {
     try {
       setDownloading(true);
       
-      // 1. Fetch Presigned URL
-      const urlRes = await base44.functions.invoke('generatePresignedUrl', {
-        token,
-        action: 'get',
-        fileName
-      });
-      
-      const presignedUrl = urlRes.data.url;
+      const driveUrl = linkData?.drive_folder_url || linkData?.files?.find((file) => file.name === fileName)?.view_url;
+      if (!driveUrl) throw new Error('לא נמצא קישור Google Drive');
 
-      // 2. Track actual download click in DB
+      // Track actual download click in DB
       await base44.functions.invoke('trackDeliveryLink', {
         token,
         action: 'download',
         fileName
       });
 
-      // 3. Initiate Secure Download
-      window.location.href = presignedUrl;
+      // Open Google Drive only — no Bunny/CDN storage
+      window.open(driveUrl, '_blank', 'noopener,noreferrer');
 
     } catch (err) {
       console.error('Download failed:', err);

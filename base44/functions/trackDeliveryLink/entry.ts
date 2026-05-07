@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
 
     return Response.json({ 
       success: true, 
-      file_url: link.file_url,
+      file_url: '',
       project_title: link.project_title,
       client_name: link.client_name,
       view_count: newViewCount,

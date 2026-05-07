@@ -20,7 +20,9 @@ Deno.serve(async (req) => {
       project = list[0];
       isClient = true;
       if (!project) return Response.json({ error: 'Invalid link' }, { status: 404 });
-      if (project.gallery_pin && String(pin || '').trim() !== String(project.gallery_pin).trim()) {
+      const currentUser = await getCurrentUser(base44);
+      const isAdmin = currentUser?.role === 'admin' || currentUser?.email === 'natigold04@gmail.com';
+      if (project.gallery_pin && !isAdmin && String(pin || '').trim() !== String(project.gallery_pin).trim()) {
         return Response.json({ error: 'pin_required', pin_required: true }, { status: 403 });
       }
     } else {
@@ -97,6 +99,14 @@ Deno.serve(async (req) => {
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
+
+async function getCurrentUser(base44) {
+  try {
+    return await base44.auth.me();
+  } catch (_) {
+    return null;
+  }
+}
 
 function serializeProject(p, isClient) {
   const base = {

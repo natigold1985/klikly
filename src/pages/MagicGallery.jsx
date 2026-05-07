@@ -83,6 +83,16 @@ export default function MagicGallery() {
     }, 800);
   };
 
+  React.useEffect(() => {
+    base44.auth.isAuthenticated().then(async (isAuthed) => {
+      if (!isAuthed) return;
+      const me = await base44.auth.me();
+      if (me?.role === 'admin' || me?.email === 'natigold04@gmail.com') {
+        setPinUnlocked(true);
+      }
+    }).catch(() => {});
+  }, []);
+
   if (!pinUnlocked) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center p-6" dir="rtl">
