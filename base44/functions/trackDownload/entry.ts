@@ -19,6 +19,7 @@ Deno.serve(async (req) => {
 
     const isDownloadAll = download_type === 'download_all';
     const isGalleryOpen = event_type === 'gallery_open' || download_type === 'gallery_open';
+    const isDownloadCompleted = event_type === 'download_completed' || (!isGalleryOpen && download_type);
     const countText = file_count ? ` (${file_count} קבצים)` : '';
 
     // Log
@@ -41,13 +42,51 @@ Deno.serve(async (req) => {
       }).catch(() => {});
     }
 
+    const nowIso = new Date().toISOString();
     const deliveryLinks = await base44.asServiceRole.entities.DeliveryLink.filter({ token }).catch(() => []);
     const deliveryLink = deliveryLinks[0];
+    const linkPayload = {
+      project_id: project.id,
+      token,
+      file_url: project.drive_folder_url || '',
+      photographer_email: project.created_by,
+      client_name: project.client_name,
+      client_email: project.client_email,
+      client_phone: project.client_phone,
+      project_title: project.project_name || project.shooting_type || 'Gallery',
+      wants_reminders: true,
+    };
+
     if (deliveryLink) {
       const updateLink = isGalleryOpen
-        ? { view_count: (deliveryLink.view_count || 0) + 1 }
-        : { downloaded_at: new Date().toISOString() };
+        ? { ...linkPayload, view_count: (deliveryLink.view_count || 0) + 1, reminder_consent_at: deliveryLink.reminder_consent_at || nowIso }
+        : { ...linkPayload, downloaded_at: nowIso, fully_saved_at: nowIso };
       await base44.asServiceRole.entities.DeliveryLink.update(deliveryLink.id, updateLink).catch(() => {});
+    } else {
+      await base44.asServiceRole.entities.DeliveryLink.create({
+        ...linkPayload,
+        view_count: isGalleryOpen ? 1 : 0,
+        reminder_consent_at: nowIso,
+        downloaded_at: isDownloadCompleted ? nowIso : null,
+        fully_saved_at: isDownloadCompleted ? nowIso : null,
+      }).catch(() => {});
+    }
+
+    if (isDownloadCompleted) {
+      if (project.client_email) {
+        await base44.asServiceRole.integrations.Core.SendEmail({
+          to: project.client_email,
+          subject: 'הקבצים הורדו בהצלחה',
+          body: 'הקבצים הורדו בהצלחה. תודה רבה מסטודיו גולד!',
+        }).catch(() => {});
+      }
+      if (project.created_by) {
+        await base44.asServiceRole.integrations.Core.SendEmail({
+          to: project.created_by,
+          subject: 'הלקוח סיים להוריד את הגלריה',
+          body: `הלקוח ${project.client_name || ''} סיים להוריד את הגלריה.`,
+        }).catch(() => {});
+      }
     }
 
     // Start 90-day retention on first download

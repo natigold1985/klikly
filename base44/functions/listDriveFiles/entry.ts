@@ -7,7 +7,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
-    const { project_id, token, pin } = body;
+    const { project_id, token } = body;
 
     let project = null;
     let isClient = false;
@@ -20,11 +20,7 @@ Deno.serve(async (req) => {
       project = list[0];
       isClient = true;
       if (!project) return Response.json({ error: 'Invalid link' }, { status: 404 });
-      const currentUser = await getCurrentUser(base44);
-      const isAdmin = currentUser?.role === 'admin' || currentUser?.email === 'natigold04@gmail.com';
-      if (project.gallery_pin && !isAdmin && String(pin || '').trim() !== String(project.gallery_pin).trim()) {
-        return Response.json({ error: 'pin_required', pin_required: true }, { status: 403 });
-      }
+      // Zero-friction public access: the token itself grants gallery access.
     } else {
       const me = await base44.auth.me();
       if (!me) return Response.json({ error: 'Unauthorized' }, { status: 401 });
@@ -91,7 +87,7 @@ Deno.serve(async (req) => {
         size: f.size ? parseInt(f.size) : 0,
         thumbnail_url: f.thumbnailLink ? f.thumbnailLink.replace(/=s\d+/, '=s1600') : null,
         view_url: f.webViewLink,
-        download_url: `https://drive.google.com/uc?export=download&id=${f.id}`,
+        download_url: '',
         is_video: (f.mimeType || '').startsWith('video/'),
         is_image: (f.mimeType || '').startsWith('image/'),
         is_audio: (f.mimeType || '').startsWith('audio/'),
@@ -111,14 +107,6 @@ Deno.serve(async (req) => {
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
-
-async function getCurrentUser(base44) {
-  try {
-    return await base44.auth.me();
-  } catch (_) {
-    return null;
-  }
-}
 
 function isDocumentFile(name = '', mimeType = '') {
   const lower = String(name).toLowerCase();

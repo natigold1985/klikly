@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import DriveFilesGrid from '@/components/storage/DriveFilesGrid';
 import ThumbnailCarousel from '@/components/ui/thumbnail-carousel';
-import { Loader2, ShieldOff, LockKeyhole } from 'lucide-react';
+import { Loader2, ShieldOff } from 'lucide-react';
 
 // Public Magic Link gallery — minimalist MVP per spec.
 // Shows: client name + project title + ONE massive "Download All Files" button.
@@ -13,52 +13,61 @@ export default function MagicGallery() {
   const { token } = useParams();
   const [downloaded, setDownloaded] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [pin, setPin] = useState('');
-  const [pinUnlocked, setPinUnlocked] = useState(false);
-  const [pinError, setPinError] = useState('');
   const openTrackedRef = useRef(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['magicGallery', token],
     queryFn: async () => {
-      const res = await base44.functions.invoke('listDriveFiles', { token, pin });
+      const res = await base44.functions.invoke('listDriveFiles', { token });
       if (res.status !== 200) throw new Error(res.data?.error || 'Failed to load');
       return res.data;
     },
-    enabled: !!token && pinUnlocked,
+    enabled: !!token,
     retry: false,
   });
 
-  const unlockWithPin = async () => {
-    setPinError('');
-    const res = await base44.functions.invoke('listDriveFiles', { token, pin });
-    if (res.data?.project) {
-      setPinUnlocked(true);
-      return;
-    }
-    setPinError('קוד הגישה שגוי');
+  const downloadFileFromServer = async (file) => {
+    const res = await base44.functions.invoke('downloadDriveFile', { token, file_id: file.id });
+    const byteCharacters = atob(res.data.base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i += 1) byteNumbers[i] = byteCharacters.charCodeAt(i);
+    const blob = new Blob([new Uint8Array(byteNumbers)], { type: res.data.mime_type || 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = res.data.name || file.name || 'download';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   };
 
-  const handleDownloadFile = (file) => {
-    if (!file?.download_url) return;
-    window.open(file.download_url, '_blank', 'noopener,noreferrer');
+  const handleDownloadFile = async (file) => {
+    if (!file?.id) return;
+    await downloadFileFromServer(file);
     base44.functions.invoke('trackDownload', {
       token,
       file_name: file.name,
       download_type: 'single_file',
+      event_type: 'download_completed',
       file_count: 1,
     }).catch(() => {});
   };
 
   const handleDownloadVisible = async (visibleFiles) => {
-    visibleFiles.slice(0, 25).forEach((file, index) => {
-      setTimeout(() => window.open(file.download_url, '_blank', 'noopener,noreferrer'), index * 120);
-    });
+    setBusy(true);
+    const filesToDownload = visibleFiles.slice(0, 25);
+    for (const file of filesToDownload) {
+      await downloadFileFromServer(file);
+    }
+    setBusy(false);
+    setDownloaded(true);
     base44.functions.invoke('trackDownload', {
       token,
       file_name: 'VISIBLE_FILES',
       download_type: 'bulk_visible',
-      file_count: visibleFiles.length,
+      event_type: 'download_completed',
+      file_count: filesToDownload.length,
     }).catch(() => {});
   };
 
@@ -70,27 +79,26 @@ export default function MagicGallery() {
   };
 
   const handleDownloadAll = async () => {
-    if (!data?.project?.drive_folder_url) return;
+    const filesToDownload = data?.files || [];
+    if (!filesToDownload.length) return;
     setBusy(true);
 
-    // Action A: Open Drive folder in new tab
-    window.open(data.project.drive_folder_url, '_blank', 'noopener,noreferrer');
+    for (const file of filesToDownload) {
+      await downloadFileFromServer(file);
+    }
 
-    // Action B: Fire tracking webhook (logs DB + push + email to photographer)
-    base44.functions
+    await base44.functions
       .invoke('trackDownload', {
         token,
         file_name: 'ALL',
         download_type: 'download_all',
-        event_type: 'download_clicked',
-        file_count: data?.files?.length || 0,
+        event_type: 'download_completed',
+        file_count: filesToDownload.length,
       })
       .catch(() => {});
 
-    setTimeout(() => {
-      setBusy(false);
-      setDownloaded(true);
-    }, 800);
+    setBusy(false);
+    setDownloaded(true);
   };
 
   React.useEffect(() => {
@@ -104,58 +112,6 @@ export default function MagicGallery() {
       file_count: data?.files?.length || 0,
     }).catch(() => {});
   }, [data?.project, data?.files?.length, token]);
-
-  React.useEffect(() => {
-    base44.auth.isAuthenticated().then(async (isAuthed) => {
-      if (!isAuthed) return;
-      const me = await base44.auth.me();
-      if (me?.role === 'admin' || me?.email === 'natigold04@gmail.com') {
-        setPinUnlocked(true);
-      }
-    }).catch(() => {});
-  }, []);
-
-  if (!pinUnlocked) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center p-6" dir="rtl">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,215,0,0.08)_0%,rgba(0,0,0,0)_70%)]" />
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            unlockWithPin().catch(() => setPinError('קוד הגישה שגוי'));
-          }}
-          className="relative z-10 w-full max-w-sm bg-[#0a0a0a] border border-[#FFD700]/20 rounded-3xl p-8 text-center shadow-[0_0_40px_rgba(255,215,0,0.12)]"
-        >
-          <img
-            src="https://media.base44.com/images/public/699330cced2139a6e7aa06a9/1e11bfcc1_generated_image.png"
-            alt="KLIKLY"
-            className="h-12 mx-auto mb-8 object-contain"
-          />
-          <div className="w-16 h-16 mx-auto mb-6 rounded-full border border-[#FFD700]/30 bg-black flex items-center justify-center">
-            <LockKeyhole className="w-7 h-7 text-[#FFD700]" />
-          </div>
-          <h1 className="text-2xl font-extrabold text-[#FFD700] mb-2">כניסה לגלריה</h1>
-          <p className="text-white/60 text-sm mb-6">הקלד/י PIN כדי לצפות ולהוריד את הקבצים.</p>
-          <input
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            autoFocus
-            inputMode="numeric"
-            placeholder="PIN"
-            className="w-full h-14 rounded-2xl bg-white text-black text-center text-2xl font-bold tracking-[0.35em] outline-none border-2 border-transparent focus:border-[#FFD700] mb-3"
-          />
-          {pinError && <p className="text-red-400 text-sm mb-3">{pinError}</p>}
-          <button
-            type="submit"
-            disabled={!pin}
-            className="w-full h-12 rounded-2xl bg-gradient-to-r from-[#D4AF37] to-[#FFD700] text-black font-extrabold disabled:opacity-50"
-          >
-            פתח גלריה
-          </button>
-        </form>
-      </div>
-    );
-  }
 
   if (isLoading) {
     return (
