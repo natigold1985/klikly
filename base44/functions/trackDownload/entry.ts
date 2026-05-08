@@ -9,7 +9,7 @@ import webpush from 'npm:web-push@3.6.7';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { token, file_name, download_type, file_count } = await req.json().catch(() => ({}));
+    const { token, file_name, download_type, event_type, file_count } = await req.json().catch(() => ({}));
 
     if (!token) return Response.json({ error: 'token required' }, { status: 400 });
 
@@ -18,12 +18,15 @@ Deno.serve(async (req) => {
     if (!project) return Response.json({ error: 'Invalid token' }, { status: 404 });
 
     const isDownloadAll = download_type === 'download_all';
+    const isGalleryOpen = event_type === 'gallery_open' || download_type === 'gallery_open';
     const countText = file_count ? ` (${file_count} קבצים)` : '';
 
     // Log
     await base44.asServiceRole.entities.SystemLog.create({
-      action: 'client_download',
-      details: `[${download_type || 'single'}] ${project.client_name} downloaded ${file_name || 'files'}${countText}`,
+      action: isGalleryOpen ? 'client_gallery_open' : 'client_download',
+      details: isGalleryOpen
+        ? `${project.client_name} opened the gallery${countText}`
+        : `[${download_type || 'single'}] ${project.client_name} clicked download for ${file_name || 'files'}${countText}`,
       status: 'success',
       related_entity_type: 'Project',
       related_entity_id: project.id,
@@ -36,6 +39,15 @@ Deno.serve(async (req) => {
         last_bulk_download_at: new Date().toISOString(),
         last_bulk_download_count: file_count || 0,
       }).catch(() => {});
+    }
+
+    const deliveryLinks = await base44.asServiceRole.entities.DeliveryLink.filter({ token }).catch(() => []);
+    const deliveryLink = deliveryLinks[0];
+    if (deliveryLink) {
+      const updateLink = isGalleryOpen
+        ? { view_count: (deliveryLink.view_count || 0) + 1 }
+        : { downloaded_at: new Date().toISOString() };
+      await base44.asServiceRole.entities.DeliveryLink.update(deliveryLink.id, updateLink).catch(() => {});
     }
 
     // Start 90-day retention on first download
@@ -58,10 +70,10 @@ Deno.serve(async (req) => {
             user_email: photographerEmail,
             is_active: true,
           });
-          const title = isDownloadAll ? '🎉 הלקוח הוריד את כל הגלריה' : '⬇️ הלקוח הוריד קבצים';
-          const body = isDownloadAll
-            ? `${project.client_name} הוריד את הגלריה המלאה${countText}`
-            : `${project.client_name}${file_name ? ` הוריד "${file_name}"` : ' הוריד קבצים'}${isFirst ? ' (הורדה ראשונה!)' : ''}`;
+          const title = isGalleryOpen ? '👀 Client opened gallery' : '⬇️ Client started downloading';
+          const body = isGalleryOpen
+            ? `Client ${project.client_name} opened the ${project.project_name || project.shooting_type || 'gallery'} gallery.`
+            : `Client ${project.client_name} just started downloading the ${project.project_name || project.shooting_type || 'Project'} gallery!${countText}`;
           const payload = JSON.stringify({
             title,
             body,
@@ -83,10 +95,10 @@ Deno.serve(async (req) => {
         }
 
         // Email photographer too
-        const emailSubject = isDownloadAll ? '🎉 הלקוח הוריד את כל הגלריה' : '⬇️ הלקוח הוריד קבצים';
-        const emailBody = isDownloadAll
-          ? `${project.client_name} הוריד את הגלריה המלאה${countText}.\n\nתאריך: ${new Date().toLocaleString('he-IL')}`
-          : `${project.client_name} הוריד${file_name ? ` "${file_name}"` : ' קבצים'}${isFirst ? ' (הורדה ראשונה!)' : ''}.\n\nתאריך: ${new Date().toLocaleString('he-IL')}`;
+        const emailSubject = isGalleryOpen ? '👀 Client opened gallery' : '⬇️ Client started downloading';
+        const emailBody = isGalleryOpen
+          ? `Client ${project.client_name} opened the ${project.project_name || project.shooting_type || 'gallery'} gallery.\n\nDate: ${new Date().toLocaleString('he-IL')}`
+          : `Client ${project.client_name} just started downloading the ${project.project_name || project.shooting_type || 'Project'} gallery!${countText}\n\nDate: ${new Date().toLocaleString('he-IL')}`;
         await base44.asServiceRole.integrations.Core.SendEmail({
           to: photographerEmail,
           subject: emailSubject,
@@ -97,7 +109,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return Response.json({ success: true, first_download: isFirst });
+    return Response.json({ success: true, first_download: isFirst, event_type: isGalleryOpen ? 'gallery_open' : 'download_clicked' });
   } catch (error) {
     console.error('trackDownload error:', error);
     return Response.json({ error: error.message }, { status: 500 });

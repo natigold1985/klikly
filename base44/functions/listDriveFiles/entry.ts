@@ -64,16 +64,25 @@ Deno.serve(async (req) => {
     const allFiles = [];
     await fetchFolderFiles(accessToken, folderId, allFiles);
 
-    // For client view, only return files from "Edited / ערוכות" subfolder if they exist —
-    // otherwise show all (photographer might be using a flat structure).
+    // For client view, strictly return only Edited / ערוכות files under 15MB.
     let visible = allFiles;
     if (isClient) {
-      const editedOnly = allFiles.filter(f => /ערוכות|edited/i.test(f.parent_name || ''));
-      if (editedOnly.length > 0) visible = editedOnly;
+      visible = allFiles.filter((f) => {
+        const size = f.size ? parseInt(f.size) : 0;
+        return /ערוכות|edited/i.test(f.parent_name || '') && size > 0 && size < 15 * 1024 * 1024;
+      });
     }
 
+    const seenNames = new Set();
+    const visibleDeduped = visible.filter((f) => {
+      const key = String(f.name || '').trim().toLowerCase();
+      if (!key || seenNames.has(key)) return false;
+      seenNames.add(key);
+      return true;
+    });
+
     // Map to client-friendly shape
-    const files = visible
+    const files = visibleDeduped
       .filter(f => f.mimeType !== 'application/vnd.google-apps.folder')
       .map(f => ({
         id: f.id,

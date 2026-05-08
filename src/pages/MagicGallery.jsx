@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import DriveFilesGrid from '@/components/storage/DriveFilesGrid';
-import { Download, Loader2, ShieldOff, CheckCircle2, LockKeyhole } from 'lucide-react';
+import ThumbnailCarousel from '@/components/ui/thumbnail-carousel';
+import { Loader2, ShieldOff, LockKeyhole } from 'lucide-react';
 
 // Public Magic Link gallery — minimalist MVP per spec.
 // Shows: client name + project title + ONE massive "Download All Files" button.
@@ -15,6 +16,7 @@ export default function MagicGallery() {
   const [pin, setPin] = useState('');
   const [pinUnlocked, setPinUnlocked] = useState(false);
   const [pinError, setPinError] = useState('');
+  const openTrackedRef = useRef(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['magicGallery', token],
@@ -60,6 +62,13 @@ export default function MagicGallery() {
     }).catch(() => {});
   };
 
+  const handleReminderConsent = async () => {
+    await base44.functions.invoke('setGalleryReminderConsent', {
+      token,
+      wants_reminders: true,
+    });
+  };
+
   const handleDownloadAll = async () => {
     if (!data?.project?.drive_folder_url) return;
     setBusy(true);
@@ -73,6 +82,7 @@ export default function MagicGallery() {
         token,
         file_name: 'ALL',
         download_type: 'download_all',
+        event_type: 'download_clicked',
         file_count: data?.files?.length || 0,
       })
       .catch(() => {});
@@ -82,6 +92,18 @@ export default function MagicGallery() {
       setDownloaded(true);
     }, 800);
   };
+
+  React.useEffect(() => {
+    if (!data?.project || openTrackedRef.current) return;
+    openTrackedRef.current = true;
+    base44.functions.invoke('trackDownload', {
+      token,
+      event_type: 'gallery_open',
+      download_type: 'gallery_open',
+      file_name: 'GALLERY_OPEN',
+      file_count: data?.files?.length || 0,
+    }).catch(() => {});
+  }, [data?.project, data?.files?.length, token]);
 
   React.useEffect(() => {
     base44.auth.isAuthenticated().then(async (isAuthed) => {
@@ -189,18 +211,24 @@ export default function MagicGallery() {
 
         {hasDrive ? (
           <>
-            <button
-              onClick={handleDownloadAll}
-              disabled={busy}
-              className="group relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-[#FFD700] via-[#FFC700] to-[#D4AF37] hover:shadow-[0_0_50px_rgba(255,215,0,0.6)] active:scale-[0.98] transition-all duration-300 px-8 py-5 mb-8 flex items-center justify-center gap-4 disabled:opacity-70"
-            >
-              {busy ? <Loader2 className="w-6 h-6 text-black animate-spin" /> : downloaded ? <CheckCircle2 className="w-6 h-6 text-black" /> : <Download className="w-6 h-6 text-black" />}
-              <span className="text-lg md:text-xl font-bold text-black tracking-wide">
-                {downloaded ? 'נפתח ב-Google Drive' : 'פתח תיקייה מלאה ב-Google Drive'}
-              </span>
-            </button>
+            <ThumbnailCarousel
+              files={data.files || []}
+              busy={busy}
+              downloaded={downloaded}
+              placement="top"
+              onDownload={handleDownloadAll}
+              onConfirmReminder={handleReminderConsent}
+            />
             <div className="bg-white rounded-3xl p-4 md:p-6 text-slate-900 text-right shadow-2xl">
               <DriveFilesGrid files={data.files || []} project={project} onDownload={handleDownloadFile} onDownloadAll={handleDownloadVisible} />
+              <ThumbnailCarousel
+                files={data.files || []}
+                busy={busy}
+                downloaded={downloaded}
+                placement="bottom"
+                onDownload={handleDownloadAll}
+                onConfirmReminder={handleReminderConsent}
+              />
             </div>
           </>
         ) : (
