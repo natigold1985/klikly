@@ -9,20 +9,24 @@ import { toast } from 'sonner';
 // Share-link button for a project. Generates a public Magic Link based on
 // project.client_access_token and provides quick share to WhatsApp / Email / Copy.
 export default function MagicLinkButton({ project }) {
-  const link = project?.client_access_token
-    ? `${window.location.origin}/g/${project.client_access_token}`
-    : '';
-  const defaultMessage = `היי ${project?.client_name || ''} 👋\n\nהגלריה שלך מוכנה! ✨\n\nאפשר לצפות בכל התמונות ולהוריד אותן ישירות מהקישור הבא:\n${link}\n${project?.gallery_pin ? `\nקוד הגישה שלך הוא: ${project.gallery_pin}\n` : ''}\nתהנה/י`;
+  const getDriveFolderId = (url = '') => {
+    const match = String(url).match(/drive\.google\.com\/drive\/(?:u\/\d+\/)?folders\/([a-zA-Z0-9_-]+)/);
+    return match?.[1] || '';
+  };
+
+  const folderId = getDriveFolderId(project?.drive_folder_url);
+  const link = folderId ? `${window.location.origin}/gallery/${folderId}` : '';
+  const defaultMessage = `היי ${project?.client_name || ''} 👋\n\nהגלריה שלך מוכנה! ✨\n\nאפשר לצפות בכל התמונות ולהוריד אותן ישירות מהקישור הבא:\n${link}\nאין צורך בקוד גישה או התחברות.\nתהנה/י`;
 
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState(defaultMessage);
 
-  if (!project?.client_access_token) {
+  if (!folderId) {
     return (
       <Button variant="outline" disabled className="gap-2">
         <Link2 className="w-4 h-4" />
-        אין קישור (חסר token)
+        אין קישור (חסרה תיקיית Drive)
       </Button>
     );
   }
@@ -119,7 +123,7 @@ export default function MagicLinkButton({ project }) {
             </div>
 
             <p className="text-xs text-slate-400 leading-relaxed border-t pt-3">
-              קישור מאובטח ייחודי לפרויקט הזה. הלקוח יוכל לצפות ולהוריד בלי התחברות. כל הורדה שולחת לך התראה.
+              קישור ישיר לפי תיקיית Google Drive. הלקוח יוכל לצפות ולהוריד בלי התחברות ובלי בקשות הרשאה.
             </p>
           </div>
         </DialogContent>

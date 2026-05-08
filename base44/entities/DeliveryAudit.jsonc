@@ -1,0 +1,68 @@
+{
+  "name": "DeliveryAudit",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "type": "string"
+    },
+    "folder_id": {
+      "type": "string"
+    },
+    "client_name": {
+      "type": "string"
+    },
+    "client_email": {
+      "type": "string"
+    },
+    "project_title": {
+      "type": "string"
+    },
+    "action_type": {
+      "type": "string",
+      "enum": [
+        "gallery_open",
+        "download_confirmed",
+        "download_started",
+        "download_completed",
+        "reminder_sent",
+        "expired_access_blocked"
+      ]
+    },
+    "ip_address": {
+      "type": "string"
+    },
+    "user_agent": {
+      "type": "string"
+    },
+    "file_count": {
+      "type": "number"
+    },
+    "consent_text": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "action_type"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

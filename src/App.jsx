@@ -26,6 +26,7 @@ import TermsOfService from './pages/TermsOfService';
 import AccessibilityPage from './pages/Accessibility';
 import Newsletter from './pages/Newsletter';
 import MagicGallery from './pages/MagicGallery';
+import FolderGallery from './pages/FolderGallery';
 import GalleryDemo from './pages/demo';
 import SystemUpdates from './pages/SystemUpdates';
 
@@ -200,7 +201,7 @@ function App() {
         <Router>
           <NavigationTracker />
           <Routes>
-            <Route path="/gallery/:id" element={<ClientGallery />} />
+            <Route path="/gallery/:folderId" element={<FolderGallery />} />
             <Route path="/g/:token" element={<MagicGallery />} />
             <Route path="/demo" element={<GalleryDemo />} />
             <Route path="/quote/view" element={<QuoteView />} />

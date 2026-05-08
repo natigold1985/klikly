@@ -67,7 +67,7 @@ function Thumbnails({ items, index, setIndex }) {
   );
 }
 
-export default function ThumbnailCarousel({ files = [], busy = false, downloaded = false, onDownload }) {
+export default function ThumbnailCarousel({ files = [], busy = false, downloaded = false, onDownload, showDownloadButton = true }) {
   const items = useMemo(() => {
     const mapped = files
       .filter((file) => file.thumbnail_url || file.is_image)
@@ -115,8 +115,12 @@ export default function ThumbnailCarousel({ files = [], busy = false, downloaded
             style={{ x }}
           >
             {items.map((item, i) => (
-              <div key={item.id || item.name || i} className="shrink-0 w-full h-[310px] sm:h-[430px] md:h-[520px]">
-                <img src={item.thumbnail_url} alt={item.name || ''} className="w-full h-full object-cover select-none pointer-events-none" draggable={false} />
+              <div key={item.id || item.name || i} className="shrink-0 w-full h-[310px] sm:h-[430px] md:h-[520px] bg-black">
+                {item.is_video ? (
+                  <video src={item.view_url || item.thumbnail_url} controls className="w-full h-full object-contain bg-black" />
+                ) : (
+                  <img src={item.thumbnail_url} alt={item.name || ''} className="w-full h-full object-cover select-none pointer-events-none" draggable={false} />
+                )}
               </div>
             ))}
           </motion.div>
@@ -136,19 +140,21 @@ export default function ThumbnailCarousel({ files = [], busy = false, downloaded
 
         <Thumbnails items={items} index={index} setIndex={setIndex} />
 
-        <button
-          onClick={startDownload}
-          disabled={busy}
-          className="group relative w-full overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#FFD700] via-[#FFF1A8] to-[#D4AF37] px-8 py-7 md:py-8 text-black shadow-[0_0_55px_rgba(255,215,0,0.45)] hover:shadow-[0_0_85px_rgba(255,215,0,0.75)] active:scale-[0.985] transition-all disabled:opacity-70"
-        >
-          <div className="relative flex flex-col md:flex-row items-center justify-center gap-4 text-center">
-            {busy ? <Loader2 className="w-10 h-10 animate-spin" /> : downloaded ? <CheckCircle2 className="w-10 h-10" /> : <DownloadCloud className="w-12 h-12" />}
-            <div className="leading-tight text-center md:text-right">
-              <div className="text-3xl md:text-5xl font-black tracking-tight">הורדת כל הקבצים</div>
-              <div className="text-sm md:text-base font-bold mt-2 opacity-75">לחיצה אחת ומתחילה הורדת ZIP מלאה</div>
+        {showDownloadButton && (
+          <button
+            onClick={startDownload}
+            disabled={busy}
+            className="group relative w-full overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#FFD700] via-[#FFF1A8] to-[#D4AF37] px-8 py-7 md:py-8 text-black shadow-[0_0_55px_rgba(255,215,0,0.45)] hover:shadow-[0_0_85px_rgba(255,215,0,0.75)] active:scale-[0.985] transition-all disabled:opacity-70"
+          >
+            <div className="relative flex flex-col md:flex-row items-center justify-center gap-4 text-center">
+              {busy ? <Loader2 className="w-10 h-10 animate-spin" /> : downloaded ? <CheckCircle2 className="w-10 h-10" /> : <DownloadCloud className="w-12 h-12" />}
+              <div className="leading-tight text-center md:text-right">
+                <div className="text-3xl md:text-5xl font-black tracking-tight">הורדת כל הקבצים</div>
+                <div className="text-sm md:text-base font-bold mt-2 opacity-75">לחיצה אחת ומתחילה הורדת ZIP מלאה</div>
+              </div>
             </div>
-          </div>
-        </button>
+          </button>
+        )}
       </div>
     </div>
   );

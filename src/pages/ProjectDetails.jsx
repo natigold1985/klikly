@@ -99,12 +99,21 @@ export default function ProjectDetails() {
     updateProjectMutation.mutate({ gallery_pin: newPin });
   };
 
+  const getDriveFolderId = (url = '') => {
+    const match = String(url).match(/drive\.google\.com\/drive\/(?:u\/\d+\/)?folders\/([a-zA-Z0-9_-]+)/);
+    return match?.[1] || '';
+  };
+
   const handleCopyGalleryLink = () => {
-    const pin = project.gallery_pin || '';
-    const url = `${window.location.origin}/gallery/${projectId}${pin ? `?pin=${pin}` : ''}`;
-    const message = `היי ${project.client_name || ''}, הנה הקישור לגלריה הפרטית שלך:\n${url}${pin ? `\n\nקוד הגישה שלך הוא: ${pin}` : ''}`;
+    const folderId = getDriveFolderId(project.drive_folder_url);
+    if (!folderId) {
+      toast.error('אין תיקיית Drive תקינה לפרויקט');
+      return;
+    }
+    const url = `${window.location.origin}/gallery/${folderId}`;
+    const message = `היי ${project.client_name || ''}, הגלריה שלך מוכנה לצפייה והורדה:\n${url}\n\nאין צורך בקוד גישה או התחברות.`;
     navigator.clipboard.writeText(message);
-    toast.success('הודעה עם קישור וקוד גישה הועתקה');
+    toast.success('קישור גלריה ללא PIN הועתק');
   };
 
   const [creatingFolder, setCreatingFolder] = useState(false);
@@ -363,19 +372,9 @@ export default function ProjectDetails() {
             </CardHeader>
             <CardContent className="pt-6 space-y-5">
               <div>
-                <label className="text-sm text-white/50 mb-1.5 block">קוד גישה (PIN)</label>
-                <div className="flex gap-2">
-                  <div className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white font-mono text-lg flex items-center">
-                    {project.gallery_pin || 'לא הוגדר'}
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    onClick={handleGeneratePin}
-                    className="border-white/20 hover:bg-white/10 px-3"
-                    title="רענן קוד"
-                  >
-                    <RefreshCw className="w-4 h-4 text-white" />
-                  </Button>
+                <label className="text-sm text-white/50 mb-1.5 block">גישה ללקוח</label>
+                <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm leading-6">
+                  כניסה ישירה ללא PIN וללא התחברות. הקישור מבוסס על תיקיית Google Drive של הפרויקט.
                 </div>
               </div>
               <Button 
