@@ -26,6 +26,7 @@ import TermsOfService from './pages/TermsOfService';
 import AccessibilityPage from './pages/Accessibility';
 import Newsletter from './pages/Newsletter';
 import MagicGallery from './pages/MagicGallery';
+import GalleryDemo from './pages/demo';
 import SystemUpdates from './pages/SystemUpdates';
 
 const { Pages, Layout, mainPage } = pagesConfig;
@@ -201,6 +202,7 @@ function App() {
           <Routes>
             <Route path="/gallery/:id" element={<ClientGallery />} />
             <Route path="/g/:token" element={<MagicGallery />} />
+            <Route path="/demo" element={<GalleryDemo />} />
             <Route path="/quote/view" element={<QuoteView />} />
             <Route path="/contact" element={<PublicLeadForm />} />
             <Route path="*" element={<AuthenticatedApp />} />

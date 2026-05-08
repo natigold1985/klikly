@@ -26,20 +26,24 @@ export default function MagicGallery() {
     retry: false,
   });
 
-  const downloadFileFromServer = async (file) => {
-    const res = await base44.functions.invoke('downloadDriveFile', { token, file_id: file.id });
-    const byteCharacters = atob(res.data.base64);
+  const saveBase64File = (base64, fileName, mimeType = 'application/octet-stream') => {
+    const byteCharacters = atob(base64);
     const byteNumbers = new Array(byteCharacters.length);
     for (let i = 0; i < byteCharacters.length; i += 1) byteNumbers[i] = byteCharacters.charCodeAt(i);
-    const blob = new Blob([new Uint8Array(byteNumbers)], { type: res.data.mime_type || 'application/octet-stream' });
+    const blob = new Blob([new Uint8Array(byteNumbers)], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = res.data.name || file.name || 'download';
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+  };
+
+  const downloadFileFromServer = async (file) => {
+    const res = await base44.functions.invoke('downloadDriveFile', { token, file_id: file.id });
+    saveBase64File(res.data.base64, res.data.name || file.name || 'download', res.data.mime_type);
   };
 
   const handleDownloadFile = async (file) => {
@@ -83,17 +87,16 @@ export default function MagicGallery() {
     if (!filesToDownload.length) return;
     setBusy(true);
 
-    for (const file of filesToDownload) {
-      await downloadFileFromServer(file);
-    }
+    const zip = await base44.functions.invoke('downloadGalleryZip', { token });
+    saveBase64File(zip.data.base64, zip.data.name || 'studio-gold-gallery.zip', 'application/zip');
 
     await base44.functions
       .invoke('trackDownload', {
         token,
-        file_name: 'ALL',
+        file_name: 'ALL_ZIP',
         download_type: 'download_all',
         event_type: 'download_completed',
-        file_count: filesToDownload.length,
+        file_count: zip.data.file_count || filesToDownload.length,
       })
       .catch(() => {});
 
@@ -171,9 +174,7 @@ export default function MagicGallery() {
               files={data.files || []}
               busy={busy}
               downloaded={downloaded}
-              placement="top"
               onDownload={handleDownloadAll}
-              onConfirmReminder={handleReminderConsent}
             />
             <div className="bg-white rounded-3xl p-4 md:p-6 text-slate-900 text-right shadow-2xl">
               <DriveFilesGrid files={data.files || []} project={project} onDownload={handleDownloadFile} onDownloadAll={handleDownloadVisible} />
@@ -181,9 +182,7 @@ export default function MagicGallery() {
                 files={data.files || []}
                 busy={busy}
                 downloaded={downloaded}
-                placement="bottom"
                 onDownload={handleDownloadAll}
-                onConfirmReminder={handleReminderConsent}
               />
             </div>
           </>
@@ -195,7 +194,7 @@ export default function MagicGallery() {
 
         {downloaded && (
           <p className="text-sm text-emerald-400 mt-6 animate-pulse">
-            ✓ הצלם קיבל התראה. הקבצים נפתחו ב-Google Drive.
+✓ הקבצים ירדו בהצלחה וההתראות נשלחו.
           </p>
         )}
 
