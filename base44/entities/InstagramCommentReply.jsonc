@@ -1,0 +1,69 @@
+{
+  "name": "InstagramCommentReply",
+  "type": "object",
+  "properties": {
+    "comment_id": {
+      "type": "string",
+      "description": "Instagram comment ID that was processed"
+    },
+    "media_id": {
+      "type": "string",
+      "description": "Instagram media/post ID"
+    },
+    "media_permalink": {
+      "type": "string",
+      "description": "Link to the Instagram post"
+    },
+    "username": {
+      "type": "string",
+      "description": "Comment author username"
+    },
+    "comment_text": {
+      "type": "string",
+      "description": "Original comment text"
+    },
+    "reply_text": {
+      "type": "string",
+      "description": "Automatic reply text"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "replied",
+        "skipped",
+        "error"
+      ],
+      "default": "replied"
+    },
+    "error_message": {
+      "type": "string"
+    },
+    "replied_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "comment_id",
+    "media_id",
+    "status"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
