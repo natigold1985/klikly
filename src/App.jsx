@@ -29,7 +29,6 @@ import MagicGallery from './pages/MagicGallery';
 import FolderGallery from './pages/FolderGallery';
 import GalleryDemo from './pages/demo';
 import SystemUpdates from './pages/SystemUpdates';
-import LeadsDashboard from './pages/LeadsDashboard';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -175,11 +174,6 @@ const AuthenticatedApp = () => {
       <Route path="/SystemUpdates" element={
         <LayoutWrapper currentPageName="SystemUpdates">
           <SystemUpdates />
-        </LayoutWrapper>
-      } />
-      <Route path="/LeadsDashboard" element={
-        <LayoutWrapper currentPageName="LeadsDashboard">
-          <LeadsDashboard />
         </LayoutWrapper>
       } />
       {Object.entries(Pages).map(([path, Page]) => (

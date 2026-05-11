@@ -56,7 +56,6 @@ export default function Layout({ children, currentPageName }) {
     : [
         { name: 'לוח ניהול', icon: LayoutDashboard, page: 'Dashboard' },
         { name: 'לידים', icon: Users, page: 'Leads' },
-        { name: 'לידים WhatsApp', icon: MessageCircle, page: 'LeadsDashboard' },
         ...(isAdmin ? [{ name: 'ייבוא לידים', icon: Users, page: 'LeadImport' }] : []),
         { name: 'אנשי קשר', icon: BookUser, page: 'Contacts' },
         { name: 'הצעות מחיר', icon: FileText, page: 'Quotes' },
