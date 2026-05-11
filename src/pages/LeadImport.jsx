@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Upload, FileSpreadsheet, MessageCircle, Instagram, Facebook, Mail, Loader2, CheckCircle2, Linkedin, RefreshCw, Clock, Sparkles, ClipboardPaste } from 'lucide-react';
 import { toast } from 'sonner';
 import PasteLeadsDialog from '@/components/leads/PasteLeadsDialog';
+import LeadWebhookInfoDialog from '@/components/leads/LeadWebhookInfoDialog';
 
 const AI_CHANNELS = ['facebook', 'instagram', 'whatsapp', 'email', 'linkedin'];
 const AI_CHANNEL_LABELS = {
@@ -36,9 +37,9 @@ const LINKEDIN_SEARCHES = [
 const CHANNELS = [
   { id: 'gmail_auto', label: 'Gmail סריקה חיה', desc: 'סריקה אוטומטית פעמיים ביום (09:00 / 21:00)', icon: Mail, color: 'bg-red-600', available: true },
   { id: 'sheets', label: 'Google Sheets', desc: 'סנכרון אוטומטי פעמיים ביום (09:00 / 21:00)', icon: FileSpreadsheet, color: 'bg-green-500', available: true },
-  { id: 'facebook', label: 'Facebook Ads', desc: 'בקרוב - דורש Meta Business API', icon: Facebook, color: 'bg-blue-600', available: false },
-  { id: 'instagram', label: 'Instagram', desc: 'בקרוב - דורש Meta API', icon: Instagram, color: 'bg-gradient-to-tr from-purple-500 to-pink-500', available: false },
-  { id: 'whatsapp', label: 'WhatsApp', desc: 'בקרוב - דורש WhatsApp Business API', icon: MessageCircle, color: 'bg-[#25D366]', available: false },
+  { id: 'facebook', label: 'Facebook Ads', desc: 'Webhook Native מ-Meta Lead Ads', icon: Facebook, color: 'bg-blue-600', available: true, webhook: true },
+  { id: 'instagram', label: 'Instagram', desc: 'Webhook Native מ-Meta / Instagram', icon: Instagram, color: 'bg-gradient-to-tr from-purple-500 to-pink-500', available: true, webhook: true },
+  { id: 'whatsapp', label: 'WhatsApp', desc: 'Webhook Native מ-WhatsApp Business', icon: MessageCircle, color: 'bg-[#25D366]', available: true, webhook: true },
   { id: 'email', label: 'Gmail (ידני)', desc: 'הדבק טפסי "צור קשר" מהמייל', icon: Mail, color: 'bg-red-500', available: true },
   { id: 'linkedin', label: 'LinkedIn', desc: 'חיפוש מוכוון + הדבקת תוצאות', icon: Linkedin, color: 'bg-[#0A66C2]', available: true },
   { id: 'csv', label: 'העלאת קובץ CSV', desc: 'ייבוא ידני מקובץ', icon: Upload, color: 'bg-slate-700', available: true },
@@ -52,6 +53,7 @@ export default function LeadImport() {
   const [importResult, setImportResult] = useState(null);
   const [syncStatus, setSyncStatus] = useState({});
   const [syncingChannel, setSyncingChannel] = useState(null);
+  const [showWebhookInfo, setShowWebhookInfo] = useState(false);
   const queryClient = useQueryClient();
 
   // Load last sync timestamps from localStorage
@@ -335,7 +337,7 @@ Return ONLY valid leads that have at least a name AND a phone number.`,
                   ? 'hover:shadow-md hover:border-indigo-200 active:scale-[0.98]'
                   : 'opacity-50 cursor-not-allowed'
               } ${activeChannel === ch.id ? 'border-indigo-400 shadow-md' : ''}`}
-              onClick={() => ch.available && setActiveChannel(ch.id)}
+              onClick={() => ch.available && (ch.webhook ? setShowWebhookInfo(true) : setActiveChannel(ch.id))}
             >
               <div className="flex flex-col items-center text-center gap-3">
                 <div className={`w-14 h-14 rounded-2xl ${ch.color} flex items-center justify-center shadow-md`}>
@@ -353,7 +355,7 @@ Return ONLY valid leads that have at least a name AND a phone number.`,
                 ) : ch.available ? (
                   <span className="text-[10px] bg-indigo-50 text-indigo-600 border border-indigo-100 px-2.5 py-1 rounded-full font-medium flex items-center gap-1">
                     <RefreshCw className="w-3 h-3" />
-                    סנכרן עכשיו
+                    {ch.webhook ? 'הצג Webhook' : 'סנכרן עכשיו'}
                   </span>
                 ) : (
                   <span className="text-[10px] bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full font-medium">בקרוב</span>
@@ -545,6 +547,11 @@ Return ONLY valid leads that have at least a name AND a phone number.`,
           </DialogContent>
         </Dialog>
       ))}
+
+      <LeadWebhookInfoDialog
+        open={showWebhookInfo}
+        onOpenChange={setShowWebhookInfo}
+      />
 
       <PasteLeadsDialog
         open={activeChannel === 'paste'}
