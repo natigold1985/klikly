@@ -4,9 +4,9 @@ import { Upload, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const SOURCE = 'WhatsApp JONI';
-const PHONE_HEADER = 'מספר נייד';
-const FULL_NAME_HEADER = 'שם מלא';
-const FALLBACK_NAME_HEADER = 'שם';
+const PHONE_INDEX = 0;
+const FIRST_NAME_INDEX = 1;
+const FULL_NAME_INDEX = 2;
 
 function parseCsvLine(line, delimiter) {
   const values = [];
@@ -42,10 +42,6 @@ function detectDelimiter(firstLine) {
   }, { delimiter: ',', count: 0 }).delimiter;
 }
 
-function normalizeHeader(value) {
-  return String(value || '').replace(/^\uFEFF/, '').trim().toLowerCase();
-}
-
 function normalizePhone(value) {
   const digits = String(value || '').replace('@s.whatsapp.net', '').replace('@c.us', '').replace(/[^0-9]/g, '');
 
@@ -56,24 +52,17 @@ function normalizePhone(value) {
 
 function parseLeadsFromCsv(text) {
   const lines = String(text || '').split(/\r?\n/).filter((line) => line.trim());
-  if (lines.length < 2) return [];
+  if (lines.length === 0) return [];
 
   const delimiter = detectDelimiter(lines[0]);
-  const headers = parseCsvLine(lines[0], delimiter).map(normalizeHeader);
-  const phoneIndex = headers.indexOf(PHONE_HEADER);
-  const fullNameIndex = headers.indexOf(FULL_NAME_HEADER);
-  const fallbackNameIndex = headers.indexOf(FALLBACK_NAME_HEADER);
-
-  if (phoneIndex === -1) return [];
-
   const uniquePhones = new Set();
 
-  return lines.slice(1).map((line) => {
-    const values = parseCsvLine(line, delimiter);
-    const phone = normalizePhone(values[phoneIndex]);
-    const fullName = fullNameIndex >= 0 ? String(values[fullNameIndex] || '').trim() : '';
-    const fallbackName = fallbackNameIndex >= 0 ? String(values[fallbackNameIndex] || '').trim() : '';
-    const name = fullName || fallbackName || phone;
+  return lines.map((line) => {
+    const values = parseCsvLine(line.replace(/^\uFEFF/, ''), delimiter);
+    const phone = normalizePhone(values[PHONE_INDEX]);
+    const fullName = String(values[FULL_NAME_INDEX] || '').trim();
+    const firstName = String(values[FIRST_NAME_INDEX] || '').trim();
+    const name = fullName || firstName || phone;
 
     if (!phone || uniquePhones.has(phone)) return null;
     uniquePhones.add(phone);
@@ -134,7 +123,7 @@ export default function WhatsAppCsvImporter({ onComplete }) {
       <input
         ref={inputRef}
         type="file"
-        accept=".csv,text/csv"
+        accept=".csv,text/csv,text/plain"
         onChange={handleFileChange}
         className="hidden"
       />
@@ -142,7 +131,7 @@ export default function WhatsAppCsvImporter({ onComplete }) {
       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-center">
         <Upload className="w-10 h-10 text-slate-400 mx-auto mb-3" />
         <p className="text-sm font-semibold text-slate-900">ייבוא CSV מ-WhatsApp / JONI</p>
-        <p className="text-xs text-slate-500 mt-1 mb-4">נדרש קובץ עם 3 עמודות: ״מספר נייד״, ״שם״, ״שם מלא״. המקור יישמר כ-WhatsApp JONI.</p>
+        <p className="text-xs text-slate-500 mt-1 mb-4">הייבוא קורא לפי מיקום: עמודה 1 טלפון, עמודה 2 שם פרטי, עמודה 3 שם מלא/תיאור.</p>
 
         <button
           type="button"

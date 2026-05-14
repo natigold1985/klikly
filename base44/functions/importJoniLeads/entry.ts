@@ -15,14 +15,12 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No leads to import' }, { status: 400 });
     }
 
-    let skip = 0;
     const pageSize = 500;
-    let existing = await base44.asServiceRole.entities.Lead.list('-created_date', pageSize, skip);
+    let existing = await base44.asServiceRole.entities.Lead.list('-created_date', pageSize);
 
     while (existing.length > 0) {
       await Promise.all(existing.map((lead) => base44.asServiceRole.entities.Lead.delete(lead.id)));
-      skip += pageSize;
-      existing = await base44.asServiceRole.entities.Lead.list('-created_date', pageSize, skip);
+      existing = await base44.asServiceRole.entities.Lead.list('-created_date', pageSize);
     }
 
     await base44.asServiceRole.entities.Lead.bulkCreate(leads.map((lead) => ({
