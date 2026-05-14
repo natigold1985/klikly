@@ -9,7 +9,7 @@ import { Upload, FileSpreadsheet, MessageCircle, Instagram, Facebook, Mail, Load
 import { toast } from 'sonner';
 import PasteLeadsDialog from '@/components/leads/PasteLeadsDialog';
 import LeadWebhookInfoDialog from '@/components/leads/LeadWebhookInfoDialog';
-import { extractLeadsFromFile, upsertLeads } from '@/components/leads/importLeadsUtils';
+import WhatsAppCsvImporter from '@/components/leads/WhatsAppCsvImporter';
 
 const AI_CHANNELS = ['facebook', 'instagram', 'whatsapp', 'email', 'linkedin'];
 const AI_CHANNEL_LABELS = {
@@ -96,42 +96,6 @@ export default function LeadImport() {
     } finally {
       setIsImporting(false);
     }
-  };
-
-  const importWhatsAppCsvFile = async (file) => {
-    if (!file) return;
-    setIsImporting(true);
-    setImportResult(null);
-
-    try {
-      const leads = await extractLeadsFromFile(file, 'WhatsApp / Photography Course');
-
-      if (leads.length === 0) {
-        setImportResult({ success: false, error: 'לא נמצאו בקובץ אנשי קשר עם מספרי טלפון תקינים' });
-        return;
-      }
-
-      const result = await upsertLeads(leads, { forceSource: true });
-      setImportResult({ success: true, count: result.added, updated: result.updated });
-      updateSyncStatus('csv');
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
-      toast.success(`${result.added} חדשים, ${result.updated} עודכנו`);
-    } catch (err) {
-      setImportResult({ success: false, error: err.message });
-      toast.error('שגיאה בייבוא CSV');
-    } finally {
-      setIsImporting(false);
-    }
-  };
-
-  const handleCsvUpload = async (e) => {
-    await importWhatsAppCsvFile(e.target.files?.[0]);
-    e.target.value = '';
-  };
-
-  const handleCsvDrop = async (e) => {
-    e.preventDefault();
-    await importWhatsAppCsvFile(e.dataTransfer.files?.[0]);
   };
 
   const [pasteText, setPasteText] = useState('');
@@ -392,45 +356,13 @@ Return ONLY valid leads that have at least a name AND a phone number.`,
               העלאת קובץ CSV / Excel
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 mt-2">
-            <p className="text-sm text-slate-600">העלה קובץ WhatsApp/JONI — המערכת תחלץ אוטומטית שמות וטלפונים ותגדיר מקור: <strong>WhatsApp / Photography Course</strong>.</p>
-            <input
-              type="file"
-              accept=".csv,.xlsx,.xls,text/csv"
-              onChange={handleCsvUpload}
-              className="sr-only"
-              id="csv-upload"
-              disabled={isImporting}
-            />
-            <label
-              htmlFor="csv-upload"
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={handleCsvDrop}
-              className="block border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-[#FFD700]/60 hover:bg-[#FFFBEA]/40 transition-colors cursor-pointer"
-            >
-              <Upload className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-              <p className="text-sm text-slate-500 mb-3">גרור קובץ לכאן או לחץ לבחירה</p>
-              <span className="inline-flex items-center justify-center h-9 px-4 rounded-lg border border-slate-200 bg-white text-slate-900 text-xs font-bold hover:bg-slate-50">
-                בחר קובץ
-              </span>
-            </label>
-            {isImporting && (
-              <div className="flex items-center justify-center gap-2 text-slate-500">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-sm">מעבד...</span>
-              </div>
-            )}
-            {importResult && (
-              <div className={`p-3 rounded-lg text-sm ${importResult.success ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                {importResult.success ? (
-                  <span className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4" />
-                    {importResult.count} חדשים{importResult.updated > 0 ? `, ${importResult.updated} עודכנו` : ''}
-                  </span>
-                ) : importResult.error}
-              </div>
-            )}
-          </div>
+          <WhatsAppCsvImporter
+            onComplete={() => {
+              updateSyncStatus('csv');
+              queryClient.invalidateQueries({ queryKey: ['leads'] });
+              queryClient.invalidateQueries({ queryKey: ['Lead'] });
+            }}
+          />
         </DialogContent>
       </Dialog>
       {/* AI Paste Import Dialog (for Facebook, Instagram, WhatsApp, Gmail, LinkedIn) */}
