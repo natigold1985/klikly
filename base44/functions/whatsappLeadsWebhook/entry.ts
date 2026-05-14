@@ -17,8 +17,8 @@ Deno.serve(async (req) => {
     const payload = await req.json();
 
     const phone = normalizeSender(payload.sender);
-    const notes = String(payload.query || '').trim();
-    const source = 'WhatsApp';
+    const notes = String(payload.message || payload.query || '').trim();
+    const source = 'WhatsApp Automation';
 
     if (!phone) {
       return Response.json({ success: false, received: true, error: 'sender is required' }, { status: 200 });

@@ -29,6 +29,48 @@ function fieldValue(fields, names) {
   return Array.isArray(item?.values) ? item.values[0] : '';
 }
 
+function extractDirectLeads(payload) {
+  const candidates = Array.isArray(payload) ? payload : [payload, payload.lead, payload.data, ...(payload.leads || [])].filter(Boolean);
+  return candidates
+    .map((item) => ({
+      name: item.name || item.full_name || item.fullName || item.first_name || item.firstName || '',
+      phone: item.phone || item.phone_number || item.phoneNumber || item.mobile || '',
+      email: item.email || '',
+      notes: item.notes || item.message || item.raw_message || '',
+    }))
+    .filter((lead) => lead.phone);
+}
+
+async function saveLead(base44, leadData, source) {
+  const phone = String(leadData.phone || '').trim();
+  if (!phone) return false;
+
+  const existing = await base44.asServiceRole.entities.Lead.filter({ phone }, '-created_date', 1);
+  const notes = leadData.notes || '';
+
+  if (existing.length > 0) {
+    await base44.asServiceRole.entities.Lead.update(existing[0].id, {
+      name: existing[0].name || leadData.name || phone,
+      email: existing[0].email || leadData.email || '',
+      source,
+      notes: [existing[0].notes, notes].filter(Boolean).join('\n'),
+      last_contact_date: new Date().toISOString(),
+    });
+  } else {
+    await base44.asServiceRole.entities.Lead.create({
+      name: leadData.name || phone,
+      phone,
+      email: leadData.email || '',
+      source,
+      status: 'new',
+      notes,
+      last_contact_date: new Date().toISOString(),
+    });
+  }
+
+  return true;
+}
+
 async function fetchLeadgen(leadgenId) {
   const url = `https://graph.facebook.com/${GRAPH_VERSION}/${leadgenId}?access_token=${encodeURIComponent(PAGE_ACCESS_TOKEN)}`;
   const response = await fetch(url);
@@ -61,46 +103,33 @@ Deno.serve(async (req) => {
     if (req.method !== 'POST') return Response.json({ error: 'Method not allowed' }, { status: 405 });
 
     const rawBody = await req.text();
-    const isValidSignature = await verifySignature(rawBody, req.headers.get('x-hub-signature-256'));
-    if (!isValidSignature) return Response.json({ error: 'Invalid Meta signature' }, { status: 401 });
+    const signatureHeader = req.headers.get('x-hub-signature-256');
+    if (signatureHeader) {
+      const isValidSignature = await verifySignature(rawBody, signatureHeader);
+      if (!isValidSignature) return Response.json({ error: 'Invalid Meta signature' }, { status: 401 });
+    }
 
     const base44 = createClientFromRequest(req);
     const payload = JSON.parse(rawBody || '{}');
-    const leadgenIds = extractLeadgenIds(payload);
+    const source = 'Facebook/Insta Ads';
+    const directLeads = extractDirectLeads(payload);
     let handled = 0;
 
+    for (const directLead of directLeads) {
+      if (await saveLead(base44, directLead, source)) handled += 1;
+    }
+
+    const leadgenIds = extractLeadgenIds(payload);
     for (const leadgenId of leadgenIds) {
       const metaLead = await fetchLeadgen(leadgenId);
       const fields = metaLead.field_data || [];
       const phone = fieldValue(fields, ['phone_number', 'phone', 'טלפון', 'מספר_טלפון']);
-      if (!phone) continue;
-
       const firstName = fieldValue(fields, ['first_name', 'שם_פרטי']);
       const fullName = fieldValue(fields, ['full_name', 'name', 'שם_מלא', 'שם']);
       const email = fieldValue(fields, ['email', 'אימייל']);
       const notes = fields.map((field) => `${field.name}: ${(field.values || []).join(', ')}`).join('\n');
-      const existing = await base44.asServiceRole.entities.Lead.filter({ phone }, '-created_date', 1);
 
-      if (existing.length > 0) {
-        await base44.asServiceRole.entities.Lead.update(existing[0].id, {
-          name: existing[0].name || fullName || firstName || phone,
-          email: existing[0].email || email,
-          source: existing[0].source || 'Facebook Ads',
-          notes: [existing[0].notes, notes].filter(Boolean).join('\n'),
-          last_contact_date: new Date().toISOString(),
-        });
-      } else {
-        await base44.asServiceRole.entities.Lead.create({
-          name: fullName || firstName || phone,
-          phone,
-          email,
-          source: 'Facebook Ads',
-          status: 'new',
-          notes,
-          last_contact_date: new Date().toISOString(),
-        });
-      }
-      handled += 1;
+      if (await saveLead(base44, { name: fullName || firstName, phone, email, notes }, source)) handled += 1;
     }
 
     return Response.json({ success: true, handled });

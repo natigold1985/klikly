@@ -355,6 +355,14 @@ export default function Leads() {
     setVisibleCount(50);
   }, [searchTerm, statusFilter, activeTab, viewMode]);
 
+  React.useEffect(() => {
+    const unsubscribe = base44.entities.Lead.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+    });
+
+    return unsubscribe;
+  }, [queryClient]);
+
   const getStatusBadge = (status) => {
     const statusMap = {
       new: { label: 'חדש', color: 'bg-blue-100 text-blue-700' },
