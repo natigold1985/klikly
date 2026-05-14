@@ -2,19 +2,31 @@ import React, { useRef } from 'react';
 import { Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-function parseCsv(text) {
-  const lines = text.split(/\r?\n/).filter(Boolean);
-  if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map((header) => header.trim().replace(/^"|"$/g, ''));
-  return lines.slice(1).map((line) => {
-    const values = line.split(',').map((value) => value.trim().replace(/^"|"$/g, ''));
-    return headers.reduce((row, header, index) => ({ ...row, [header]: values[index] || '' }), {});
-  });
+function normalizePhone(value) {
+  const digits = String(value || '').replace(/[^0-9]/g, '');
+  return digits.startsWith('972') ? `0${digits.slice(3)}` : digits;
 }
 
-function pick(row, keys) {
-  const key = keys.find((item) => row[item]);
-  return key ? row[key] : '';
+function parseCsv(text) {
+  return String(text || '')
+    .split(/\r?\n/)
+    .map((line) => line.split(','))
+    .map((values) => {
+      const phone = normalizePhone(values[0]);
+      const fullName = String(values[2] || '').trim().replace(/^"|"$/g, '');
+      const firstName = String(values[1] || '').trim().replace(/^"|"$/g, '');
+      const name = fullName || firstName;
+
+      if (!phone || !name) return null;
+
+      return {
+        phone,
+        name,
+        status: 'new',
+        source: 'WhatsApp JONI',
+      };
+    })
+    .filter(Boolean);
 }
 
 export default function CsvImportButton({ onImport }) {
@@ -25,17 +37,7 @@ export default function CsvImportButton({ onImport }) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      const rows = parseCsv(String(reader.result || ''));
-      const leads = rows
-        .map((row) => ({
-          phone_number: pick(row, ['מספר נייד', 'טלפון', 'phone', 'Phone Number']),
-          first_name: pick(row, ['שם', 'first_name', 'First Name']),
-          full_name_notes: pick(row, ['שם מלא', 'full_name', 'Full Name and Notes']),
-          source: pick(row, ['מקור', 'source', 'Source']) || 'KLIKLY',
-          status: 'New Lead',
-          created_at: new Date().toISOString(),
-        }))
-        .filter((lead) => lead.phone_number);
+      const leads = parseCsv(String(reader.result || ''));
       onImport(leads);
       event.target.value = '';
     };
