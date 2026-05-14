@@ -39,15 +39,48 @@ export default function DataActionsToolbar({ leads }) {
 
   const handleCsvUpload = async (e) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
+
     setIsImporting(true);
     setImportResult(null);
+
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      const res = await base44.functions.invoke('importLeadsFromFile', { file_url });
-      setImportResult({ success: true, added: res.data?.added || 0, updated: res.data?.updated || 0 });
+      const buffer = await file.arrayBuffer();
+      const text = new TextDecoder('utf-8').decode(buffer);
+      const leads = text
+        .split(/\r?\n/)
+        .map((row) => row.split(','))
+        .map((values) => {
+          const rawPhone = String(values[0] || '');
+          const digits = rawPhone.replace(/[^0-9]/g, '');
+          const phone = digits.startsWith('972') ? `0${digits.slice(3)}` : digits;
+          const fullName = String(values[2] || '').trim().replace(/^"|"$/g, '');
+          const firstName = String(values[1] || '').trim().replace(/^"|"$/g, '');
+          const name = fullName || firstName;
+
+          if (!phone || !name) return null;
+
+          return {
+            phone,
+            name,
+            status: 'new',
+            source: 'WhatsApp JONI',
+          };
+        })
+        .filter(Boolean);
+
+      if (leads.length === 0) {
+        setImportResult({ success: false, error: 'לא נמצאו לידים תקינים בקובץ' });
+        toast.error('לא נמצאו לידים תקינים בקובץ');
+        return;
+      }
+
+      const res = await base44.functions.invoke('importJoniLeads', { leads });
+      const imported = res.data?.imported || leads.length;
+      setImportResult({ success: true, added: imported, updated: 0 });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
-      toast.success(`${res.data?.added || 0} חדשים, ${res.data?.updated || 0} עודכנו`);
+      toast.success(`${imported} לידים יובאו בהצלחה`);
     } catch (err) {
       setImportResult({ success: false, error: err.message });
       toast.error('שגיאה בייבוא');
@@ -169,11 +202,11 @@ export default function DataActionsToolbar({ leads }) {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
-            <p className="text-sm text-slate-600">לידים קיימים (לפי טלפון/אימייל) יעודכנו — לא ייווצרו כפילויות.</p>
+            <p className="text-sm text-slate-600">ייבוא CSV לפי עמודות קבועות: 1 טלפון, 2 שם פרטי, 3 שם מלא. הלידים הקיימים יימחקו לפני הייבוא.</p>
             <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-[#FFD700]/40 transition-colors cursor-pointer" onClick={() => fileRef.current?.click()}>
               <Upload className="w-10 h-10 text-slate-300 mx-auto mb-3" />
               <p className="text-sm text-slate-500">גרור קובץ לכאן או לחץ לבחירה</p>
-              <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" onChange={handleCsvUpload} className="hidden" />
+              <input ref={fileRef} type="file" accept=".csv,text/csv,text/plain" onChange={handleCsvUpload} className="hidden" />
             </div>
             {isImporting && (
               <div className="flex items-center justify-center gap-2 text-slate-500">
