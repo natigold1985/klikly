@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Upload, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const SOURCE = 'WhatsApp Import';
+const SOURCE = 'WhatsApp JONI';
 const PHONE_HEADER = 'מספר נייד';
 const FULL_NAME_HEADER = 'שם מלא';
 const FALLBACK_NAME_HEADER = 'שם';
@@ -116,12 +116,11 @@ export default function WhatsAppCsvImporter({ onComplete }) {
         return;
       }
 
-      const existingLeads = await base44.entities.Lead.list('-created_date', 1000);
-      await Promise.all(existingLeads.map((lead) => base44.entities.Lead.delete(lead.id)));
-      await base44.entities.Lead.bulkCreate(leads);
-      setResult({ success: true, message: `${leads.length} לידים יובאו בהצלחה` });
-      toast.success(`${leads.length} לידים יובאו בהצלחה`);
-      onComplete?.(leads.length);
+      const response = await base44.functions.invoke('importJoniLeads', { leads });
+      const importedCount = response.data?.imported || leads.length;
+      setResult({ success: true, message: `${importedCount} לידים יובאו בהצלחה` });
+      toast.success(`${importedCount} לידים יובאו בהצלחה`);
+      onComplete?.(importedCount);
     } catch (error) {
       setResult({ success: false, message: error.message });
       toast.error('שגיאה בייבוא הקובץ');
@@ -143,7 +142,7 @@ export default function WhatsAppCsvImporter({ onComplete }) {
       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-center">
         <Upload className="w-10 h-10 text-slate-400 mx-auto mb-3" />
         <p className="text-sm font-semibold text-slate-900">ייבוא CSV מ-WhatsApp / JONI</p>
-        <p className="text-xs text-slate-500 mt-1 mb-4">נדרש קובץ עם העמודות ״מספר נייד״, ״שם מלא״ ו/או ״שם״. המספרים יישמרו בפורמט 05.</p>
+        <p className="text-xs text-slate-500 mt-1 mb-4">נדרש קובץ עם 3 עמודות: ״מספר נייד״, ״שם״, ״שם מלא״. המקור יישמר כ-WhatsApp JONI.</p>
 
         <button
           type="button"
