@@ -3,17 +3,10 @@ import { base44 } from '@/api/base44Client';
 import { Upload, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const SOURCE = 'WhatsApp / Photography';
-
-const NAME_HEADERS = [
-  'name', 'full name', 'contact name', 'display name', 'first name',
-  'שם', 'שם מלא', 'שם איש קשר', 'שם לקוח', 'שם פרטי'
-];
-
-const PHONE_HEADERS = [
-  'phone', 'phone number', 'mobile', 'contact', 'number', 'sender',
-  'טלפון', 'מספר טלפון', 'מספר נייד', 'נייד', 'מספר'
-];
+const SOURCE = 'WhatsApp Import';
+const PHONE_HEADER = 'מספר נייד';
+const FULL_NAME_HEADER = 'שם מלא';
+const FALLBACK_NAME_HEADER = 'שם';
 
 function parseCsvLine(line, delimiter) {
   const values = [];
@@ -54,17 +47,11 @@ function normalizeHeader(value) {
 }
 
 function normalizePhone(value) {
-  const raw = String(value || '').replace('@s.whatsapp.net', '').replace('@c.us', '').trim();
-  const digits = raw.replace(/[^0-9]/g, '');
+  const digits = String(value || '').replace('@s.whatsapp.net', '').replace('@c.us', '').replace(/[^0-9]/g, '');
 
   if (digits.length < 7 || digits.length > 15 || /^(\d)\1+$/.test(digits)) return '';
-  if (digits.startsWith('972')) return `+${digits}`;
-  if (digits.startsWith('0')) return `+972${digits.slice(1)}`;
-  return `+${digits}`;
-}
-
-function findColumnIndex(headers, wantedHeaders) {
-  return headers.findIndex((header) => wantedHeaders.some((wanted) => header.includes(wanted)));
+  if (digits.startsWith('972')) return `0${digits.slice(3)}`;
+  return digits;
 }
 
 function parseLeadsFromCsv(text) {
@@ -73,17 +60,9 @@ function parseLeadsFromCsv(text) {
 
   const delimiter = detectDelimiter(lines[0]);
   const headers = parseCsvLine(lines[0], delimiter).map(normalizeHeader);
-  let nameIndex = findColumnIndex(headers, NAME_HEADERS);
-  let phoneIndex = findColumnIndex(headers, PHONE_HEADERS);
-
-  if (phoneIndex === -1) {
-    const sampleRows = lines.slice(1, 8).map((line) => parseCsvLine(line, delimiter));
-    phoneIndex = headers.findIndex((_, index) => sampleRows.some((row) => normalizePhone(row[index])));
-  }
-
-  if (nameIndex === -1) {
-    nameIndex = headers.findIndex((_, index) => index !== phoneIndex);
-  }
+  const phoneIndex = headers.indexOf(PHONE_HEADER);
+  const fullNameIndex = headers.indexOf(FULL_NAME_HEADER);
+  const fallbackNameIndex = headers.indexOf(FALLBACK_NAME_HEADER);
 
   if (phoneIndex === -1) return [];
 
@@ -92,10 +71,12 @@ function parseLeadsFromCsv(text) {
   return lines.slice(1).map((line) => {
     const values = parseCsvLine(line, delimiter);
     const phone = normalizePhone(values[phoneIndex]);
-    const name = String(values[nameIndex] || '').trim() || phone;
+    const fullName = fullNameIndex >= 0 ? String(values[fullNameIndex] || '').trim() : '';
+    const fallbackName = fallbackNameIndex >= 0 ? String(values[fallbackNameIndex] || '').trim() : '';
+    const name = fullName || fallbackName || phone;
 
-    if (!phone || uniquePhones.has(phone.replace(/[^0-9]/g, ''))) return null;
-    uniquePhones.add(phone.replace(/[^0-9]/g, ''));
+    if (!phone || uniquePhones.has(phone)) return null;
+    uniquePhones.add(phone);
 
     return {
       name,
@@ -125,7 +106,8 @@ export default function WhatsAppCsvImporter({ onComplete }) {
     setResult(null);
 
     try {
-      const text = await file.text();
+      const buffer = await file.arrayBuffer();
+      const text = new TextDecoder('utf-8').decode(buffer);
       const leads = parseLeadsFromCsv(text);
 
       if (leads.length === 0) {
@@ -134,6 +116,8 @@ export default function WhatsAppCsvImporter({ onComplete }) {
         return;
       }
 
+      const existingLeads = await base44.entities.Lead.list('-created_date', 1000);
+      await Promise.all(existingLeads.map((lead) => base44.entities.Lead.delete(lead.id)));
       await base44.entities.Lead.bulkCreate(leads);
       setResult({ success: true, message: `${leads.length} לידים יובאו בהצלחה` });
       toast.success(`${leads.length} לידים יובאו בהצלחה`);
@@ -159,7 +143,7 @@ export default function WhatsAppCsvImporter({ onComplete }) {
       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-center">
         <Upload className="w-10 h-10 text-slate-400 mx-auto mb-3" />
         <p className="text-sm font-semibold text-slate-900">ייבוא CSV מ-WhatsApp / JONI</p>
-        <p className="text-xs text-slate-500 mt-1 mb-4">המערכת תזהה אוטומטית עמודת שם ועמודת טלפון ותשמור ללידים.</p>
+        <p className="text-xs text-slate-500 mt-1 mb-4">נדרש קובץ עם העמודות ״מספר נייד״, ״שם מלא״ ו/או ״שם״. המספרים יישמרו בפורמט 05.</p>
 
         <button
           type="button"
