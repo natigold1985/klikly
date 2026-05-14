@@ -9,6 +9,7 @@ import { Upload, FileSpreadsheet, MessageCircle, Instagram, Facebook, Mail, Load
 import { toast } from 'sonner';
 import PasteLeadsDialog from '@/components/leads/PasteLeadsDialog';
 import LeadWebhookInfoDialog from '@/components/leads/LeadWebhookInfoDialog';
+import { extractLeadsFromFile, upsertLeads } from '@/components/leads/importLeadsUtils';
 
 const AI_CHANNELS = ['facebook', 'instagram', 'whatsapp', 'email', 'linkedin'];
 const AI_CHANNEL_LABELS = {
@@ -42,7 +43,7 @@ const CHANNELS = [
   { id: 'whatsapp', label: 'WhatsApp', desc: 'Webhook Native מ-WhatsApp Business', icon: MessageCircle, color: 'bg-[#25D366]', available: true, webhook: true },
   { id: 'email', label: 'Gmail (ידני)', desc: 'הדבק טפסי "צור קשר" מהמייל', icon: Mail, color: 'bg-red-500', available: true },
   { id: 'linkedin', label: 'LinkedIn', desc: 'חיפוש מוכוון + הדבקת תוצאות', icon: Linkedin, color: 'bg-[#0A66C2]', available: true },
-  { id: 'csv', label: 'העלאת קובץ CSV', desc: 'ייבוא ידני מקובץ', icon: Upload, color: 'bg-slate-700', available: true },
+  { id: 'csv', label: 'העלאת קובץ CSV', desc: 'ייבוא WhatsApp/JONI חכם', icon: Upload, color: 'bg-slate-700', available: true },
   { id: 'paste', label: 'הדבקה מ-Sheets', desc: 'העתק שורות והדבק ישירות', icon: ClipboardPaste, color: 'bg-[#C5A028]', available: true },
 ];
 
@@ -97,95 +98,40 @@ export default function LeadImport() {
     }
   };
 
-  const handleCsvUpload = async (e) => {
-    const file = e.target.files?.[0];
+  const importWhatsAppCsvFile = async (file) => {
     if (!file) return;
     setIsImporting(true);
     setImportResult(null);
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      const extracted = await base44.integrations.Core.ExtractDataFromUploadedFile({
-        file_url,
-        json_schema: {
-          type: 'object',
-          properties: {
-            leads: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  name: { type: 'string' },
-                  phone: { type: 'string' },
-                  email: { type: 'string' },
-                  shooting_type: { type: 'string' },
-                  source: { type: 'string' },
-                  notes: { type: 'string' },
-                }
-              }
-            }
-          }
-        }
-      });
 
-      if (extracted.status === 'success' && extracted.output?.leads) {
-        const rawLeads = extracted.output.leads.filter(l => l.name && l.phone);
-        if (rawLeads.length > 0) {
-          // Upsert: check for existing leads by phone/email
-          const existingLeads = await base44.entities.Lead.list('-created_date', 500);
-          const existingPhones = new Set(existingLeads.map(l => l.phone?.replace(/[^0-9]/g, '')));
-          const existingEmails = new Set(existingLeads.filter(l => l.email).map(l => l.email.toLowerCase()));
-          
-          const newLeads = [];
-          let updatedCount = 0;
-          
-          for (const l of rawLeads) {
-            const normalizedPhone = l.phone?.replace(/[^0-9]/g, '');
-            const normalizedEmail = l.email?.toLowerCase();
-            const existingByPhone = existingLeads.find(ex => ex.phone?.replace(/[^0-9]/g, '') === normalizedPhone);
-            const existingByEmail = normalizedEmail && existingLeads.find(ex => ex.email?.toLowerCase() === normalizedEmail);
-            const existing = existingByPhone || existingByEmail;
-            
-            if (existing) {
-              // Update existing lead with new data (only non-empty fields)
-              const updateData = {};
-              if (l.shooting_type && !existing.shooting_type) updateData.shooting_type = l.shooting_type;
-              if (l.source && !existing.source) updateData.source = l.source;
-              if (l.notes) updateData.notes = [existing.notes, l.notes].filter(Boolean).join(' | ');
-              if (l.email && !existing.email) updateData.email = l.email;
-              if (Object.keys(updateData).length > 0) {
-                await base44.entities.Lead.update(existing.id, updateData);
-                updatedCount++;
-              }
-            } else {
-              newLeads.push(l);
-            }
-          }
-          
-          if (newLeads.length > 0) {
-            await base44.entities.Lead.bulkCreate(newLeads.map(l => ({
-              ...l,
-              status: 'new',
-              source: l.source || 'CSV Import',
-              last_contact_date: new Date().toISOString(),
-            })));
-          }
-          
-          setImportResult({ success: true, count: newLeads.length, updated: updatedCount });
-          updateSyncStatus('csv');
-          queryClient.invalidateQueries({ queryKey: ['leads'] });
-          toast.success(`${newLeads.length} חדשים, ${updatedCount} עודכנו`);
-        } else {
-          setImportResult({ success: false, error: 'לא נמצאו לידים עם שם וטלפון' });
-        }
-      } else {
-        setImportResult({ success: false, error: extracted.details || 'שגיאה בעיבוד הקובץ' });
+    try {
+      const leads = await extractLeadsFromFile(file, 'WhatsApp / Photography Course');
+
+      if (leads.length === 0) {
+        setImportResult({ success: false, error: 'לא נמצאו בקובץ אנשי קשר עם מספרי טלפון תקינים' });
+        return;
       }
+
+      const result = await upsertLeads(leads, { forceSource: true });
+      setImportResult({ success: true, count: result.added, updated: result.updated });
+      updateSyncStatus('csv');
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      toast.success(`${result.added} חדשים, ${result.updated} עודכנו`);
     } catch (err) {
       setImportResult({ success: false, error: err.message });
       toast.error('שגיאה בייבוא CSV');
     } finally {
       setIsImporting(false);
     }
+  };
+
+  const handleCsvUpload = async (e) => {
+    await importWhatsAppCsvFile(e.target.files?.[0]);
+    e.target.value = '';
+  };
+
+  const handleCsvDrop = async (e) => {
+    e.preventDefault();
+    await importWhatsAppCsvFile(e.dataTransfer.files?.[0]);
   };
 
   const [pasteText, setPasteText] = useState('');
@@ -447,23 +393,27 @@ Return ONLY valid leads that have at least a name AND a phone number.`,
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
-            <p className="text-sm text-slate-600">העלה קובץ עם עמודות: שם, טלפון, אימייל, סוג צילום, מקור.</p>
-            <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-[#FFD700]/40 transition-colors">
+            <p className="text-sm text-slate-600">העלה קובץ WhatsApp/JONI — המערכת תחלץ אוטומטית שמות וטלפונים ותגדיר מקור: <strong>WhatsApp / Photography Course</strong>.</p>
+            <input
+              type="file"
+              accept=".csv,.xlsx,.xls,text/csv"
+              onChange={handleCsvUpload}
+              className="sr-only"
+              id="csv-upload"
+              disabled={isImporting}
+            />
+            <label
+              htmlFor="csv-upload"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleCsvDrop}
+              className="block border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-[#FFD700]/60 hover:bg-[#FFFBEA]/40 transition-colors cursor-pointer"
+            >
               <Upload className="w-10 h-10 text-slate-300 mx-auto mb-3" />
               <p className="text-sm text-slate-500 mb-3">גרור קובץ לכאן או לחץ לבחירה</p>
-              <input
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                onChange={handleCsvUpload}
-                className="hidden"
-                id="csv-upload"
-              />
-              <label htmlFor="csv-upload">
-                <Button variant="outline" size="sm" asChild className="cursor-pointer">
-                  <span>בחר קובץ</span>
-                </Button>
-              </label>
-            </div>
+              <span className="inline-flex items-center justify-center h-9 px-4 rounded-lg border border-slate-200 bg-white text-slate-900 text-xs font-bold hover:bg-slate-50">
+                בחר קובץ
+              </span>
+            </label>
             {isImporting && (
               <div className="flex items-center justify-center gap-2 text-slate-500">
                 <Loader2 className="w-4 h-4 animate-spin" />

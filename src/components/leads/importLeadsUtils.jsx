@@ -1,16 +1,29 @@
 import { base44 } from '@/api/base44Client';
 
-const PHONE_KEYS = ['phone', 'Phone Number', 'טלפון', 'מספר נייד', 'נייד', 'mobile'];
-const NAME_KEYS = ['name', 'full_name', 'Full Name', 'שם מלא', 'שם'];
+const PHONE_KEYS = ['phone', 'Phone', 'Phone Number', 'phone_number', 'טלפון', 'מספר טלפון', 'מספר נייד', 'נייד', 'mobile', 'Mobile', 'Contact', 'contact', 'sender', 'Sender', 'מספר'];
+const NAME_KEYS = ['name', 'Name', 'full_name', 'Full Name', 'Contact Name', 'contact_name', 'שם מלא', 'שם', 'שם איש קשר', 'שם לקוח'];
 const FIRST_NAME_KEYS = ['first_name', 'First Name', 'שם פרטי'];
 const EMAIL_KEYS = ['email', 'Email', 'אימייל', 'מייל'];
 const SOURCE_KEYS = ['source', 'Source', 'מקור'];
 const TYPE_KEYS = ['shooting_type', 'סוג צילום', 'עניין', 'תחום'];
-const NOTES_KEYS = ['notes', 'Notes', 'הערות', 'שם מלא והערות'];
+const NOTES_KEYS = ['notes', 'Notes', 'הערות', 'שם מלא והערות', 'message', 'Message', 'query', 'Query', 'תוכן', 'הודעה'];
 
 function pick(row, keys) {
-  const key = keys.find((item) => row[item] !== undefined && String(row[item]).trim() !== '');
-  return key ? String(row[key]).trim() : '';
+  const normalized = Object.entries(row).reduce((acc, [key, value]) => {
+    acc[String(key).trim().toLowerCase()] = value;
+    return acc;
+  }, {});
+  const key = keys.find((item) => normalized[String(item).trim().toLowerCase()] !== undefined && String(normalized[String(item).trim().toLowerCase()]).trim() !== '');
+  return key ? String(normalized[String(key).trim().toLowerCase()]).trim() : '';
+}
+
+function normalizePhone(value) {
+  const raw = String(value || '').replace('@s.whatsapp.net', '').replace('@c.us', '').trim();
+  const digits = raw.replace(/[^0-9]/g, '');
+  if (digits.length < 7 || digits.length > 15 || /^(\d)\1+$/.test(digits)) return '';
+  if (digits.startsWith('972')) return `+${digits}`;
+  if (digits.startsWith('0')) return `+972${digits.slice(1)}`;
+  return digits.startsWith('+') ? raw : `+${digits}`;
 }
 
 function parseCsvLine(line) {
@@ -47,7 +60,7 @@ export function parseCsvText(text) {
 }
 
 function normalizeLead(row, defaultSource = 'CSV Import') {
-  const phone = pick(row, PHONE_KEYS);
+  const phone = normalizePhone(pick(row, PHONE_KEYS));
   const fullName = pick(row, NAME_KEYS);
   const firstName = pick(row, FIRST_NAME_KEYS);
   const notes = pick(row, NOTES_KEYS);
@@ -57,7 +70,7 @@ function normalizeLead(row, defaultSource = 'CSV Import') {
     name: fullName || firstName || phone,
     phone,
     email: pick(row, EMAIL_KEYS),
-    source: pick(row, SOURCE_KEYS) || defaultSource,
+    source: defaultSource,
     shooting_type: pick(row, TYPE_KEYS),
     notes: notes || fullName || '',
     status: 'new',
@@ -114,7 +127,7 @@ export async function extractLeadsFromFile(file, defaultSource = 'CSV Import') {
   return normalizeRowsToLeads(rows, defaultSource);
 }
 
-export async function upsertLeads(leads) {
+export async function upsertLeads(leads, options = {}) {
   const existingLeads = await base44.entities.Lead.list('-created_date', 1000);
   const newLeads = [];
   let updated = 0;
@@ -132,7 +145,7 @@ export async function upsertLeads(leads) {
       await base44.entities.Lead.update(existing.id, {
         name: existing.name || lead.name,
         email: existing.email || lead.email,
-        source: existing.source || lead.source,
+        source: options.forceSource ? lead.source : (existing.source || lead.source),
         shooting_type: existing.shooting_type || lead.shooting_type,
         notes: [existing.notes, lead.notes].filter(Boolean).join('\n'),
         last_contact_date: new Date().toISOString(),
