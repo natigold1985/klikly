@@ -43,7 +43,7 @@ const CHANNELS = [
   { id: 'whatsapp', label: 'WhatsApp', desc: 'Webhook Native מ-WhatsApp Business', icon: MessageCircle, color: 'bg-[#25D366]', available: true, webhook: true },
   { id: 'email', label: 'Gmail (ידני)', desc: 'הדבק טפסי "צור קשר" מהמייל', icon: Mail, color: 'bg-red-500', available: true },
   { id: 'linkedin', label: 'LinkedIn', desc: 'חיפוש מוכוון + הדבקת תוצאות', icon: Linkedin, color: 'bg-[#0A66C2]', available: true },
-  { id: 'csv', label: 'העלאת קובץ CSV', desc: 'ייבוא WhatsApp/JONI חכם', icon: Upload, color: 'bg-slate-700', available: true },
+  { id: 'csv', label: 'העלאת קובץ CSV / Excel', desc: 'ייבוא לפי כותרות בעברית', icon: Upload, color: 'bg-slate-700', available: true },
   { id: 'paste', label: 'הדבקה מ-Sheets', desc: 'העתק שורות והדבק ישירות', icon: ClipboardPaste, color: 'bg-[#C5A028]', available: true },
 ];
 
@@ -361,6 +361,7 @@ Return ONLY valid leads that have at least a name AND a phone number.`,
               updateSyncStatus('csv');
               queryClient.invalidateQueries({ queryKey: ['leads'] });
               queryClient.invalidateQueries({ queryKey: ['Lead'] });
+              queryClient.invalidateQueries({ queryKey: ['Leads'] });
             }}
           />
         </DialogContent>

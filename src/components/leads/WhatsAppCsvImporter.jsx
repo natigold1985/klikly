@@ -1,12 +1,9 @@
 import React, { useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Upload, Loader2, CheckCircle2 } from 'lucide-react';
+import { Upload, Loader2, CheckCircle2, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
 
-const SOURCE = 'WhatsApp JONI';
-const PHONE_INDEX = 0;
-const FIRST_NAME_INDEX = 1;
-const FULL_NAME_INDEX = 2;
+const SOURCE_OPTIONS = ['Photography Course', 'KLIKLY', 'WhatsApp JONI'];
 
 function parseCsvLine(line, delimiter) {
   const values = [];
@@ -42,45 +39,63 @@ function detectDelimiter(firstLine) {
   }, { delimiter: ',', count: 0 }).delimiter;
 }
 
-function normalizePhone(value) {
-  const digits = String(value || '').replace('@s.whatsapp.net', '').replace('@c.us', '').replace(/[^0-9]/g, '');
+function cleanValue(value) {
+  return String(value || '').replace(/^\uFEFF/, '').trim().replace(/^"|"$/g, '');
+}
 
-  if (digits.length < 7 || digits.length > 15 || /^(\d)\1+$/.test(digits)) return '';
-  if (digits.startsWith('972')) return `0${digits.slice(3)}`;
-  return digits;
+function mapRows(rows) {
+  const leads = [];
+  let skipped = 0;
+
+  rows.forEach((row) => {
+    const phoneNumber = cleanValue(row['מספר נייד']);
+    const firstName = cleanValue(row['שם']);
+    const fullNameNotes = cleanValue(row['שם מלא']);
+
+    if (!phoneNumber) {
+      if (firstName || fullNameNotes) skipped += 1;
+      return;
+    }
+
+    leads.push({
+      phone_number: phoneNumber,
+      first_name: firstName,
+      full_name_notes: fullNameNotes,
+      status: 'New Lead',
+    });
+  });
+
+  return { leads, skipped };
 }
 
 function parseLeadsFromCsv(text) {
   const lines = String(text || '').split(/\r?\n/).filter((line) => line.trim());
-  if (lines.length === 0) return [];
+  if (lines.length === 0) return { leads: [], skipped: 0, totalRows: 0 };
 
   const delimiter = detectDelimiter(lines[0]);
-  const uniquePhones = new Set();
+  const headers = parseCsvLine(lines[0].replace(/^\uFEFF/, ''), delimiter).map(cleanValue);
+  const missingHeaders = ['מספר נייד', 'שם', 'שם מלא'].filter((header) => !headers.includes(header));
 
-  return lines.map((line) => {
-    const values = parseCsvLine(line.replace(/^\uFEFF/, ''), delimiter);
-    const phone = normalizePhone(values[PHONE_INDEX]);
-    const fullName = String(values[FULL_NAME_INDEX] || '').trim();
-    const firstName = String(values[FIRST_NAME_INDEX] || '').trim();
-    const name = fullName || firstName || phone;
+  if (missingHeaders.length > 0) {
+    throw new Error(`חסרות עמודות חובה: ${missingHeaders.join(', ')}`);
+  }
 
-    if (!phone || uniquePhones.has(phone)) return null;
-    uniquePhones.add(phone);
+  const rows = lines.slice(1).map((line) => {
+    const values = parseCsvLine(line, delimiter).map(cleanValue);
+    return headers.reduce((row, header, index) => ({ ...row, [header]: values[index] || '' }), {});
+  });
 
-    return {
-      name,
-      phone,
-      source: SOURCE,
-      status: 'new',
-      last_contact_date: new Date().toISOString(),
-    };
-  }).filter(Boolean);
+  const mapped = mapRows(rows);
+  return { ...mapped, totalRows: rows.length };
 }
 
 export default function WhatsAppCsvImporter({ onComplete }) {
   const inputRef = useRef(null);
+  const [isParsing, setIsParsing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [result, setResult] = useState(null);
+  const [source, setSource] = useState('KLIKLY');
+  const [preview, setPreview] = useState(null);
 
   const openFilePicker = () => {
     inputRef.current?.click();
@@ -91,25 +106,66 @@ export default function WhatsAppCsvImporter({ onComplete }) {
     event.target.value = '';
     if (!file) return;
 
-    setIsImporting(true);
+    setIsParsing(true);
     setResult(null);
+    setPreview(null);
 
     try {
-      const buffer = await file.arrayBuffer();
-      const text = new TextDecoder('utf-8').decode(buffer);
-      const leads = parseLeadsFromCsv(text);
+      const lowerName = file.name.toLowerCase();
+      let parsed;
 
-      if (leads.length === 0) {
-        setResult({ success: false, message: 'לא נמצאו בקובץ שמות ומספרי טלפון תקינים.' });
+      if (lowerName.endsWith('.xlsx')) {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        const response = await base44.functions.invoke('parseLeadImportFile', {
+          file_url,
+          file_name: file.name,
+        });
+        parsed = {
+          leads: response.data?.leads || [],
+          skipped: response.data?.skipped || 0,
+          totalRows: response.data?.total_rows || 0,
+        };
+      } else {
+        const buffer = await file.arrayBuffer();
+        const text = new TextDecoder('utf-8').decode(buffer);
+        parsed = parseLeadsFromCsv(text);
+      }
+
+      if (parsed.leads.length === 0) {
+        setResult({ success: false, message: 'לא נמצאו בקובץ לידים עם מספר נייד.' });
         toast.error('לא נמצאו לידים תקינים בקובץ');
         return;
       }
 
-      const response = await base44.functions.invoke('importJoniLeads', { leads });
-      const importedCount = response.data?.imported || leads.length;
-      setResult({ success: true, message: `${importedCount} לידים יובאו בהצלחה` });
-      toast.success(`${importedCount} לידים יובאו בהצלחה`);
-      onComplete?.(importedCount);
+      setPreview({ fileName: file.name, ...parsed });
+      toast.success(`${parsed.leads.length} שורות מוכנות לתצוגה מקדימה`);
+    } catch (error) {
+      setResult({ success: false, message: error.message });
+      toast.error('שגיאה בקריאת הקובץ');
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!preview?.leads?.length) return;
+
+    setIsImporting(true);
+    setResult(null);
+
+    try {
+      const now = new Date().toISOString();
+      const leads = preview.leads.map((lead) => ({
+        ...lead,
+        source,
+        created_at: now,
+      }));
+
+      await base44.entities.Leads.bulkCreate(leads);
+      setResult({ success: true, message: `${leads.length} לידים יובאו בהצלחה` });
+      toast.success(`${leads.length} לידים יובאו בהצלחה`);
+      setPreview(null);
+      onComplete?.(leads.length);
     } catch (error) {
       setResult({ success: false, message: error.message });
       toast.error('שגיאה בייבוא הקובץ');
@@ -123,26 +179,84 @@ export default function WhatsAppCsvImporter({ onComplete }) {
       <input
         ref={inputRef}
         type="file"
-        accept=".csv,text/csv,text/plain"
+        accept=".csv,.xlsx,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         onChange={handleFileChange}
         className="hidden"
       />
 
       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-center">
-        <Upload className="w-10 h-10 text-slate-400 mx-auto mb-3" />
-        <p className="text-sm font-semibold text-slate-900">ייבוא CSV מ-WhatsApp / JONI</p>
-        <p className="text-xs text-slate-500 mt-1 mb-4">הייבוא קורא לפי מיקום: עמודה 1 טלפון, עמודה 2 שם פרטי, עמודה 3 שם מלא/תיאור.</p>
+        <FileSpreadsheet className="w-10 h-10 text-slate-400 mx-auto mb-3" />
+        <p className="text-sm font-semibold text-slate-900">ייבוא CSV / Excel לפי כותרות בעברית</p>
+        <p className="text-xs text-slate-500 mt-1 mb-4">נדרש: מספר נייד, שם, שם מלא. מספרי 972 נשמרים כמו שהם.</p>
+
+        <div className="mb-4 text-right">
+          <label className="block text-xs font-bold text-slate-700 mb-1">מקור לכל הקובץ</label>
+          <select
+            value={source}
+            onChange={(event) => setSource(event.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#FFD700]"
+          >
+            {SOURCE_OPTIONS.map((item) => (
+              <option key={item} value={item}>{item}</option>
+            ))}
+          </select>
+        </div>
 
         <button
           type="button"
           onClick={openFilePicker}
-          disabled={isImporting}
+          disabled={isParsing || isImporting}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#FFD700] px-5 py-3 text-sm font-bold text-black shadow-sm hover:brightness-105 disabled:opacity-60"
         >
-          {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-          בחר קובץ CSV
+          {isParsing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+          בחר קובץ CSV / Excel
         </button>
       </div>
+
+      {preview && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-slate-900">תצוגה מקדימה</p>
+              <p className="text-xs text-slate-500">{preview.fileName} · {preview.leads.length} לייבוא · {preview.skipped} דולגו</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleConfirmImport}
+              disabled={isImporting}
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white disabled:opacity-60"
+            >
+              {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              ייבא עכשיו
+            </button>
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-slate-100">
+            <table className="w-full text-xs text-right">
+              <thead className="bg-slate-50 text-slate-500">
+                <tr>
+                  <th className="p-2">Phone Number</th>
+                  <th className="p-2">First Name</th>
+                  <th className="p-2">Full Name and Notes</th>
+                  <th className="p-2">Source</th>
+                  <th className="p-2">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {preview.leads.slice(0, 5).map((lead, index) => (
+                  <tr key={`${lead.phone_number}-${index}`} className="border-t border-slate-100">
+                    <td className="p-2 font-mono">{lead.phone_number}</td>
+                    <td className="p-2">{lead.first_name || '—'}</td>
+                    <td className="p-2 max-w-40 truncate">{lead.full_name_notes || '—'}</td>
+                    <td className="p-2">{source}</td>
+                    <td className="p-2">New Lead</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {result && (
         <div className={`flex items-center gap-2 rounded-xl border p-3 text-sm ${result.success ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700'}`}>
