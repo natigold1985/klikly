@@ -163,7 +163,8 @@ export default function WhatsAppCsvImporter({ onComplete }) {
           name: lead.first_name || notes || lead.phone_number,
           phone: lead.phone_number,
           notes,
-          source: sourceFromNotes,
+          source: 'WhatsApp',
+          lead_type: sourceFromNotes === 'קורס צילום' ? 'מתעניין בקורס' : 'שירותי צילום',
           status: 'new',
           last_contact_date: now,
         };

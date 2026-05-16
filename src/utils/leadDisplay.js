@@ -26,21 +26,34 @@ export function inferLeadSource(lead = {}) {
   const current = String(lead.source || '').trim();
   const text = [lead.notes, lead.shooting_type, lead.source_post_url, current].filter(Boolean).join(' ').toLowerCase();
 
-  if (/whatsapp|וואטסאפ|ווטסאפ|wa\.me/.test(text)) return 'WhatsApp';
+  if (/klikly|whatsapp|וואטסאפ|ווטסאפ|wa\.me/.test(text)) return 'WhatsApp';
   if (/קורס|course|7 ימים|להבין הכל/.test(text)) return 'קורס צילום';
   if (/צילום|צלם|צילומים|stills|photo|photography/.test(text)) return 'צילום';
   if (current && !UNKNOWN_SOURCES.includes(current.toLowerCase())) return current;
   return 'לא ידוע';
 }
 
-export function highlightLeadInterest(lead = {}) {
+export function inferLeadType(lead = {}) {
+  if (lead.lead_type) return lead.lead_type;
   const text = [lead.shooting_type, lead.notes].filter(Boolean).join(' ');
-  if (/קורס|course|7 ימים|להבין הכל/.test(text)) return 'מתעניין בקורס צילום';
-  if (/חתונה|wedding/.test(text)) return 'צילום חתונה';
-  if (/אירוע|event|כנס|conference/.test(text)) return 'צילום אירוע';
-  if (/תדמית|עסקי|business|מסחרי|stills/.test(text)) return 'צילום עסקי / תדמית';
-  if (/whatsapp|וואטסאפ|ווטסאפ/.test(text)) return 'פנייה מ-WhatsApp';
+  if (/קורס|course|7 ימים|להבין הכל/.test(text)) return 'מתעניין בקורס';
+  if (/צילום|צלם|צילומים|חתונה|אירוע|תדמית|סטודיו|photo|photography/.test(text)) return 'שירותי צילום';
   return lead.shooting_type || '';
+}
+
+export function inferLeadRole(lead = {}) {
+  if (lead.role_title) return lead.role_title;
+  const text = String(lead.notes || '');
+  const roles = [
+    'מנהלת שיווק', 'מנהל שיווק', 'שיווק', 'Marketing Manager',
+    'HR', 'משאבי אנוש', 'משקית תש', 'משקית ת״ש', 'מנהלת רווחה', 'מנהל רווחה',
+    'מפיקת אירועים', 'מפיק אירועים', 'בעלים', 'מנכ״ל', 'מנכל', 'CEO'
+  ];
+  return roles.find((role) => text.toLowerCase().includes(role.toLowerCase())) || '';
+}
+
+export function highlightLeadInterest(lead = {}) {
+  return inferLeadType(lead);
 }
 
 export function enhanceLeadForDisplay(lead = {}) {
@@ -48,6 +61,8 @@ export function enhanceLeadForDisplay(lead = {}) {
     ...lead,
     source: inferLeadSource(lead),
     notes: cleanLeadNotes(lead.notes),
+    lead_type: inferLeadType(lead),
+    role_title: inferLeadRole(lead),
     interest_label: highlightLeadInterest(lead),
   };
 }

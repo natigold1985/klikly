@@ -3,14 +3,17 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
-  ArrowRight, Phone, Mail, Calendar, Edit, 
-  Trash2, Briefcase, Plus, CheckCircle2, DollarSign, FileText, ExternalLink
+  ArrowRight, Phone, Mail, Calendar,
+  Briefcase, CheckCircle2, DollarSign, FileText, ExternalLink, UserRound, Tag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import SendQuoteFromLeadDialog from '@/components/leads/SendQuoteFromLeadDialog';
 import EditableField from '@/components/leads/EditableField';
+import SourceBadge from '@/components/leads/SourceBadge';
+import OutreachActions from '@/components/leads/OutreachActions';
+import { enhanceLeadForDisplay } from '@/utils/leadDisplay';
 
 export default function LeadDetails() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -56,6 +59,8 @@ export default function LeadDetails() {
   if (isLoading) return <div className="p-8 text-center">טוען...</div>;
   if (!lead) return <div className="p-8 text-center">ליד לא נמצא</div>;
 
+  const displayLead = enhanceLeadForDisplay(lead);
+
   const convertToProject = () => {
     createProjectMutation.mutate({
       lead_id: lead.id,
@@ -80,9 +85,22 @@ export default function LeadDetails() {
         <span>חזרה</span>
       </button>
 
-      <div className="flex items-center gap-4 mb-2 flex-wrap">
+      <div className="flex items-start gap-4 mb-2 flex-wrap">
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold text-slate-900 leading-tight">תיק ליד</h1>
+          <div className="flex flex-wrap items-center gap-2 mt-3">
+            <SourceBadge source={displayLead.source} />
+            {displayLead.lead_type && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200 text-xs font-black">
+                <Tag className="w-3.5 h-3.5" /> {displayLead.lead_type}
+              </span>
+            )}
+            {displayLead.role_title && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 text-white text-xs font-black">
+                <UserRound className="w-3.5 h-3.5" /> {displayLead.role_title}
+              </span>
+            )}
+          </div>
         </div>
         {lead.status !== 'closed_won' && (
           <div className="flex gap-2 flex-wrap">
@@ -112,6 +130,23 @@ export default function LeadDetails() {
             </CardHeader>
             <CardContent className="pt-6">
               <p className="text-xs text-slate-400 mb-4">לחץ על כל שדה כדי לערוך</p>
+              <div className="mb-6 rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm text-slate-500 block mb-1">מקור</label>
+                    <div className="py-1.5"><SourceBadge source={displayLead.source} /></div>
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-500 block mb-1">סוג ליד</label>
+                    <EditableField value={displayLead.lead_type} onSave={updateField('lead_type')} placeholder="לא הוגדר" icon={<Tag className="w-4 h-4 text-purple-500 shrink-0" />} />
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-500 block mb-1">תפקיד</label>
+                    <EditableField value={displayLead.role_title} onSave={updateField('role_title')} placeholder="לא הוגדר" icon={<Briefcase className="w-4 h-4 text-slate-500 shrink-0" />} />
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-4">
                 <div>
                   <label className="text-sm text-slate-500 block mb-1">שם מלא</label>
@@ -194,6 +229,11 @@ export default function LeadDetails() {
                     )}
                   </div>
                 </div>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-slate-100">
+                <label className="text-sm text-slate-500 block mb-2">שליחה מהירה</label>
+                <OutreachActions lead={displayLead} compact />
               </div>
 
               <div className="mt-6 pt-4 border-t border-slate-100">

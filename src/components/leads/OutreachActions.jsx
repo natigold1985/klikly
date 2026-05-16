@@ -19,17 +19,11 @@ function hasRealName(name) {
 
 // Personalized line based on shooting type
 function typeContext(type) {
-  if (!type) return null;
-  const t = type.toLowerCase();
-  if (t.includes('חתונה')) return 'בנושא צילום החתונה שלך';
-  if (t.includes('בר') || t.includes('בת מצווה')) return 'בנושא צילום בר/בת המצווה';
-  if (t.includes('אירוע')) return 'בנושא צילום האירוע שלך';
-  if (t.includes('היריון') || t.includes('הריון')) return 'בנושא צילומי הריון';
-  if (t.includes('משפח')) return 'בנושא צילומי המשפחה';
-  if (t.includes('עסק') || t.includes('מוצר') || t.includes('תדמית')) return 'בנושא צילומי תדמית/עסקים';
-  if (t.includes('סטילס') || t.includes('סטודיו')) return 'בנושא צילומי הסטודיו';
-  if (t.includes('דרושים') || t.includes('גיוס')) return null; // not a real lead
-  return `בנושא ${type}`;
+  if (!type) return 'שירותי צילום';
+  const t = String(type).toLowerCase();
+  if (t.includes('קורס')) return 'קורס הצילום';
+  if (t.includes('שירותי צילום')) return 'שירותי צילום';
+  return type;
 }
 
 const TEMPLATES = {
@@ -56,7 +50,7 @@ const TEMPLATES = {
     },
     default: (name, type) => {
       const ctx = typeContext(type);
-      return `${greet(name)} 🙏\nאני נתי גולד, צלם מקצועי. קיבלתי את הפנייה שלך${ctx ? ` ${ctx}` : ''}.\nאשמח לשמוע עוד פרטים ולחזור אליך עם הצעה מותאמת 📸\nאתר: natigold.com`;
+      return `${greet(name)}, מה קורה? ראיתי שהשארת פרטים לגבי ${ctx}, אשמח לדבר ולתת עוד פרטים. מה אומר/ת?`;
     },
   },
   email: {
@@ -83,9 +77,10 @@ function getSourceKey(source) {
 export default function OutreachActions({ lead, onLog, compact = false }) {
   const sourceKey = getSourceKey(lead.source);
   // For unknown / unsaved contacts use a generic neutral opener instead of a personalized template
+  const leadType = lead.lead_type || lead.interest_label || lead.shooting_type || 'שירותי צילום';
   const waText = hasRealName(lead.name)
-    ? TEMPLATES.whatsapp[sourceKey](lead.name, lead.shooting_type)
-    : `הי, האם עדיין רלוונטי עבורכם שירותי צילום?`;
+    ? TEMPLATES.whatsapp.default(lead.name, leadType)
+    : `היי, מה קורה? ראיתי שהשארת פרטים לגבי ${typeContext(leadType)}, אשמח לדבר ולתת עוד פרטים. מה אומר/ת?`;
   const waLink = `https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(waText)}`;
 
   const emailSubject = TEMPLATES.email.subject(lead.name);
