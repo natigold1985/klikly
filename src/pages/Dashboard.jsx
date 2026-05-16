@@ -16,6 +16,7 @@ import LeadRadarWidget from '@/components/dashboard/LeadRadarWidget';
 import TaskBoard from '@/components/dashboard/TaskBoard';
 import QuickActions from '@/components/dashboard/QuickActions';
 import LeadQualityDashboard from '@/components/dashboard/LeadQualityDashboard';
+import JoniExportReminderAlert from '@/components/dashboard/JoniExportReminderAlert';
 
 export default function Dashboard() {
   const { data: user } = useQuery({
@@ -152,6 +153,8 @@ export default function Dashboard() {
       </Dialog>
 
       <div className="space-y-6 md:space-y-8">
+        <JoniExportReminderAlert />
+
         {/* Urgent Alert */}
         {urgentLeads.length > 0 && (() => {
           const oldest = [...urgentLeads].sort((a,b) => new Date(a.created_date) - new Date(b.created_date))[0];

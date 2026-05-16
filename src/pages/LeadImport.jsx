@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import PasteLeadsDialog from '@/components/leads/PasteLeadsDialog';
 import LeadWebhookInfoDialog from '@/components/leads/LeadWebhookInfoDialog';
 import WhatsAppCsvImporter from '@/components/leads/WhatsAppCsvImporter';
+import MagicPasteImporter from '@/components/leads/MagicPasteImporter';
 
 const AI_CHANNELS = ['facebook', 'instagram', 'whatsapp', 'email', 'linkedin'];
 const AI_CHANNEL_LABELS = {
@@ -209,8 +210,8 @@ Return ONLY valid leads that have at least a name AND a phone number.`,
       {/* Page Header — consistent with sidebar */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">ייבוא לידים</h1>
-          <p className="text-slate-500 mt-1.5 text-sm">בחר ערוץ, הדבק טקסט או חבר חשבון — ה-AI מחלץ את הלידים אוטומטית</p>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Import Hub</h1>
+          <p className="text-slate-500 mt-1.5 text-sm">ייבוא לידים מ-JONI, קבצי Excel/CSV, Gmail ושאר מקורות הלידים</p>
         </div>
         <Button
           onClick={() => setActiveChannel('gmail_auto')}
@@ -221,15 +222,24 @@ Return ONLY valid leads that have at least a name AND a phone number.`,
         </Button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-start gap-4">
-        <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
-          <Sparkles className="w-5 h-5 text-indigo-600" />
-        </div>
-        <div className="text-sm text-slate-600 space-y-1">
-          <p className="font-semibold text-slate-900 mb-1.5">איך זה עובד?</p>
-          <p><strong className="text-slate-800">Gmail סריקה חיה</strong> — מחובר ל-Gmail שלך, סורק מיילים חדשים אוטומטית ומזהה פניות צילום.</p>
-          <p><strong className="text-slate-800">Google Sheets</strong> — מתחבר לגיליון ומייבא שורות אוטומטית (צריך URL של גיליון).</p>
-          <p><strong className="text-slate-800">הערוצים האחרים</strong> — הדבק טקסט מכל מקור (פייסבוק, ווטסאפ, אינסטגרם, LinkedIn) וה-AI יחלץ ממנו שמות, טלפונים ומיילים.</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <MagicPasteImporter
+          onComplete={() => {
+            updateSyncStatus('magic_paste');
+            queryClient.invalidateQueries({ queryKey: ['leads'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard_leads'] });
+          }}
+        />
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-start gap-4">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
+            <Sparkles className="w-5 h-5 text-indigo-600" />
+          </div>
+          <div className="text-sm text-slate-600 space-y-1">
+            <p className="font-semibold text-slate-900 mb-1.5">איך זה עובד?</p>
+            <p><strong className="text-slate-800">Magic Paste</strong> — מדביקים טקסט גולמי מ-JONI וה-AI מייצר לידים חדשים.</p>
+            <p><strong className="text-slate-800">CSV / Excel</strong> — מעלה קובץ עם כותרות בעברית ומייבא ישירות ל-New Leads Inbox.</p>
+            <p><strong className="text-slate-800">Gmail / Sheets</strong> — סנכרונים קיימים נשארים זמינים בהמשך העמוד.</p>
+          </div>
         </div>
       </div>
 
@@ -362,6 +372,7 @@ Return ONLY valid leads that have at least a name AND a phone number.`,
               queryClient.invalidateQueries({ queryKey: ['leads'] });
               queryClient.invalidateQueries({ queryKey: ['Lead'] });
               queryClient.invalidateQueries({ queryKey: ['Leads'] });
+              queryClient.invalidateQueries({ queryKey: ['dashboard_leads'] });
             }}
           />
         </DialogContent>

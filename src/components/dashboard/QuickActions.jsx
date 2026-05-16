@@ -2,13 +2,14 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card, CardContent } from '@/components/ui/card';
-import { UserPlus, FileText, FolderPlus, Send, Zap } from 'lucide-react';
+import { UserPlus, FileText, FolderPlus, Send, Zap, Upload } from 'lucide-react';
 
 const ACTIONS = [
   { label: 'ליד חדש', icon: UserPlus, link: 'Leads', color: 'from-blue-500 to-blue-600' },
   { label: 'הצעת מחיר', icon: FileText, link: 'Quotes', color: 'from-purple-500 to-purple-600' },
   { label: 'פרויקט חדש', icon: FolderPlus, link: 'Projects', color: 'from-emerald-500 to-emerald-600' },
   { label: 'שלח קבצים', icon: Send, link: 'FileStorage', color: 'from-amber-500 to-amber-600' },
+  { label: 'Import Hub', icon: Upload, link: 'LeadImport', color: 'from-slate-700 to-slate-900' },
 ];
 
 export default function QuickActions() {
@@ -19,7 +20,7 @@ export default function QuickActions() {
           <Zap className="w-4 h-4 text-[#C5A028]" />
           <h3 className="text-sm font-bold text-slate-800">פעולות מהירות</h3>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {ACTIONS.map((a) => {
             const Icon = a.icon;
             return (
