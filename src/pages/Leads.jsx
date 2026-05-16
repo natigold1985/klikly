@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { 
   Plus, Search, Phone, Bell, Clock, 
-  Trash2, Sparkles, LayoutGrid, List, Map
+  Trash2, Sparkles, LayoutGrid, List, Map, Columns3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +34,8 @@ import LeadTableView from '@/components/leads/LeadTableView';
 import DataActionsToolbar from '@/components/leads/DataActionsToolbar';
 import OutreachActions from '@/components/leads/OutreachActions';
 import AutoFollowUpDialog from '@/components/leads/AutoFollowUpDialog';
+import LeadsKanbanView from '@/components/leads/LeadsKanbanView';
+import { enhanceLeadForDisplay, STATUS_STYLES } from '@/utils/leadDisplay';
 
 // Fix leaflet icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -329,15 +331,19 @@ export default function Leads() {
       if (activeTab === 'filtered' && !isTrulyFiltered(lead)) return false;
 
       const term = (searchTerm || '').toLowerCase();
+      const displayLead = enhanceLeadForDisplay(lead);
       const matchesSearch =
-        ((lead.name || '').toLowerCase().includes(term)) ||
-        ((lead.phone || '').includes(searchTerm)) ||
-        (lead.email && lead.email.toLowerCase().includes(term));
+        ((displayLead.name || '').toLowerCase().includes(term)) ||
+        ((displayLead.phone || '').includes(searchTerm)) ||
+        (displayLead.email && displayLead.email.toLowerCase().includes(term)) ||
+        ((displayLead.source || '').toLowerCase().includes(term)) ||
+        ((displayLead.notes || '').toLowerCase().includes(term));
 
       const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
 
       return matchesSearch && matchesStatus;
     })
+    .map(enhanceLeadForDisplay)
     .sort((a, b) => {
       // Primary: by status priority (active leads on top)
       const priA = STATUS_PRIORITY[a.status] ?? 99;
@@ -364,17 +370,9 @@ export default function Leads() {
   }, [queryClient]);
 
   const getStatusBadge = (status) => {
-    const statusMap = {
-      new: { label: 'חדש', color: 'bg-blue-100 text-blue-700' },
-      in_progress: { label: 'בטיפול', color: 'bg-yellow-100 text-yellow-700' },
-      follow_up: { label: 'מעקב', color: 'bg-purple-100 text-purple-700' },
-      quote_sent: { label: 'הצעה נשלחה', color: 'bg-indigo-100 text-indigo-700' },
-      closed_won: { label: 'נסגר בהצלחה', color: 'bg-green-100 text-green-700' },
-      closed_lost: { label: 'נכשל', color: 'bg-red-100 text-red-700' },
-    };
-    const badge = statusMap[status] || { label: status, color: 'bg-slate-100 text-slate-700' };
+    const badge = STATUS_STYLES[status] || { label: status, pill: 'bg-slate-100 text-slate-700 border-slate-200' };
     return (
-      <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${badge.color}`}>
+      <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${badge.pill}`}>
         {badge.label}
       </span>
     );
@@ -615,6 +613,9 @@ export default function Leads() {
               <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('grid')} className="gap-1.5">
                 <LayoutGrid className="w-4 h-4" /> כרטיסים
               </Button>
+              <Button variant={viewMode === 'kanban' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('kanban')} className="gap-1.5">
+                <Columns3 className="w-4 h-4" /> קנבן
+              </Button>
               <Button variant={viewMode === 'map' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('map')} className="gap-1.5">
                 <Map className="w-4 h-4" /> מפה
               </Button>
@@ -676,6 +677,8 @@ export default function Leads() {
             toast.success('הליד הוחזר לפעילים');
           }}
         />
+      ) : viewMode === 'kanban' ? (
+        <LeadsKanbanView leads={visibleLeads} onStatusChange={(id, status) => updateLeadMutation.mutate({ id, data: { status } })} />
       ) : viewMode === 'map' ? (
         <Card className="border shadow-sm overflow-hidden h-[600px] relative z-0">
           <MapContainer center={[31.0461, 34.8516]} zoom={7} style={{ height: '100%', width: '100%', zIndex: 1 }}>

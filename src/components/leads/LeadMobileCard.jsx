@@ -79,6 +79,12 @@ export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoF
         )}
       </div>
 
+      {lead.interest_label && (
+        <div className="mb-3 rounded-xl bg-[#FFD700]/10 border border-[#C5A028]/20 px-3 py-2 text-xs font-bold text-[#8A6500]">
+          {lead.interest_label}
+        </div>
+      )}
+
       {/* Notes (includes invalid phone if relevant) */}
       {combinedNotes && (
         <div className="mb-3 pb-3 border-b border-slate-100">

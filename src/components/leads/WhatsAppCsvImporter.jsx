@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Upload, Loader2, CheckCircle2, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
+import { cleanLeadNotes, inferLeadSource } from '@/utils/leadDisplay';
 
 const SOURCE_OPTIONS = ['Photography Course', 'KLIKLY', 'WhatsApp JONI'];
 
@@ -155,14 +156,18 @@ export default function WhatsAppCsvImporter({ onComplete }) {
 
     try {
       const now = new Date().toISOString();
-      const leads = preview.leads.map((lead) => ({
-        name: lead.first_name || lead.full_name_notes || lead.phone_number,
-        phone: lead.phone_number,
-        notes: lead.full_name_notes,
-        source,
-        status: 'new',
-        last_contact_date: now,
-      }));
+      const leads = preview.leads.map((lead) => {
+        const notes = cleanLeadNotes(lead.full_name_notes);
+        const sourceFromNotes = inferLeadSource({ source, notes });
+        return {
+          name: lead.first_name || notes || lead.phone_number,
+          phone: lead.phone_number,
+          notes,
+          source: sourceFromNotes,
+          status: 'new',
+          last_contact_date: now,
+        };
+      });
 
       await base44.entities.Lead.bulkCreate(leads);
       setResult({ success: true, message: `${leads.length} לידים יובאו בהצלחה` });
