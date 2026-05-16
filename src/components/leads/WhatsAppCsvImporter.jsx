@@ -156,12 +156,15 @@ export default function WhatsAppCsvImporter({ onComplete }) {
     try {
       const now = new Date().toISOString();
       const leads = preview.leads.map((lead) => ({
-        ...lead,
+        name: lead.first_name || lead.full_name_notes || lead.phone_number,
+        phone: lead.phone_number,
+        notes: lead.full_name_notes,
         source,
-        created_at: now,
+        status: 'new',
+        last_contact_date: now,
       }));
 
-      await base44.entities.Leads.bulkCreate(leads);
+      await base44.entities.Lead.bulkCreate(leads);
       setResult({ success: true, message: `${leads.length} לידים יובאו בהצלחה` });
       toast.success(`${leads.length} לידים יובאו בהצלחה`);
       setPreview(null);
@@ -187,7 +190,7 @@ export default function WhatsAppCsvImporter({ onComplete }) {
       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-center">
         <FileSpreadsheet className="w-10 h-10 text-slate-400 mx-auto mb-3" />
         <p className="text-sm font-semibold text-slate-900">ייבוא CSV / Excel לפי כותרות בעברית</p>
-        <p className="text-xs text-slate-500 mt-1 mb-4">נדרש: מספר נייד, שם, שם מלא. מספרי 972 נשמרים כמו שהם.</p>
+        <p className="text-xs text-slate-500 mt-1 mb-4">נדרש: מספר נייד, שם, שם מלא. הייבוא נכנס למסך ניהול הלידים הראשי.</p>
 
         <div className="mb-4 text-right">
           <label className="block text-xs font-bold text-slate-700 mb-1">מקור לכל הקובץ</label>
