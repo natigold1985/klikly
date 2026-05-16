@@ -23,8 +23,7 @@ import {
   LogOut,
   Mail,
   Megaphone,
-  MessageCircle,
-  Upload
+  MessageCircle
 } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
@@ -55,11 +54,24 @@ export default function Layout({ children, currentPageName }) {
         { name: 'קבצים להורדה', icon: Folder, page: 'FileStorage' },
       ]
     : [
-        { name: 'Dashboard (Kanban)', icon: LayoutDashboard, page: 'Leads' },
-        { name: 'New Leads Inbox', icon: Users, page: 'NewLeadsInbox' },
-        { name: 'Import & Integrations', icon: Upload, page: 'LeadImport' },
-        { name: 'Projects', icon: Briefcase, page: 'Projects' },
-        { name: 'File Storage', icon: Folder, page: 'FileStorage' },
+        { name: 'לוח ניהול', icon: LayoutDashboard, page: 'Dashboard' },
+        { name: 'לידים', icon: Users, page: 'Leads' },
+        ...(isAdmin ? [{ name: 'ייבוא לידים', icon: Users, page: 'LeadImport' }] : []),
+        { name: 'אנשי קשר', icon: BookUser, page: 'Contacts' },
+        { name: 'הצעות מחיר', icon: FileText, page: 'Quotes' },
+        { name: 'תבניות הצעות', icon: FileText, page: 'QuoteTemplates' },
+        { name: 'פרויקטים', icon: Briefcase, page: 'Projects' },
+        { name: 'ספקי משנה', icon: UserCog, page: 'SubVendors' },
+        { name: 'אחסון קבצים', icon: Folder, page: 'FileStorage' },
+        { name: 'משימות', icon: CheckCircle2, page: 'Tasks' },
+        { name: 'אנליטיקס', icon: BarChart3, page: 'Analytics' },
+        ...(isAdmin ? [{ name: 'ניוזלטר וברכות', icon: Mail, page: 'Newsletter' }] : []),
+        ...(isAdmin ? [
+          { name: 'משתמשים', icon: Shield, page: 'AdminUsers' },
+          { name: 'מטריצת הרשאות', icon: Shield, page: 'RBACMatrix' },
+        ] : []),
+        { name: 'עדכוני מערכת', icon: Megaphone, page: 'SystemUpdates' },
+        { name: 'הגדרות', icon: SettingsIcon, page: 'Settings' },
       ];
 
   // Mobile Bottom Navigation Items — order: Leads → Storage → Tasks → Projects

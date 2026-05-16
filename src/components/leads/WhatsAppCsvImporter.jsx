@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Upload, Loader2, CheckCircle2, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
 
-const SOURCE_OPTIONS = ['JONI'];
+const SOURCE_OPTIONS = ['Photography Course', 'KLIKLY', 'WhatsApp JONI'];
 
 function parseCsvLine(line, delimiter) {
   const values = [];
@@ -94,7 +94,7 @@ export default function WhatsAppCsvImporter({ onComplete }) {
   const [isParsing, setIsParsing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [result, setResult] = useState(null);
-  const [source, setSource] = useState('JONI');
+  const [source, setSource] = useState('KLIKLY');
   const [preview, setPreview] = useState(null);
 
   const openFilePicker = () => {
@@ -190,7 +190,7 @@ export default function WhatsAppCsvImporter({ onComplete }) {
       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-center">
         <FileSpreadsheet className="w-10 h-10 text-slate-400 mx-auto mb-3" />
         <p className="text-sm font-semibold text-slate-900">ייבוא CSV / Excel לפי כותרות בעברית</p>
-        <p className="text-xs text-slate-500 mt-1 mb-4">נדרש: מספר נייד, שם, שם מלא. כל הלידים ייכנסו כ-New Lead עם Source: JONI.</p>
+        <p className="text-xs text-slate-500 mt-1 mb-4">נדרש: מספר נייד, שם, שם מלא. הייבוא נכנס למסך ניהול הלידים הראשי.</p>
 
         <div className="mb-4 text-right">
           <label className="block text-xs font-bold text-slate-700 mb-1">מקור לכל הקובץ</label>

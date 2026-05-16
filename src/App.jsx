@@ -30,8 +30,6 @@ import FolderGallery from './pages/FolderGallery';
 import GalleryDemo from './pages/demo';
 import SystemUpdates from './pages/SystemUpdates';
 import LeadsDashboard from './pages/LeadsDashboard';
-import NewLeadsInbox from './pages/NewLeadsInbox';
-import PublicLeadCapture from './pages/PublicLeadCapture';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -184,11 +182,6 @@ const AuthenticatedApp = () => {
           <LeadsDashboard />
         </LayoutWrapper>
       } />
-      <Route path="/NewLeadsInbox" element={
-        <LayoutWrapper currentPageName="NewLeadsInbox">
-          <NewLeadsInbox />
-        </LayoutWrapper>
-      } />
       {Object.entries(Pages).map(([path, Page]) => (
         <Route
           key={path}
@@ -219,7 +212,6 @@ function App() {
             <Route path="/demo" element={<GalleryDemo />} />
             <Route path="/quote/view" element={<QuoteView />} />
             <Route path="/contact" element={<PublicLeadForm />} />
-            <Route path="/lead-form" element={<PublicLeadCapture />} />
             <Route path="*" element={<AuthenticatedApp />} />
           </Routes>
         </Router>
