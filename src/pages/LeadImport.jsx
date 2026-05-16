@@ -243,6 +243,27 @@ Return ONLY valid leads that have at least a name AND a phone number.`,
         </div>
       </div>
 
+      <div className="bg-slate-950 text-white rounded-2xl p-5 border border-slate-800 space-y-3" dir="ltr">
+        <div className="text-right" dir="rtl">
+          <h2 className="font-black text-lg">External Integrations</h2>
+          <p className="text-sm text-slate-300">כתובות לחיבור טפסים ו-Webhooks חיצוניים</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <div className="bg-white/10 rounded-xl p-3">
+            <div className="font-bold text-[#FFD700] mb-1" dir="rtl">Public Form URL</div>
+            <code>{window.location.origin}/lead-form</code>
+          </div>
+          <div className="bg-white/10 rounded-xl p-3">
+            <div className="font-bold text-[#FFD700] mb-1" dir="rtl">Facebook Lead Ads Webhook</div>
+            <code>{window.location.origin}/api/functions/socialLeadWebhook</code>
+          </div>
+          <div className="bg-white/10 rounded-xl p-3">
+            <div className="font-bold text-[#FFD700] mb-1" dir="rtl">Instagram Leads Webhook</div>
+            <code>{window.location.origin}/api/functions/socialLeadWebhook</code>
+          </div>
+        </div>
+      </div>
+
       {/* Channel Grid — premium cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
         {CHANNELS.map(ch => {

@@ -1,0 +1,78 @@
+{
+  "name": "Attachment",
+  "type": "object",
+  "properties": {
+    "related_to_type": {
+      "type": "string",
+      "enum": [
+        "lead",
+        "project"
+      ],
+      "description": "Whether this file belongs to a lead or project"
+    },
+    "related_to_id": {
+      "type": "string",
+      "description": "Lead or project ID"
+    },
+    "client_name": {
+      "type": "string"
+    },
+    "file_name": {
+      "type": "string"
+    },
+    "file_url": {
+      "type": "string"
+    },
+    "file_type": {
+      "type": "string"
+    },
+    "file_size": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "related_to_type",
+    "related_to_id",
+    "file_name",
+    "file_url"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

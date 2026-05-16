@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import DeliveryLinkButton from '../components/DeliveryLinkButton';
 import FileUploader from '../components/FileUploader';
+import AttachmentUploader from '@/components/crm/AttachmentUploader';
 import ProductionStatusTracker from '../components/projects/ProductionStatusTracker';
 import CreateProjectDialog from '../components/projects/CreateProjectDialog';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,12 @@ export default function Projects() {
       }
       return base44.entities.Project.filter({ created_by: user.email }, '-created_date', 200);
     },
+    enabled: !!user,
+  });
+
+  const { data: attachments = [] } = useQuery({
+    queryKey: ['attachments'],
+    queryFn: () => base44.entities.Attachment.list('-created_date', 500),
     enabled: !!user,
   });
 
@@ -252,6 +259,16 @@ export default function Projects() {
                 {/* Production Status Tracker */}
                 <div className="pt-4 border-t border-slate-200">
                   <ProductionStatusTracker status={project.status} />
+                </div>
+
+                <div className="pt-4">
+                  <AttachmentUploader
+                    relatedType="project"
+                    relatedId={project.id}
+                    clientName={project.client_name}
+                    attachments={attachments.filter((file) => file.related_to_type === 'project' && file.related_to_id === project.id)}
+                    onUploaded={() => queryClient.invalidateQueries({ queryKey: ['attachments'] })}
+                  />
                 </div>
 
                 {!isClient && (
