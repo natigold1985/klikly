@@ -40,15 +40,17 @@ export default function AutoFollowUpDialog({ open, onOpenChange, lead, onSaved }
     try {
       const buildNextSend = () => {
         const [hours, minutes] = sendTime.split(':').map(Number);
+        const now = new Date();
         const next = new Date();
-        next.setDate(next.getDate() + Number(intervalDays));
         next.setHours(hours || 10, minutes || 0, 0, 0);
 
         if (sendDay !== 'any') {
           const targetDay = Number(sendDay);
-          while (next.getDay() !== targetDay) {
+          while (next.getDay() !== targetDay || next <= now) {
             next.setDate(next.getDate() + 1);
           }
+        } else if (next <= now) {
+          next.setDate(next.getDate() + Number(intervalDays));
         }
 
         return next;
@@ -91,7 +93,7 @@ export default function AutoFollowUpDialog({ open, onOpenChange, lead, onSaved }
             </span>
           </DialogTitle>
           <DialogDescription className="text-slate-500 text-sm pt-2 leading-relaxed">
-            בחר ערוץ, תדירות, יום ושעה לשליחה. אחרי שליחת פולו־אפ תישלח אליך התראת פוש.
+            בחר ערוץ, תדירות, יום ושעה לשליחה. אם השעה שבחרת עוד לא עברה היום — הפולו־אפ יישלח היום.
           </DialogDescription>
         </DialogHeader>
 
