@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Save, UserCheck, FileStack } from 'lucide-react';
 import QuotePersonalItems from '@/components/quotes/QuotePersonalItems';
+import { toast } from 'sonner';
 
 export default function QuoteEditor({ quote, lead, onSave, onCancel }) {
   const { data: settings } = useQuery({
@@ -75,6 +76,19 @@ export default function QuoteEditor({ quote, lead, onSave, onCancel }) {
 
   const addItem = () => setForm({ ...form, items: [...form.items, { description: '', quantity: 1, price: 0 }] });
   const addSavedItem = (item) => setForm({ ...form, items: [...form.items, item] });
+  const saveQuoteItemToList = async (item) => {
+    if (!item.description?.trim()) {
+      toast.error('צריך להזין תיאור מוצר לפני שמירה');
+      return;
+    }
+    await base44.entities.QuoteItem.create({
+      description: item.description,
+      default_quantity: Number(item.quantity) || 1,
+      default_price: Number(item.price) || 0,
+      is_active: true,
+    });
+    toast.success('המוצר נשמר לרשימה האישית שלך');
+  };
   const removeItem = (idx) => setForm({ ...form, items: form.items.filter((_, i) => i !== idx) });
   const updateItem = (idx, field, value) => {
     const items = [...form.items];
@@ -210,9 +224,14 @@ export default function QuoteEditor({ quote, lead, onSave, onCancel }) {
               <Input className="col-span-6" value={item.description} onChange={(e) => updateItem(idx, 'description', e.target.value)} placeholder="צילום אירוע..." />
               <Input className="col-span-2" type="number" min="1" value={item.quantity} onChange={(e) => updateItem(idx, 'quantity', e.target.value)} />
               <Input className="col-span-3" type="number" min="0" value={item.price} onChange={(e) => updateItem(idx, 'price', e.target.value)} />
-              <Button variant="ghost" size="icon" className="col-span-1 h-9 w-9 text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => removeItem(idx)} disabled={form.items.length <= 1}>
-                <Trash2 className="w-4 h-4" />
-              </Button>
+              <div className="col-span-1 flex items-center gap-1">
+                <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-[#C5A028] hover:bg-yellow-50" onClick={() => saveQuoteItemToList(item)} title="שמור לרשימת המוצרים שלי">
+                  <Save className="w-4 h-4" />
+                </Button>
+                <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => removeItem(idx)} disabled={form.items.length <= 1}>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           ))}
           <Button variant="outline" size="sm" className="gap-1.5" onClick={addItem}>

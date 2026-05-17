@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Pencil, Save, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const emptyItem = { description: '', default_quantity: 1, default_price: 0, category: '', is_active: true };
 
@@ -25,12 +26,17 @@ export default function QuotePersonalItems({ onAddItem }) {
       queryClient.invalidateQueries({ queryKey: ['quoteItems'] });
       setDraft(emptyItem);
       setEditingId(null);
+      toast.success('הפריט נשמר ברשימת המוצרים שלך');
     },
+    onError: (error) => toast.error('לא הצלחתי לשמור את הפריט: ' + error.message),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.QuoteItem.update(id, { is_active: false }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['quoteItems'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quoteItems'] });
+      toast.success('הפריט הוסר מהרשימה');
+    },
   });
 
   const startEdit = (item) => {
