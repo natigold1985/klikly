@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Save, UserCheck, FileStack } from 'lucide-react';
+import QuotePersonalItems from '@/components/quotes/QuotePersonalItems';
 
 export default function QuoteEditor({ quote, lead, onSave, onCancel }) {
   const { data: settings } = useQuery({
@@ -73,6 +74,7 @@ export default function QuoteEditor({ quote, lead, onSave, onCancel }) {
   const total = form.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
 
   const addItem = () => setForm({ ...form, items: [...form.items, { description: '', quantity: 1, price: 0 }] });
+  const addSavedItem = (item) => setForm({ ...form, items: [...form.items, item] });
   const removeItem = (idx) => setForm({ ...form, items: form.items.filter((_, i) => i !== idx) });
   const updateItem = (idx, field, value) => {
     const items = [...form.items];
@@ -192,8 +194,10 @@ export default function QuoteEditor({ quote, lead, onSave, onCancel }) {
         <textarea value={form.package_description} onChange={(e) => setForm({ ...form, package_description: e.target.value })} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" rows="2" placeholder="מה כלול בחבילה..." />
       </div>
 
+      <QuotePersonalItems onAddItem={addSavedItem} />
+
       <div>
-        <label className="text-sm font-bold text-slate-800 mb-3 block">פריטים</label>
+        <label className="text-sm font-bold text-slate-800 mb-3 block">פריטים בהצעה</label>
         <div className="space-y-3">
           <div className="grid grid-cols-12 gap-2 text-xs font-medium text-slate-500 px-1">
             <div className="col-span-6">תיאור</div>

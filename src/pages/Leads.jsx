@@ -133,7 +133,7 @@ export default function Leads() {
   const [showAiAssist, setShowAiAssist] = useState(false);
   const [aiLead, setAiLead] = useState(null);
   const [autoFollowUpLead, setAutoFollowUpLead] = useState(null);
-  const [visibleCount, setVisibleCount] = useState(50);
+  const [visibleCount, setVisibleCount] = useState(1000);
   
   const [newLead, setNewLead] = useState({
     name: '',
@@ -160,8 +160,8 @@ export default function Leads() {
   const { data: leads = [], isLoading } = useQuery({
     queryKey: ['leads', user?.email, isAdmin],
     queryFn: () => isAdmin
-      ? base44.entities.Lead.list('-created_date', 300)
-      : base44.entities.Lead.filter({ created_by: user.email }, '-created_date', 150),
+      ? base44.entities.Lead.list('-created_date', 1000)
+      : base44.entities.Lead.filter({ created_by: user.email }, '-created_date', 500),
     enabled: !!user,
   });
 
@@ -358,7 +358,7 @@ export default function Leads() {
   const visibleLeads = filteredLeads.slice(0, visibleCount);
 
   React.useEffect(() => {
-    setVisibleCount(50);
+    setVisibleCount(1000);
   }, [searchTerm, statusFilter, activeTab, viewMode]);
 
   React.useEffect(() => {
@@ -713,8 +713,8 @@ export default function Leads() {
 
       {filteredLeads.length > visibleLeads.length && (
         <div className="flex justify-center pt-2">
-          <Button variant="secondary" onClick={() => setVisibleCount((count) => count + 50)}>
-            טען עוד 50 לידים
+          <Button variant="secondary" onClick={() => setVisibleCount((count) => count + 1000)}>
+            טען עוד 1000 לידים
           </Button>
         </div>
       )}
