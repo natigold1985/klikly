@@ -139,6 +139,30 @@
       "default": 3,
       "description": "\u05de\u05e1\u05e4\u05e8 \u05d9\u05de\u05d9\u05dd \u05d1\u05d9\u05df \u05d4\u05d5\u05d3\u05e2\u05d5\u05ea"
     },
+    "auto_followup_send_time": {
+      "type": "string",
+      "description": "\u05e9\u05e2\u05ea \u05e9\u05dc\u05d9\u05d7\u05ea \u05e4\u05d5\u05dc\u05d5-\u05d0\u05e4 \u05e7\u05d1\u05d5\u05e2\u05d4 \u05d1\u05e4\u05d5\u05e8\u05de\u05d8 HH:MM"
+    },
+    "auto_followup_send_day": {
+      "type": "string",
+      "enum": [
+        "any",
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ],
+      "default": "any",
+      "description": "\u05d9\u05d5\u05dd \u05e9\u05dc\u05d9\u05d7\u05d4 \u05e7\u05d1\u05d5\u05e2: any \u05d0\u05d5 0-6 \u05db\u05d0\u05e9\u05e8 0 \u05d4\u05d5\u05d0 \u05e8\u05d0\u05e9\u05d5\u05df"
+    },
+    "auto_followup_push_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "\u05d4\u05d0\u05dd \u05dc\u05e9\u05dc\u05d5\u05d7 \u05d4\u05ea\u05e8\u05d0\u05ea \u05e4\u05d5\u05e9 \u05dc\u05d0\u05d7\u05e8 \u05e9\u05dc\u05d9\u05d7\u05ea \u05e4\u05d5\u05dc\u05d5-\u05d0\u05e4"
+    },
     "auto_followup_max_attempts": {
       "type": "number",
       "default": 3,

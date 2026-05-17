@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Zap, Mail, MessageCircle } from 'lucide-react';
+import { Zap, Mail, MessageCircle, Clock, Bell } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
@@ -17,6 +17,9 @@ export default function AutoFollowUpDialog({ open, onOpenChange, lead, onSaved }
   const [intervalDays, setIntervalDays] = useState(3);
   const [maxAttempts, setMaxAttempts] = useState(3);
   const [message, setMessage] = useState('');
+  const [sendTime, setSendTime] = useState('10:00');
+  const [sendDay, setSendDay] = useState('any');
+  const [pushEnabled, setPushEnabled] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -26,14 +29,31 @@ export default function AutoFollowUpDialog({ open, onOpenChange, lead, onSaved }
     setIntervalDays(lead.auto_followup_interval_days || 3);
     setMaxAttempts(lead.auto_followup_max_attempts || 3);
     setMessage(lead.auto_followup_message || DEFAULT_MSG(lead.name));
+    setSendTime(lead.auto_followup_send_time || '10:00');
+    setSendDay(lead.auto_followup_send_day || 'any');
+    setPushEnabled(lead.auto_followup_push_enabled !== false);
   }, [lead]);
 
   const handleSave = async () => {
     if (!lead) return;
     setSaving(true);
     try {
-      const now = new Date();
-      const nextSend = new Date(now.getTime() + intervalDays * 24 * 60 * 60 * 1000);
+      const buildNextSend = () => {
+        const [hours, minutes] = sendTime.split(':').map(Number);
+        const next = new Date();
+        next.setDate(next.getDate() + Number(intervalDays));
+        next.setHours(hours || 10, minutes || 0, 0, 0);
+
+        if (sendDay !== 'any') {
+          const targetDay = Number(sendDay);
+          while (next.getDay() !== targetDay) {
+            next.setDate(next.getDate() + 1);
+          }
+        }
+
+        return next;
+      };
+      const nextSend = buildNextSend();
 
       await base44.entities.Lead.update(lead.id, {
         auto_followup_enabled: enabled,
@@ -41,6 +61,9 @@ export default function AutoFollowUpDialog({ open, onOpenChange, lead, onSaved }
         auto_followup_interval_days: Number(intervalDays),
         auto_followup_max_attempts: Number(maxAttempts),
         auto_followup_message: message,
+        auto_followup_send_time: sendTime,
+        auto_followup_send_day: sendDay,
+        auto_followup_push_enabled: pushEnabled,
         auto_followup_next_send: enabled ? nextSend.toISOString() : null,
         auto_followup_attempts_sent: enabled ? (lead.auto_followup_attempts_sent || 0) : 0,
       });
@@ -57,25 +80,27 @@ export default function AutoFollowUpDialog({ open, onOpenChange, lead, onSaved }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]" dir="rtl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-slate-900">
-            <div className="w-8 h-8 rounded-lg bg-[#FFD700] flex items-center justify-center">
-              <Zap className="w-4 h-4 text-black" />
-            </div>
-            פולו-אפ אוטומטי {lead?.name && `– ${lead.name}`}
+      <DialogContent className="sm:max-w-[540px] max-h-[92vh] overflow-y-auto rounded-3xl" dir="rtl">
+        <DialogHeader className="text-right border-b border-slate-100 pb-4">
+          <DialogTitle className="flex items-center justify-between gap-3 text-slate-950">
+            <span className="flex items-center gap-3 text-xl font-black">
+              <span className="w-11 h-11 rounded-2xl bg-[#FFD700] flex items-center justify-center shadow-lg shadow-yellow-200">
+                <Zap className="w-5 h-5 text-black" />
+              </span>
+              פולו־אפ אוטומטי{lead?.name ? ` · ${lead.name}` : ''}
+            </span>
           </DialogTitle>
-          <DialogDescription className="text-slate-500 text-sm pt-1">
-            המערכת תשלח הודעות מעקב אוטומטיות לפי הזמנים שתגדיר.
+          <DialogDescription className="text-slate-500 text-sm pt-2 leading-relaxed">
+            בחר ערוץ, תדירות, יום ושעה לשליחה. אחרי שליחת פולו־אפ תישלח אליך התראת פוש.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 mt-2">
           {/* Enable toggle */}
-          <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
+          <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-200 shadow-inner">
             <div>
-              <p className="font-bold text-slate-900 text-sm">הפעל פולו-אפ אוטומטי</p>
-              <p className="text-xs text-slate-500 mt-0.5">המערכת תשלח הודעות מעקב באופן עצמאי</p>
+              <p className="font-black text-slate-900 text-sm">הפעל פולו־אפ אוטומטי</p>
+              <p className="text-xs text-slate-500 mt-1">המערכת תשלח/תכין הודעות מעקב בזמן שבחרת</p>
             </div>
             <Switch checked={enabled} onCheckedChange={setEnabled} />
           </div>
@@ -104,10 +129,10 @@ export default function AutoFollowUpDialog({ open, onOpenChange, lead, onSaved }
             )}
           </div>
 
-          {/* Frequency + max attempts */}
+          {/* Timing + max attempts */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm font-medium text-slate-700 mb-1.5 block">כל כמה ימים</label>
+              <label className="text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1.5"><Clock className="w-4 h-4" /> כל כמה ימים</label>
               <Input
                 type="number"
                 min="1"
@@ -118,7 +143,7 @@ export default function AutoFollowUpDialog({ open, onOpenChange, lead, onSaved }
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700 mb-1.5 block">מספר ניסיונות</label>
+              <label className="text-sm font-bold text-slate-700 mb-1.5 block">מספר ניסיונות</label>
               <Input
                 type="number"
                 min="1"
@@ -128,6 +153,41 @@ export default function AutoFollowUpDialog({ open, onOpenChange, lead, onSaved }
                 disabled={!enabled}
               />
             </div>
+            <div>
+              <label className="text-sm font-bold text-slate-700 mb-1.5 block">שעת שליחה</label>
+              <Input
+                type="time"
+                value={sendTime}
+                onChange={(e) => setSendTime(e.target.value)}
+                disabled={!enabled}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-bold text-slate-700 mb-1.5 block">יום שליחה</label>
+              <Select value={sendDay} onValueChange={setSendDay} disabled={!enabled}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent dir="rtl">
+                  <SelectItem value="any">כל יום מתאים</SelectItem>
+                  <SelectItem value="0">ראשון</SelectItem>
+                  <SelectItem value="1">שני</SelectItem>
+                  <SelectItem value="2">שלישי</SelectItem>
+                  <SelectItem value="3">רביעי</SelectItem>
+                  <SelectItem value="4">חמישי</SelectItem>
+                  <SelectItem value="5">שישי</SelectItem>
+                  <SelectItem value="6">שבת</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between p-3 rounded-2xl bg-blue-50 border border-blue-100">
+            <div>
+              <p className="font-bold text-slate-900 text-sm flex items-center gap-1.5"><Bell className="w-4 h-4 text-blue-600" /> התראת פוש אחרי שליחה</p>
+              <p className="text-xs text-slate-500 mt-0.5">תקבל התראה כשהמערכת שולחת או מכינה פולו־אפ</p>
+            </div>
+            <Switch checked={pushEnabled} onCheckedChange={setPushEnabled} disabled={!enabled} />
           </div>
 
           {/* Message */}

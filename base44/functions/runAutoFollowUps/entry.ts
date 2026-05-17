@@ -87,9 +87,21 @@ Deno.serve(async (req) => {
         const intervalDays = lead.auto_followup_interval_days || 3;
         const reachedMax = attempts >= maxAttempts;
 
-        const nextSend = reachedMax
-          ? null
-          : new Date(Date.now() + intervalDays * 24 * 60 * 60 * 1000).toISOString();
+        const nextSend = (() => {
+          if (reachedMax) return null;
+          const sendTime = lead.auto_followup_send_time || '10:00';
+          const sendDay = lead.auto_followup_send_day || 'any';
+          const [hours, minutes] = sendTime.split(':').map(Number);
+          const next = new Date(Date.now() + intervalDays * 24 * 60 * 60 * 1000);
+          next.setHours(hours || 10, minutes || 0, 0, 0);
+          if (sendDay !== 'any') {
+            const targetDay = Number(sendDay);
+            while (next.getDay() !== targetDay) {
+              next.setDate(next.getDate() + 1);
+            }
+          }
+          return next.toISOString();
+        })();
 
         await base44.asServiceRole.entities.Lead.update(lead.id, {
           auto_followup_attempts_sent: attempts,
@@ -109,6 +121,19 @@ Deno.serve(async (req) => {
             description: message,
             metadata: { auto: true, channel: 'email' },
           });
+        }
+
+        if (lead.auto_followup_push_enabled !== false && lead.created_by) {
+          try {
+            await base44.asServiceRole.functions.invoke('sendPushNotification', {
+              target_email: lead.created_by,
+              title: 'פולו־אפ נשלח',
+              body: `${lead.name || 'ליד'} · ${channel === 'both' ? 'וואטסאפ + מייל' : channel}`,
+              url: `/LeadDetails?id=${lead.id}`,
+            });
+          } catch (e) {
+            console.error('push notify failed', e);
+          }
         }
 
         sentCount++;
