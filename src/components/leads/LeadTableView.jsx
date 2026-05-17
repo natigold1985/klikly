@@ -36,7 +36,7 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
       </div>
 
       {/* Desktop: table */}
-      <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto overflow-y-hidden">
+      <div className="hidden md:block bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/70 overflow-x-auto overflow-y-hidden">
       <table className="min-w-[1180px] w-full text-sm table-fixed" dir="rtl">
         <colgroup>
           <col className="w-[16%]" />
@@ -47,7 +47,7 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
           <col className="w-[18%]" />
         </colgroup>
         <thead>
-          <tr className="bg-gradient-to-l from-[#FFD700] to-[#E5B800] text-black">
+          <tr className="bg-gradient-to-l from-[#FFD700] via-[#F6C400] to-[#E5B800] text-black shadow-sm">
             <th className="text-right py-3 px-4 font-bold tracking-wide">שם</th>
             <th className="text-right py-3 px-4 font-bold tracking-wide">מקור</th>
             <th className="text-right py-3 px-4 font-bold tracking-wide whitespace-nowrap">טלפון</th>
@@ -157,10 +157,10 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
                       onClick={() => onAutoFollowUp(lead)}
                       className={`inline-flex items-center justify-center w-9 h-9 rounded-full shadow-sm hover:shadow transition-all active:scale-95 ${
                         lead.auto_followup_enabled
-                          ? 'bg-[#FFD700] text-black hover:bg-[#E5B800]'
+                          ? 'bg-[#FFD700] text-black hover:bg-[#E5B800] ring-2 ring-[#FFD700]/30'
                           : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
                       }`}
-                      title={lead.auto_followup_enabled ? 'פולו-אפ אוטומטי פעיל' : 'הפעל פולו-אפ אוטומטי'}
+                      title={lead.auto_followup_enabled ? 'פולו-אפ אוטומטי פעיל - לחץ לעריכה' : 'הפעל פולו-אפ אוטומטי'}
                     >
                       <Zap className="w-4 h-4" />
                     </button>

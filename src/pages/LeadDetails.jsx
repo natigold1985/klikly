@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowRight, Phone, Mail, Calendar,
-  Briefcase, CheckCircle2, DollarSign, FileText, ExternalLink, UserRound, Tag
+  Briefcase, CheckCircle2, DollarSign, FileText, ExternalLink, UserRound, Tag, Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +13,8 @@ import SendQuoteFromLeadDialog from '@/components/leads/SendQuoteFromLeadDialog'
 import EditableField from '@/components/leads/EditableField';
 import SourceBadge from '@/components/leads/SourceBadge';
 import OutreachActions from '@/components/leads/OutreachActions';
+import StatusSelect from '@/components/leads/StatusSelect';
+import AutoFollowUpDialog from '@/components/leads/AutoFollowUpDialog';
 import { enhanceLeadForDisplay } from '@/utils/leadDisplay';
 
 export default function LeadDetails() {
@@ -21,6 +23,7 @@ export default function LeadDetails() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showQuoteDialog, setShowQuoteDialog] = useState(false);
+  const [showAutoFollowUpDialog, setShowAutoFollowUpDialog] = useState(false);
 
   const { data: lead, isLoading } = useQuery({
     queryKey: ['lead', leadId],
@@ -44,6 +47,14 @@ export default function LeadDetails() {
 
   const updateField = (field) => async (newValue) => {
     await updateLeadMutation.mutateAsync({ [field]: newValue });
+  };
+
+  const updateStatus = async (newStatus) => {
+    await updateLeadMutation.mutateAsync({ status: newStatus });
+  };
+
+  const refreshLead = () => {
+    queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
   };
 
   const createProjectMutation = useMutation({
@@ -75,7 +86,7 @@ export default function LeadDetails() {
   };
 
   return (
-    <div className="space-y-6 pb-20" dir="rtl">
+    <div className="max-w-7xl mx-auto space-y-6 pb-20" dir="rtl">
       {/* Back button - prominent on both mobile and desktop */}
       <button
         onClick={() => navigate(-1)}
@@ -85,35 +96,58 @@ export default function LeadDetails() {
         <span>חזרה</span>
       </button>
 
-      <div className="flex items-start gap-4 mb-2 flex-wrap">
-        <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold text-slate-900 leading-tight">תיק ליד</h1>
-          <div className="flex flex-wrap items-center gap-2 mt-3">
-            <SourceBadge source={displayLead.source} />
-            {displayLead.lead_type && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200 text-xs font-black">
-                <Tag className="w-3.5 h-3.5" /> {displayLead.lead_type}
-              </span>
-            )}
-            {displayLead.role_title && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 text-white text-xs font-black">
-                <UserRound className="w-3.5 h-3.5" /> {displayLead.role_title}
-              </span>
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-black text-white border border-slate-800 shadow-2xl shadow-slate-900/20 p-6 md:p-8">
+        <div className="absolute inset-y-0 left-0 w-72 bg-[#FFD700]/10 blur-3xl" />
+        <div className="relative flex flex-col lg:flex-row lg:items-center gap-6 justify-between">
+          <div className="min-w-0 space-y-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-3xl md:text-4xl font-black leading-tight">{lead.name || 'תיק ליד'}</h1>
+              <span className="px-3 py-1 rounded-full bg-white/10 border border-white/10 text-xs font-bold text-white/70">תיק ליד</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl">
+              <div className="rounded-2xl bg-white/10 border border-white/10 p-3">
+                <p className="text-xs text-white/50 mb-2">מאיפה הגיע הליד</p>
+                <SourceBadge source={displayLead.source} />
+              </div>
+              <div className="rounded-2xl bg-white/10 border border-white/10 p-3">
+                <p className="text-xs text-white/50 mb-1">סוג ליד</p>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-400/20 text-purple-100 border border-purple-300/20 text-xs font-black">
+                  <Tag className="w-3.5 h-3.5" /> {displayLead.lead_type || 'לא הוגדר'}
+                </div>
+              </div>
+              <div className="rounded-2xl bg-white/10 border border-white/10 p-3">
+                <p className="text-xs text-white/50 mb-1">תפקיד</p>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 text-white border border-white/10 text-xs font-black">
+                  <UserRound className="w-3.5 h-3.5" /> {displayLead.role_title || 'לא הוגדר'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row lg:flex-col gap-3 lg:items-stretch min-w-[220px]">
+            <div className="rounded-2xl bg-white/10 border border-white/10 p-3">
+              <p className="text-xs text-white/50 mb-2">סטטוס ליד</p>
+              <StatusSelect value={lead.status} onChange={updateStatus} />
+            </div>
+            <Button
+              onClick={() => setShowAutoFollowUpDialog(true)}
+              className={lead.auto_followup_enabled ? 'bg-[#FFD700] hover:bg-[#E5B800] text-black' : 'bg-white text-slate-950 hover:bg-slate-100'}
+            >
+              <Zap className="w-4 h-4 mr-2" />
+              {lead.auto_followup_enabled ? 'פולו־אפ פעיל' : 'הפעל פולו־אפ'}
+            </Button>
+            {lead.status !== 'closed_won' && (
+              <div className="flex gap-2">
+                <Button onClick={() => setShowQuoteDialog(true)} className="flex-1 bg-[#C5A028] hover:bg-[#A88820] text-white shadow-md">
+                  <FileText className="w-4 h-4 mr-2" /> הצעה
+                </Button>
+                <Button onClick={convertToProject} className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white">
+                  <CheckCircle2 className="w-4 h-4 mr-2" /> פרויקט
+                </Button>
+              </div>
             )}
           </div>
         </div>
-        {lead.status !== 'closed_won' && (
-          <div className="flex gap-2 flex-wrap">
-            <Button onClick={() => setShowQuoteDialog(true)} className="bg-[#C5A028] hover:bg-[#A88820] text-white shadow-md">
-              <FileText className="w-4 h-4 mr-2" />
-              שלח הצעת מחיר
-            </Button>
-            <Button onClick={convertToProject} variant="outline" className="border-green-300 text-green-700 hover:bg-green-50">
-              <CheckCircle2 className="w-4 h-4 mr-2" />
-              הפוך לפרויקט
-            </Button>
-          </div>
-        )}
       </div>
 
       <SendQuoteFromLeadDialog
@@ -122,16 +156,23 @@ export default function LeadDetails() {
         onOpenChange={setShowQuoteDialog}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 space-y-6">
-          <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
+      <AutoFollowUpDialog
+        lead={lead}
+        open={showAutoFollowUpDialog}
+        onOpenChange={setShowAutoFollowUpDialog}
+        onSaved={refreshLead}
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <Card className="bg-white border-slate-200 shadow-xl shadow-slate-200/60 rounded-3xl overflow-hidden">
             <CardHeader className="border-b border-slate-100">
               <CardTitle>פרטי איש קשר</CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
               <p className="text-xs text-slate-400 mb-4">לחץ על כל שדה כדי לערוך</p>
-              <div className="mb-6 rounded-2xl bg-slate-50 border border-slate-200 p-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="mb-6 rounded-3xl bg-gradient-to-l from-slate-50 to-white border border-slate-200 p-5 shadow-inner">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                   <div>
                     <label className="text-sm text-slate-500 block mb-1">מקור</label>
                     <div className="py-1.5"><SourceBadge source={displayLead.source} /></div>
@@ -143,6 +184,10 @@ export default function LeadDetails() {
                   <div>
                     <label className="text-sm text-slate-500 block mb-1">תפקיד</label>
                     <EditableField value={displayLead.role_title} onSave={updateField('role_title')} placeholder="לא הוגדר" icon={<Briefcase className="w-4 h-4 text-slate-500 shrink-0" />} />
+                  </div>
+                  <div>
+                    <label className="text-sm text-slate-500 block mb-1">סטטוס</label>
+                    <StatusSelect value={lead.status} onChange={updateStatus} />
                   </div>
                 </div>
               </div>
@@ -250,7 +295,7 @@ export default function LeadDetails() {
         </div>
 
         <div className="space-y-6">
-          <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-sm">
+          <Card className="bg-white border-slate-200 shadow-xl shadow-slate-200/60 rounded-3xl overflow-hidden">
             <CardHeader className="border-b border-slate-100 pb-3">
               <CardTitle className="text-lg">היסטוריית פעילות</CardTitle>
             </CardHeader>
