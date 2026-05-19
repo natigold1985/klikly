@@ -37,21 +37,11 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, error: 'rate_limited', recentCount }, { status: 429 });
     }
 
-    // Fetch all photographer settings that have sync enabled & a sheet URL
-    const allSettings = await base44.asServiceRole.entities.PhotographerSettings.list('-created_date', 100);
-    const targets = allSettings.filter(s =>
-      s.google_sheet_url && s.google_sheet_sync_enabled !== false
-    );
-
-    if (targets.length === 0) {
-      isRunning = false;
-      await base44.asServiceRole.entities.SystemLog.create({
-        action: 'scheduled_sheets_sync',
-        details: 'No photographers with sheet sync configured',
-        status: 'success',
-      });
-      return Response.json({ success: true, message: 'no_sheets_configured', synced: 0 });
-    }
+    const body = await req.json().catch(() => ({}));
+    const targets = [{
+      ownerEmail: body.ownerEmail || 'natigold04@gmail.com',
+      sheetUrl: body.sheetUrl || 'https://docs.google.com/spreadsheets/d/1Acz_kFz4d2oGyJflAWyrY4yiAAlbvWVqR7UNgKHCdD4/edit?gid=2039667077#gid=2039667077'
+    }];
 
     // Connector token (shared connector — app builder's auth)
     let accessToken;
@@ -69,8 +59,8 @@ Deno.serve(async (req) => {
     const perOwner = [];
 
     for (const settings of targets) {
-      const ownerEmail = settings.created_by;
-      const sheetUrl = settings.google_sheet_url;
+      const ownerEmail = settings.ownerEmail;
+      const sheetUrl = settings.sheetUrl;
 
       // Extract spreadsheet ID
       let spreadsheetId = null;
@@ -84,7 +74,7 @@ Deno.serve(async (req) => {
       }
       if (!spreadsheetId) continue;
 
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A:Z`;
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/2039667077!A:Z`;
       const response = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
 
       if (!response.ok) {
@@ -100,6 +90,8 @@ Deno.serve(async (req) => {
       const phoneIdx = headers.findIndex(h => h.includes('phone') || h.includes('טלפון'));
       const emailIdx = headers.findIndex(h => h.includes('email') || h.includes('מייל') || h.includes('דוא"ל'));
       const sourceIdx = headers.findIndex(h => h.includes('source') || h.includes('מקור'));
+      const notesIdx = headers.findIndex(h => h.includes('notes') || h.includes('note') || h.includes('הערות') || h.includes('הערה'));
+      const statusIdx = headers.findIndex(h => h.includes('status') || h.includes('סטטוס'));
       const typeIdx = headers.findIndex(h => h.includes('type') || h.includes('סוג'));
       const addressIdx = headers.findIndex(h => h.includes('address') || h.includes('כתובת'));
 
@@ -121,6 +113,9 @@ Deno.serve(async (req) => {
         const phone = row[phoneIdx] || '';
         const email = emailIdx !== -1 ? (row[emailIdx] || '') : '';
         const source = sourceIdx !== -1 ? (row[sourceIdx] || '') : 'Google Sheets';
+        const notes = notesIdx !== -1 ? (row[notesIdx] || '') : '';
+        const statusText = statusIdx !== -1 ? String(row[statusIdx] || '').trim() : '';
+        const status = ['חדש', 'new', 'New'].includes(statusText) ? 'new' : 'new';
         const shootingType = typeIdx !== -1 ? (row[typeIdx] || '') : '';
         const address = addressIdx !== -1 ? (row[addressIdx] || '') : '';
 
@@ -142,6 +137,8 @@ Deno.serve(async (req) => {
           if (source && !matchLead.source) updates.source = source;
           if (shootingType && !matchLead.shooting_type) updates.shooting_type = shootingType;
           if (address && !matchLead.address) updates.address = address;
+          if (notes && !matchLead.notes) updates.notes = notes;
+          if (status && !matchLead.status) updates.status = status;
           if (name && name !== matchLead.name && matchLead.name === 'לא ידוע') updates.name = name;
           if (Object.keys(updates).length > 0) {
             await base44.asServiceRole.entities.Lead.update(matchLead.id, updates);
@@ -155,7 +152,8 @@ Deno.serve(async (req) => {
             source: source || 'Google Sheets',
             shooting_type: shootingType || undefined,
             address: address || undefined,
-            status: 'new',
+            notes: notes || undefined,
+            status,
             last_contact_date: new Date().toISOString(),
             is_filtered: isJunk,
             filter_reason: junkReason || undefined,

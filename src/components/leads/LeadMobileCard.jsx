@@ -38,7 +38,7 @@ export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoF
   const combinedNotes = [extraNote, lead.notes].filter(Boolean).join(' • ');
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 active:scale-[0.99] transition-transform overflow-hidden">
+    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 active:scale-[0.99] transition-transform overflow-hidden">
       {/* Top row: name (truncated) — full width */}
       <Link
         to={createPageUrl(`LeadDetails?id=${lead.id}`)}
@@ -56,10 +56,12 @@ export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoF
       </Link>
 
       {/* Status row — own row, prevents overlap with long names */}
-      <div className="flex items-center justify-between gap-2 mb-3">
-        <StatusSelect value={lead.status} onChange={(val) => onStatusChange(lead.id, val)} />
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <div className="rounded-2xl bg-amber-50 p-1.5 ring-1 ring-amber-100">
+          <StatusSelect value={lead.status} onChange={(val) => onStatusChange(lead.id, val)} />
+        </div>
         {showSource && (
-          <div className="flex-shrink min-w-0">
+          <div className="flex items-center justify-center rounded-2xl bg-slate-50 px-2 ring-1 ring-slate-200 min-w-0">
             <SourceBadge source={lead.source} />
           </div>
         )}
@@ -70,7 +72,7 @@ export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoF
         {displayPhone ? (
           <a
             href={`tel:${displayPhone}`}
-            className="text-sm font-bold text-slate-800 hover:text-blue-600 transition-colors truncate min-w-0 tracking-wide"
+            className="rounded-xl bg-blue-50 px-3 py-2 text-sm font-black text-blue-700 hover:bg-blue-100 transition-colors truncate min-w-0 tracking-wide ring-1 ring-blue-100"
             dir="ltr"
           >
             {displayPhone}

@@ -36,15 +36,15 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
       </div>
 
       {/* Desktop: table */}
-      <div className="hidden md:block bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/70 overflow-x-auto overflow-y-hidden">
-      <table className="min-w-[1180px] w-full text-sm table-fixed" dir="rtl">
+      <div className="hidden md:block bg-white rounded-[2rem] border border-slate-200 shadow-xl shadow-slate-200/60 overflow-x-auto overflow-y-hidden">
+      <table className="min-w-[1120px] w-full text-sm table-fixed" dir="rtl">
         <colgroup>
+          <col className="w-[17%]" />
+          <col className="w-[14%]" />
+          <col className="w-[17%]" />
+          <col className="w-[14%]" />
+          <col className="w-[22%]" />
           <col className="w-[16%]" />
-          <col className="w-[11%]" />
-          <col className="w-[18%]" />
-          <col className="w-[12%]" />
-          <col className="w-[25%]" />
-          <col className="w-[18%]" />
         </colgroup>
         <thead>
           <tr className="bg-gradient-to-l from-[#FFD700] via-[#F6C400] to-[#E5B800] text-black shadow-sm">
@@ -90,14 +90,14 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
               </td>
 
               <td className="py-3 px-4 max-w-0">
-                <div className="truncate">
+                <div className="inline-flex max-w-full rounded-full bg-slate-100 px-2.5 py-1 ring-1 ring-slate-200">
                   <SourceBadge source={lead.source} />
                 </div>
               </td>
 
               <td className="py-3 px-4">
                 {displayPhone ? (
-                  <a href={`tel:${displayPhone}`} className="text-sm font-bold text-slate-900 hover:text-blue-600 tracking-wide block select-text whitespace-nowrap" dir="ltr" title={displayPhone}>
+                  <a href={`tel:${displayPhone}`} className="inline-flex items-center justify-center rounded-xl bg-blue-50 px-3 py-2 text-sm font-black text-blue-700 hover:bg-blue-100 tracking-wide select-text whitespace-nowrap ring-1 ring-blue-100" dir="ltr" title={displayPhone}>
                     {displayPhone}
                   </a>
                 ) : (
@@ -106,7 +106,9 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
               </td>
 
               <td className="py-3 px-4">
-                <StatusSelect value={lead.status} onChange={(val) => onStatusChange(lead.id, val)} />
+                <div className="rounded-xl bg-amber-50 p-1.5 ring-1 ring-amber-100">
+                  <StatusSelect value={lead.status} onChange={(val) => onStatusChange(lead.id, val)} />
+                </div>
               </td>
 
               <td className="py-3 px-4">
@@ -117,7 +119,7 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
 
               {/* CTA pills — always visible, compact */}
               <td className="py-3 px-3">
-                <div className="flex items-center justify-center gap-1.5 flex-nowrap">
+                <div className="flex items-center justify-center gap-2 flex-nowrap">
                   <Link
                     to={createPageUrl(`LeadDetails?id=${lead.id}`)}
                     className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 shadow-sm hover:shadow transition-all active:scale-95"

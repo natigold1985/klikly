@@ -262,6 +262,7 @@ Deno.serve(async (req) => {
                 notes: findColumnIndex(headers, HEADER_KEYS.notes),
                 link: findColumnIndex(headers, HEADER_KEYS.link),
                 company: findColumnIndex(headers, HEADER_KEYS.company),
+                status: findColumnIndex(headers, HEADER_KEYS.status),
             };
 
             // Need at least name OR phone OR email to make sense of a row
@@ -283,6 +284,7 @@ Deno.serve(async (req) => {
                 const notesCol = idx.notes !== -1 ? String(row[idx.notes] || '').trim() : '';
                 const linkCol = idx.link !== -1 ? String(row[idx.link] || '').trim() : '';
                 const companyCol = idx.company !== -1 ? String(row[idx.company] || '').trim() : '';
+                const statusCol = idx.status !== -1 ? String(row[idx.status] || '').trim() : '';
 
                 // Source detection: explicit column → link → notes → tab name
                 const detectedSource =
@@ -301,8 +303,13 @@ Deno.serve(async (req) => {
                 const notes = notesParts.join(' | ');
                 const sourceUrl = extractSourceUrl(linkCol, notesCol, sourceCol);
 
-                const strictValidation = detectJunkLead(name, phone, email, detectedSource, notes, typeCol, sourceUrl);
-                if (strictValidation.isJunk) { tabSkipped++; skipped++; continue; }
+                const cleanPhoneForValidation = normPhone(phone);
+                if (!name || !phone || cleanPhoneForValidation.length < 7 || cleanPhoneForValidation.length > 15) {
+                    tabSkipped++;
+                    skipped++;
+                    continue;
+                }
+                const normalizedStatus = ['חדש', 'new', 'New'].includes(statusCol) ? 'new' : undefined;
 
                 // Find existing record by phone, then email, then name+source
                 let match = null;
@@ -323,6 +330,7 @@ Deno.serve(async (req) => {
                     if (name && name !== match.name && !match.name?.includes(name)) updates.name = name;
                     if (notes && !match.notes) updates.notes = notes;
                     if (phone && !match.phone) updates.phone = phone;
+                    if (normalizedStatus && !match.status) updates.status = normalizedStatus;
 
                     if (Object.keys(updates).length > 0) {
                         await base44.asServiceRole.entities.Lead.update(match.id, updates);
@@ -342,7 +350,7 @@ Deno.serve(async (req) => {
                         shooting_type: typeCol || undefined,
                         address: addressCol || undefined,
                         notes: notes || undefined,
-                        status: 'new',
+                        status: normalizedStatus || 'new',
                         pipeline: pipelineData.pipeline,
                         pipeline_stage: pipelineData.pipeline_stage,
                         last_contact_date: new Date().toISOString(),
