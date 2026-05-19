@@ -6,6 +6,7 @@ import { base44 } from '@/api/base44Client';
 import PWAInstallBanner from '@/components/PWAInstallBanner';
 import Footer from '@/components/Footer';
 import AccessibilityWidget from '@/components/AccessibilityWidget';
+import FollowUpNotificationBell from '@/components/followups/FollowUpNotificationBell';
 import {
   LayoutDashboard,
   Users,
@@ -159,6 +160,7 @@ export default function Layout({ children, currentPageName }) {
             className="h-10 object-contain drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]"
           />
           <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            <FollowUpNotificationBell user={user} isAdmin={isAdmin} />
             <button
               onClick={() => base44.auth.logout()}
               className="w-10 h-10 flex items-center justify-center rounded-lg bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 transition-colors"
@@ -265,6 +267,9 @@ export default function Layout({ children, currentPageName }) {
         {/* Main Content */}
         <div className="flex-1 flex flex-col min-w-0 h-full bg-white">
           <main className="flex-1 overflow-y-auto overflow-x-hidden pt-20 md:pt-0 pb-24 md:pb-0 px-4 md:px-8">
+            <div className="hidden md:block fixed top-5 left-5 z-40">
+              <FollowUpNotificationBell user={user} isAdmin={isAdmin} />
+            </div>
             <div className="max-w-6xl mx-auto w-full py-6">
               {children}
             </div>
@@ -324,6 +329,7 @@ export default function Layout({ children, currentPageName }) {
 
         {/* Right Side: Logout + Hamburger */}
         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          <FollowUpNotificationBell user={user} isAdmin={isAdmin} />
           <button
             onClick={() => base44.auth.logout()}
             className="w-10 h-10 flex items-center justify-center rounded-lg bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 transition-colors"
@@ -456,6 +462,9 @@ export default function Layout({ children, currentPageName }) {
       <div className="flex-1 flex flex-col min-w-0 h-full relative bg-white text-black">
         {/* Scrollable Content Area */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden pt-20 md:pt-0 pb-24 md:pb-0 px-4 md:px-8 bg-white text-black">
+          <div className="hidden md:block fixed top-5 left-5 z-40">
+            <FollowUpNotificationBell user={user} isAdmin={isAdmin} />
+          </div>
           <div className="max-w-6xl mx-auto w-full py-6">
             {children}
           </div>
