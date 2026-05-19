@@ -59,11 +59,26 @@ function tabNameToSource(tabName) {
 function isValidPhone(phone) {
     if (!phone) return false;
     const digits = String(phone).replace(/[^0-9]/g, '');
-    return digits.length === 10 && !/^(\d)\1+$/.test(digits);
+    return digits.length >= 9 && digits.length <= 15 && !/^(\d)\1+$/.test(digits);
 }
 
 function isValidEmail(email) {
     return !!(email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim()));
+}
+
+function isRealLeadName(name, phone = '', email = '') {
+    const clean = String(name || '').trim();
+    const lower = clean.toLowerCase();
+    const digitsOnly = clean.replace(/[^0-9]/g, '');
+    const phoneDigits = String(phone || '').replace(/[^0-9]/g, '');
+    const badNames = ['לא ידוע', 'unknown', 'test', 'בדיקה', 'n/a', '-', '?', 'ללא שם', 'ללא', 'שם'];
+
+    if (!clean || clean.length < 2 || badNames.includes(lower)) return false;
+    if (/^https?:\/\//i.test(clean) || clean.includes('@')) return false;
+    if (digitsOnly.length >= 7) return false;
+    if (phoneDigits && digitsOnly && digitsOnly === phoneDigits) return false;
+    if (email && lower === String(email).trim().toLowerCase()) return false;
+    return /[א-תa-zA-Z]/.test(clean);
 }
 
 function isFullName(name) {
@@ -303,8 +318,7 @@ Deno.serve(async (req) => {
                 const notes = notesParts.join(' | ');
                 const sourceUrl = extractSourceUrl(linkCol, notesCol, sourceCol);
 
-                const cleanPhoneForValidation = normPhone(phone);
-                if (!name || !phone || cleanPhoneForValidation.length < 7 || cleanPhoneForValidation.length > 15) {
+                if (!isRealLeadName(name, phone, email) || !isValidPhone(phone)) {
                     tabSkipped++;
                     skipped++;
                     continue;

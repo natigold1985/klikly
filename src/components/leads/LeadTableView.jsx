@@ -37,17 +37,17 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
 
       {/* Desktop: table */}
       <div className="hidden md:block bg-white rounded-[2rem] border border-slate-200 shadow-xl shadow-slate-200/60 overflow-x-auto overflow-y-hidden">
-      <table className="min-w-[1120px] w-full text-sm table-fixed" dir="rtl">
+      <table className="min-w-[980px] w-full text-sm table-fixed" dir="rtl">
         <colgroup>
-          <col className="w-[17%]" />
+          <col className="w-[20%]" />
           <col className="w-[14%]" />
-          <col className="w-[17%]" />
-          <col className="w-[14%]" />
-          <col className="w-[22%]" />
-          <col className="w-[16%]" />
+          <col className="w-[15%]" />
+          <col className="w-[13%]" />
+          <col className="w-[23%]" />
+          <col className="w-[15%]" />
         </colgroup>
         <thead>
-          <tr className="bg-gradient-to-l from-[#FFD700] via-[#F6C400] to-[#E5B800] text-black shadow-sm">
+          <tr className="bg-gradient-to-l from-[#FFD700] via-[#F6C400] to-[#E5B800] text-black shadow-sm sticky top-0 z-10">
             <th className="text-right py-3 px-4 font-bold tracking-wide">שם</th>
             <th className="text-right py-3 px-4 font-bold tracking-wide">מקור</th>
             <th className="text-right py-3 px-4 font-bold tracking-wide whitespace-nowrap">טלפון</th>
@@ -76,11 +76,12 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
               <td className="py-3 px-4 max-w-0">
                 <Link
                   to={createPageUrl(`LeadDetails?id=${lead.id}`)}
-                  className="font-bold text-slate-900 hover:text-[#B8860B] transition-colors block truncate"
+                  className="font-black text-slate-900 hover:text-[#B8860B] transition-colors block truncate text-[15px]"
                   title={lead.name}
                 >
                   {lead.name || '—'}
                 </Link>
+                {lead.email && <p className="text-xs text-slate-400 mt-0.5 truncate" dir="ltr" title={lead.email}>{lead.email}</p>}
                 {lead.interest_label && (
                   <p className="text-xs text-[#9A7500] font-bold mt-0.5 truncate flex items-center gap-1" title={lead.interest_label}>
                     <Sparkles className="w-3 h-3" /> {lead.interest_label}
@@ -106,13 +107,13 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
               </td>
 
               <td className="py-3 px-4">
-                <div className="rounded-xl bg-amber-50 p-1.5 ring-1 ring-amber-100">
+                <div className="rounded-2xl bg-white p-1 ring-1 ring-slate-200 shadow-sm w-fit">
                   <StatusSelect value={lead.status} onChange={(val) => onStatusChange(lead.id, val)} />
                 </div>
               </td>
 
               <td className="py-3 px-4">
-                <p className="text-xs text-slate-600 leading-relaxed select-text whitespace-normal break-words" title={combinedNotes}>
+                <p className="text-xs text-slate-600 leading-relaxed select-text whitespace-normal break-words line-clamp-3" title={combinedNotes}>
                   {combinedNotes || <span className="text-slate-300">—</span>}
                 </p>
               </td>
