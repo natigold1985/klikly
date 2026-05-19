@@ -38,7 +38,7 @@ const LINKEDIN_SEARCHES = [
 
 const CHANNELS = [
   { id: 'gmail_auto', label: 'Gmail סריקה חיה', desc: 'סריקה אוטומטית פעמיים ביום (09:00 / 21:00)', icon: Mail, color: 'bg-red-600', available: true },
-  { id: 'sheets', label: 'Google Sheets', desc: 'סנכרון אוטומטי פעמיים ביום (09:00 / 21:00)', icon: FileSpreadsheet, color: 'bg-green-500', available: true },
+  { id: 'sheets', label: 'Google Sheets', desc: 'סנכרון דרך פונקציה בלבד — ללא AI, פעמיים ביום (09:00 / 21:00)', icon: FileSpreadsheet, color: 'bg-green-500', available: true },
   { id: 'facebook', label: 'Facebook Ads', desc: 'Webhook Native מ-Meta Lead Ads', icon: Facebook, color: 'bg-blue-600', available: true, webhook: true },
   { id: 'instagram', label: 'Instagram', desc: 'Webhook Native מ-Meta / Instagram', icon: Instagram, color: 'bg-gradient-to-tr from-purple-500 to-pink-500', available: true, webhook: true },
   { id: 'whatsapp', label: 'WhatsApp', desc: 'Webhook Native מ-WhatsApp Business', icon: MessageCircle, color: 'bg-[#25D366]', available: true, webhook: true },
@@ -50,7 +50,7 @@ const CHANNELS = [
 
 export default function LeadImport() {
   const [activeChannel, setActiveChannel] = useState(null);
-  const [sheetUrl, setSheetUrl] = useState('');
+  const [sheetUrl, setSheetUrl] = useState('https://docs.google.com/spreadsheets/d/1Acz_kFz4d2oGyJflAWyrY4yiAAlbvWVqR7UNgKHCdD4/edit?gid=2039667077#gid=2039667077');
   const [isImporting, setIsImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
   const [syncStatus, setSyncStatus] = useState({});
@@ -332,7 +332,7 @@ Return ONLY valid leads that have at least a name AND a phone number.`,
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
-            <p className="text-sm text-slate-600">הזן את הכתובת של הגיליון. ודא שהעמודות כוללות לפחות <strong>שם</strong> ו<strong>טלפון</strong>.</p>
+            <p className="text-sm text-slate-600">הסנכרון מתבצע דרך פונקציה ישירה מול Google Sheets — ללא AI וללא קרדיטי AI. ודא שהעמודות כוללות לפחות <strong>שם</strong> ו<strong>טלפון</strong>.</p>
             <Input
               value={sheetUrl}
               onChange={(e) => setSheetUrl(e.target.value)}
@@ -351,7 +351,7 @@ Return ONLY valid leads that have at least a name AND a phone number.`,
             )}
             <Button onClick={handleSheetsImport} disabled={!sheetUrl || isImporting} className="w-full">
               {isImporting ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <Upload className="w-4 h-4 ml-2" />}
-              התחל ייבוא
+              סנכרן עכשיו דרך פונקציה
             </Button>
           </div>
         </DialogContent>
