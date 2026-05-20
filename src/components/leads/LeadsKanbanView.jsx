@@ -4,9 +4,9 @@ import { createPageUrl } from '@/utils';
 import { Phone, MessageCircle } from 'lucide-react';
 import SourceBadge from './SourceBadge';
 import StatusSelect from './StatusSelect';
-import { STATUS_STYLES } from '@/utils/leadDisplay';
+import { STATUS_STYLES, normalizeLeadStatus } from '@/utils/leadDisplay';
 
-const COLUMNS = ['new', 'in_progress', 'follow_up', 'quote_sent', 'closed_won', 'closed_lost'];
+const COLUMNS = ['ליד חדש', 'נוצר קשר', 'נשלח פולו-אפ', 'נענה', 'נסגר בהצלחה', 'לא רלוונטי'];
 
 export default function LeadsKanbanView({ leads, onStatusChange }) {
   return (
@@ -14,7 +14,7 @@ export default function LeadsKanbanView({ leads, onStatusChange }) {
       <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4 min-w-full">
         {COLUMNS.map((status) => {
           const config = STATUS_STYLES[status];
-          const items = leads.filter((lead) => lead.status === status);
+          const items = leads.filter((lead) => normalizeLeadStatus(lead.status) === status);
 
           return (
             <div key={status} className="bg-slate-50 border border-slate-200 rounded-2xl p-3 min-h-64">

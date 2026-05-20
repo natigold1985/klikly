@@ -2,6 +2,7 @@ import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bell, MessageCircle, X, Clock, CheckCircle2 } from 'lucide-react';
+import { normalizeLeadStatus } from '@/utils/leadDisplay';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -27,17 +28,19 @@ function getDueDate(lead) {
 function getWhatsAppLink(lead) {
   const cleanPhone = String(lead.phone || '').replace(/[^0-9]/g, '');
   const phone = cleanPhone.startsWith('0') ? `972${cleanPhone.slice(1)}` : cleanPhone;
-  const text = lead.auto_followup_message || `היי ${lead.name || ''}, מה קורה? רציתי לעשות פולו-אפ קצר לגבי הפנייה שלך.`;
-  return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+  const text = lead.auto_followup_message || (lead.name ? `היי ${lead.name}, רציתי לבדוק אם קיבלת את הפרטים ששלחתי. אשמח לענות על כל שאלה מחכה לשמוע ממך! 📸` : 'היי, רציתי לבדוק אם קיבלת את הפרטים ששלחתי. אשמח לענות על כל שאלה מחכה לשמוע ממך! 📸');
+  return `whatsapp://send?phone=${phone}&text=${encodeURIComponent(text)}`;
 }
 
 function isDueLead(lead) {
-  if (!lead.auto_followup_enabled) return false;
-  if (['closed_won', 'closed_lost'].includes(lead.status)) return false;
+  const status = normalizeLeadStatus(lead.status);
+  if (['נסגר בהצלחה', 'לא רלוונטי', 'נענה'].includes(status)) return false;
   const cleanPhone = String(lead.phone || '').replace(/[^0-9]/g, '');
   if (cleanPhone.length < 7) return false;
   const dueDate = getDueDate(lead);
-  return dueDate && dueDate <= new Date();
+  const lastContact = lead.last_contact_date ? new Date(lead.last_contact_date) : new Date(lead.created_date || 0);
+  const threeDaysWithoutResponse = lastContact && Date.now() - lastContact.getTime() >= 3 * MS_PER_DAY;
+  return (dueDate && dueDate <= new Date()) || status === 'נשלח פולו-אפ' || threeDaysWithoutResponse;
 }
 
 export default function FollowUpNotificationBell({ user, isAdmin = false }) {
@@ -72,6 +75,7 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
         auto_followup_next_send: nextDate.toISOString(),
         auto_followup_attempts_sent: Number(lead.auto_followup_attempts_sent || 0) + 1,
         last_contact_date: now.toISOString(),
+        status: 'נשלח פולו-אפ',
       });
     },
     onSuccess: () => {
@@ -82,7 +86,7 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
 
   const handleSend = (lead) => {
     markDoneMutation.mutate(lead);
-    window.open(getWhatsAppLink(lead), '_blank');
+    window.location.href = getWhatsAppLink(lead);
   };
 
   if (!user) return null;

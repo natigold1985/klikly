@@ -15,7 +15,7 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
     const msg = hasRealName
       ? `היי ${lead.name}, מה קורה? ראיתי שהשארת פרטים לגבי ${leadType}, אשמח לדבר ולתת עוד פרטים. מה אומר/ת?`
       : `היי, מה קורה? ראיתי שהשארת פרטים לגבי ${leadType}, אשמח לדבר ולתת עוד פרטים. מה אומר/ת?`;
-    return `https://wa.me/${israelPhone}?text=${encodeURIComponent(msg)}`;
+    return `whatsapp://send?phone=${israelPhone}&text=${encodeURIComponent(msg)}`;
   };
 
   return (
@@ -39,12 +39,13 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
       <div className="hidden md:block bg-white rounded-[2rem] border border-slate-200 shadow-xl shadow-slate-200/60 overflow-x-auto overflow-y-hidden">
       <table className="min-w-[980px] w-full text-sm table-fixed" dir="rtl">
         <colgroup>
-          <col className="w-[20%]" />
-          <col className="w-[14%]" />
-          <col className="w-[15%]" />
+          <col className="w-[18%]" />
           <col className="w-[13%]" />
-          <col className="w-[23%]" />
-          <col className="w-[15%]" />
+          <col className="w-[14%]" />
+          <col className="w-[12%]" />
+          <col className="w-[12%]" />
+          <col className="w-[18%]" />
+          <col className="w-[13%]" />
         </colgroup>
         <thead>
           <tr className="bg-gradient-to-l from-[#FFD700] via-[#F6C400] to-[#E5B800] text-black shadow-sm sticky top-0 z-10">
@@ -52,6 +53,7 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
             <th className="text-right py-3 px-4 font-bold tracking-wide">מקור</th>
             <th className="text-right py-3 px-4 font-bold tracking-wide whitespace-nowrap">טלפון</th>
             <th className="text-right py-3 px-4 font-bold tracking-wide">סטטוס</th>
+            <th className="text-right py-3 px-4 font-bold tracking-wide whitespace-nowrap">תאריך הוספת הליד</th>
             <th className="text-right py-3 px-4 font-bold tracking-wide">הערות</th>
             <th className="text-center py-3 px-4 font-bold tracking-wide">פעולות</th>
           </tr>
@@ -113,6 +115,12 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
               </td>
 
               <td className="py-3 px-4">
+                <span className="inline-flex items-center rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 ring-1 ring-slate-200 whitespace-nowrap">
+                  {lead.created_date ? new Date(lead.created_date).toLocaleDateString('he-IL') : '—'}
+                </span>
+              </td>
+
+              <td className="py-3 px-4">
                 <p className="text-xs text-slate-600 leading-relaxed select-text whitespace-normal break-words line-clamp-3" title={combinedNotes}>
                   {combinedNotes || <span className="text-slate-300">—</span>}
                 </p>
@@ -141,8 +149,7 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
                   )}
                   <a
                     href={getWhatsAppLink(lead)}
-                    target="_blank"
-                    rel="noopener noreferrer"
+
                     className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm hover:shadow transition-all active:scale-95"
                     title="וואטסאפ"
                   >

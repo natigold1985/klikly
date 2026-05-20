@@ -35,7 +35,7 @@ import DataActionsToolbar from '@/components/leads/DataActionsToolbar';
 import OutreachActions from '@/components/leads/OutreachActions';
 import AutoFollowUpDialog from '@/components/leads/AutoFollowUpDialog';
 import LeadsKanbanView from '@/components/leads/LeadsKanbanView';
-import { enhanceLeadForDisplay, STATUS_STYLES } from '@/utils/leadDisplay';
+import { enhanceLeadForDisplay, STATUS_STYLES, normalizeLeadStatus } from '@/utils/leadDisplay';
 
 // Fix leaflet icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -286,7 +286,7 @@ export default function Leads() {
       id: selectedLead.id, 
       data: { 
         next_follow_up_date: new Date(followUpDate).toISOString(),
-        status: 'follow_up'
+        status: 'נשלח פולו-אפ'
       } 
     });
     
@@ -307,17 +307,17 @@ export default function Leads() {
 
   // Status priority: active leads (need attention) at top, closed/lost at bottom
   const STATUS_PRIORITY = {
-    new: 1,
-    in_progress: 2,
-    follow_up: 3,
-    quote_sent: 4,
-    closed_won: 5,
-    closed_lost: 6,
+    'נשלח פולו-אפ': 0,
+    'ליד חדש': 1,
+    'נוצר קשר': 2,
+    'נענה': 3,
+    'נסגר בהצלחה': 4,
+    'לא רלוונטי': 5,
   };
 
   // A lead is truly "filtered" only if marked is_filtered AND not in an active workflow status.
   // Active workflow statuses (in_progress, follow_up, quote_sent, closed_won) override the junk filter.
-  const ACTIVE_OVERRIDE_STATUSES = ['in_progress', 'follow_up', 'quote_sent', 'closed_won'];
+  const ACTIVE_OVERRIDE_STATUSES = ['נוצר קשר', 'נשלח פולו-אפ', 'נענה', 'נסגר בהצלחה', 'in_progress', 'follow_up', 'quote_sent', 'closed_won'];
   const isTrulyFiltered = (lead) => lead.is_filtered && !ACTIVE_OVERRIDE_STATUSES.includes(lead.status);
 
   // Counts for tab badges
@@ -339,17 +339,16 @@ export default function Leads() {
         ((displayLead.source || '').toLowerCase().includes(term)) ||
         ((displayLead.notes || '').toLowerCase().includes(term));
 
-      const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
+      const matchesStatus = statusFilter === 'all' || normalizeLeadStatus(lead.status) === statusFilter;
 
       return matchesSearch && matchesStatus;
     })
     .map(enhanceLeadForDisplay)
     .sort((a, b) => {
-      // Primary: by status priority (active leads on top)
-      const priA = STATUS_PRIORITY[a.status] ?? 99;
-      const priB = STATUS_PRIORITY[b.status] ?? 99;
-      if (priA !== priB) return priA - priB;
-      // Secondary: newest first
+      const now = Date.now();
+      const urgentA = a.status === 'נשלח פולו-אפ' || (a.next_follow_up_date && new Date(a.next_follow_up_date).getTime() <= now);
+      const urgentB = b.status === 'נשלח פולו-אפ' || (b.next_follow_up_date && new Date(b.next_follow_up_date).getTime() <= now);
+      if (urgentA !== urgentB) return urgentA ? -1 : 1;
       const dA = new Date(a.created_date || 0).getTime();
       const dB = new Date(b.created_date || 0).getTime();
       return dB - dA;
@@ -634,12 +633,12 @@ export default function Leads() {
               </SelectTrigger>
               <SelectContent dir="rtl">
                 <SelectItem value="all">הכל</SelectItem>
-                <SelectItem value="new">חדש</SelectItem>
-                <SelectItem value="in_progress">בטיפול</SelectItem>
-                <SelectItem value="follow_up">מעקב</SelectItem>
-                <SelectItem value="quote_sent">הצעה</SelectItem>
-                <SelectItem value="closed_won">נסגר</SelectItem>
-                <SelectItem value="closed_lost">נכשל</SelectItem>
+                <SelectItem value="ליד חדש">ליד חדש</SelectItem>
+                <SelectItem value="נוצר קשר">נוצר קשר</SelectItem>
+                <SelectItem value="נשלח פולו-אפ">נשלח פולו-אפ</SelectItem>
+                <SelectItem value="נענה">נענה</SelectItem>
+                <SelectItem value="נסגר בהצלחה">נסגר בהצלחה</SelectItem>
+                <SelectItem value="לא רלוונטי">לא רלוונטי</SelectItem>
               </SelectContent>
             </Select>
 

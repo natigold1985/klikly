@@ -318,12 +318,17 @@ Deno.serve(async (req) => {
                 const notes = notesParts.join(' | ');
                 const sourceUrl = extractSourceUrl(linkCol, notesCol, sourceCol);
 
-                if (!isRealLeadName(name, phone, email) || !isValidPhone(phone)) {
+                if (!name || !phone || !email || !isRealLeadName(name, phone, email) || !isValidPhone(phone) || !isValidEmail(email)) {
                     tabSkipped++;
                     skipped++;
                     continue;
                 }
-                const normalizedStatus = ['חדש', 'new', 'New'].includes(statusCol) ? 'new' : undefined;
+                const normalizedStatus = ['נוצר קשר', 'contacted'].includes(statusCol.toLowerCase()) ? 'נוצר קשר'
+                    : ['נשלח פולו-אפ', 'follow-up sent', 'follow up sent'].includes(statusCol.toLowerCase()) ? 'נשלח פולו-אפ'
+                    : ['נענה', 'responded'].includes(statusCol.toLowerCase()) ? 'נענה'
+                    : ['נסגר בהצלחה', 'closed won'].includes(statusCol.toLowerCase()) ? 'נסגר בהצלחה'
+                    : ['לא רלוונטי', 'closed lost', 'not relevant'].includes(statusCol.toLowerCase()) ? 'לא רלוונטי'
+                    : 'ליד חדש';
 
                 // Find existing record by phone, then email, then name+source
                 let match = null;
@@ -364,7 +369,7 @@ Deno.serve(async (req) => {
                         shooting_type: typeCol || undefined,
                         address: addressCol || undefined,
                         notes: notes || undefined,
-                        status: normalizedStatus || 'new',
+                        status: normalizedStatus || 'ליד חדש',
                         pipeline: pipelineData.pipeline,
                         pipeline_stage: pipelineData.pipeline_stage,
                         last_contact_date: new Date().toISOString(),

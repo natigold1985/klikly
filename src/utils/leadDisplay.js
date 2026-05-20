@@ -1,11 +1,30 @@
 export const STATUS_STYLES = {
-  new: { label: 'חדש', pill: 'bg-blue-100 text-blue-800 border-blue-200', dot: 'bg-blue-500' },
-  in_progress: { label: 'בטיפול', pill: 'bg-amber-100 text-amber-800 border-amber-200', dot: 'bg-amber-500' },
-  follow_up: { label: 'מעקב', pill: 'bg-purple-100 text-purple-800 border-purple-200', dot: 'bg-purple-500' },
-  quote_sent: { label: 'הצעה נשלחה', pill: 'bg-orange-100 text-orange-800 border-orange-200', dot: 'bg-orange-500' },
+  'ליד חדש': { label: 'ליד חדש', pill: 'bg-blue-100 text-blue-800 border-blue-200', dot: 'bg-blue-500' },
+  'נוצר קשר': { label: 'נוצר קשר', pill: 'bg-amber-100 text-amber-800 border-amber-200', dot: 'bg-amber-500' },
+  'נשלח פולו-אפ': { label: 'נשלח פולו-אפ', pill: 'bg-purple-100 text-purple-800 border-purple-200', dot: 'bg-purple-500' },
+  'נענה': { label: 'נענה', pill: 'bg-orange-100 text-orange-800 border-orange-200', dot: 'bg-orange-500' },
+  'נסגר בהצלחה': { label: 'נסגר בהצלחה', pill: 'bg-emerald-100 text-emerald-800 border-emerald-200', dot: 'bg-emerald-500' },
+  'לא רלוונטי': { label: 'לא רלוונטי', pill: 'bg-red-100 text-red-800 border-red-200', dot: 'bg-red-500' },
+  new: { label: 'ליד חדש', pill: 'bg-blue-100 text-blue-800 border-blue-200', dot: 'bg-blue-500' },
+  in_progress: { label: 'נוצר קשר', pill: 'bg-amber-100 text-amber-800 border-amber-200', dot: 'bg-amber-500' },
+  follow_up: { label: 'נשלח פולו-אפ', pill: 'bg-purple-100 text-purple-800 border-purple-200', dot: 'bg-purple-500' },
+  quote_sent: { label: 'נענה', pill: 'bg-orange-100 text-orange-800 border-orange-200', dot: 'bg-orange-500' },
   closed_won: { label: 'נסגר בהצלחה', pill: 'bg-emerald-100 text-emerald-800 border-emerald-200', dot: 'bg-emerald-500' },
-  closed_lost: { label: 'לא מעוניין', pill: 'bg-red-100 text-red-800 border-red-200', dot: 'bg-red-500' },
+  closed_lost: { label: 'לא רלוונטי', pill: 'bg-red-100 text-red-800 border-red-200', dot: 'bg-red-500' },
 };
+
+export const STATUS_VALUE_MAP = {
+  new: 'ליד חדש',
+  in_progress: 'נוצר קשר',
+  follow_up: 'נשלח פולו-אפ',
+  quote_sent: 'נענה',
+  closed_won: 'נסגר בהצלחה',
+  closed_lost: 'לא רלוונטי',
+};
+
+export function normalizeLeadStatus(status) {
+  return STATUS_VALUE_MAP[status] || status || 'ליד חדש';
+}
 
 const UNKNOWN_SOURCES = ['לא ידוע', 'unknown', 'none', '-', 'n/a', ''];
 
@@ -59,6 +78,7 @@ export function highlightLeadInterest(lead = {}) {
 export function enhanceLeadForDisplay(lead = {}) {
   return {
     ...lead,
+    status: normalizeLeadStatus(lead.status),
     source: inferLeadSource(lead),
     notes: cleanLeadNotes(lead.notes),
     lead_type: inferLeadType(lead),

@@ -15,6 +15,8 @@ import SourceBadge from '@/components/leads/SourceBadge';
 import OutreachActions from '@/components/leads/OutreachActions';
 import StatusSelect from '@/components/leads/StatusSelect';
 import AutoFollowUpDialog from '@/components/leads/AutoFollowUpDialog';
+import WhatsAppDesktopFollowUp from '@/components/leads/WhatsAppDesktopFollowUp.jsx';
+import FollowUpHistoryFeed from '@/components/leads/FollowUpHistoryFeed.jsx';
 import { enhanceLeadForDisplay } from '@/utils/leadDisplay';
 
 export default function LeadDetails() {
@@ -41,6 +43,8 @@ export default function LeadDetails() {
     mutationFn: (data) => base44.entities.Lead.update(leadId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['activities', leadId] });
       toast.success("פרטי הליד עודכנו");
     }
   });
@@ -55,13 +59,15 @@ export default function LeadDetails() {
 
   const refreshLead = () => {
     queryClient.invalidateQueries({ queryKey: ['lead', leadId] });
+    queryClient.invalidateQueries({ queryKey: ['leads'] });
+    queryClient.invalidateQueries({ queryKey: ['activities', leadId] });
   };
 
   const createProjectMutation = useMutation({
     mutationFn: (data) => base44.entities.Project.create(data),
     onSuccess: (newProject) => {
-      // Also update lead status to closed_won
-      updateLeadMutation.mutate({ status: 'closed_won' });
+      // Also update lead status to won
+      updateLeadMutation.mutate({ status: 'נסגר בהצלחה' });
       toast.success("פרויקט חדש נוצר בהצלחה!");
       navigate(`/ProjectDetails?id=${newProject.id}`);
     }
@@ -136,7 +142,7 @@ export default function LeadDetails() {
               <Zap className="w-4 h-4 mr-2" />
               {lead.auto_followup_enabled ? 'פולו־אפ פעיל' : 'הפעל פולו־אפ'}
             </Button>
-            {lead.status !== 'closed_won' && (
+            {displayLead.status !== 'נסגר בהצלחה' && (
               <div className="flex gap-2">
                 <Button onClick={() => setShowQuoteDialog(true)} className="flex-1 bg-[#C5A028] hover:bg-[#A88820] text-white shadow-md">
                   <FileText className="w-4 h-4 mr-2" /> הצעה
@@ -277,8 +283,7 @@ export default function LeadDetails() {
               </div>
 
               <div className="mt-6 pt-4 border-t border-slate-100">
-                <label className="text-sm text-slate-500 block mb-2">שליחה מהירה</label>
-                <OutreachActions lead={displayLead} compact />
+                <WhatsAppDesktopFollowUp lead={displayLead} onDone={refreshLead} />
               </div>
 
               <div className="mt-6 pt-4 border-t border-slate-100">
@@ -295,6 +300,7 @@ export default function LeadDetails() {
         </div>
 
         <div className="space-y-6">
+          <FollowUpHistoryFeed activities={activities} />
           <Card className="bg-white border-slate-200 shadow-xl shadow-slate-200/60 rounded-3xl overflow-hidden">
             <CardHeader className="border-b border-slate-100 pb-3">
               <CardTitle className="text-lg">היסטוריית פעילות</CardTitle>
