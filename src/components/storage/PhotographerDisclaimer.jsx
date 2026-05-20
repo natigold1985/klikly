@@ -9,12 +9,11 @@ export default function PhotographerDisclaimer() {
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    setDismissed(localStorage.getItem('storage_disclaimer_dismissed') === '1');
+    setDismissed(false);
   }, []);
 
   const handleDismiss = () => {
-    localStorage.setItem('storage_disclaimer_dismissed', '1');
-    setDismissed(true);
+    setExpanded(false);
   };
 
   if (dismissed) return null;

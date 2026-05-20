@@ -150,7 +150,7 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }) {
             )}
           </div>
 
-          <Button onClick={handleCreate} disabled={loading} className="w-full gap-2">
+          <Button onClick={handleCreate} disabled={loading} className="w-full gap-2 bg-[#FFD700] text-black hover:bg-[#E5B800]">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Briefcase className="w-4 h-4" />}
             {loading ? 'יוצר ומסנכרן...' : 'צור פרויקט וסנכרן ל-Drive'}
           </Button>

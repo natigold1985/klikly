@@ -1,18 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, ArrowRight, FolderOpen, Mail, Phone } from 'lucide-react';
+import { Search, ArrowRight, FolderOpen, Plus } from 'lucide-react';
 import PixiesetGallery from '../components/storage/PixiesetGallery';
 import PhotographerDisclaimer from '../components/storage/PhotographerDisclaimer';
 import DriveProjectView from '../components/storage/DriveProjectView';
 import GoogleDriveIcon from '../components/storage/GoogleDriveIcon';
+import CreateProjectDialog from '../components/projects/CreateProjectDialog';
+import ProjectStorageCard from '../components/storage/ProjectStorageCard';
 
 export default function FileStorage() {
   const [selectedProject, setSelectedProject] = useState(null);
   const [search, setSearch] = useState('');
+  const [showCreateProject, setShowCreateProject] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -146,9 +150,13 @@ export default function FileStorage() {
           </h1>
           <p className="text-slate-600 text-sm flex items-center gap-1.5">
             <GoogleDriveIcon className="w-4 h-4" />
-            מחובר ל-Google Drive · תיקייה ייחודית לכל פרויקט
+            מחובר ל-Google Drive · תיקייה ייחודית לכל פרויקט · גלריה ובחירת לקוח
           </p>
         </div>
+        <Button onClick={() => setShowCreateProject(true)} className="gap-2 bg-[#FFD700] text-black hover:bg-[#E5B800]">
+          <Plus className="w-5 h-5" />
+          פרויקט חדש
+        </Button>
       </div>
 
       <PhotographerDisclaimer />
@@ -182,63 +190,19 @@ export default function FileStorage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((p) => (
-            <ProjectFolderCard key={p.id} project={p} onClick={() => setSelectedProject(p)} />
+            <ProjectStorageCard key={p.id} project={p} onOpen={() => setSelectedProject(p)} />
           ))}
         </div>
       )}
-    </div>
-  );
-}
 
-function ProjectFolderCard({ project, onClick }) {
-  const isConnected = !!project.drive_folder_url;
-  return (
-    <Card
-      onClick={onClick}
-      className="cursor-pointer hover:shadow-lg hover:border-[#FFD700] transition-all border-slate-200 group"
-    >
-      <CardContent className="p-5">
-        <div className="flex items-start gap-3">
-          <div
-            className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
-              isConnected ? 'bg-amber-50 group-hover:bg-amber-100' : 'bg-slate-100'
-            }`}
-          >
-            {isConnected ? (
-              <GoogleDriveIcon className="w-6 h-6" />
-            ) : (
-              <FolderOpen className="w-6 h-6 text-slate-400" />
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="font-bold text-slate-900 truncate text-base">{project.project_name || project.client_name}</p>
-            {(project.client_email || project.client_emails?.length) && (
-              <p className="text-xs text-slate-500 truncate flex items-center gap-1 mt-0.5">
-                <Mail className="w-3 h-3" />
-                {[project.client_email, ...(Array.isArray(project.client_emails) ? project.client_emails : [])].filter(Boolean)[0]}
-                {Array.isArray(project.client_emails) && project.client_emails.length > 1 ? ` +${project.client_emails.length - 1}` : ''}
-              </p>
-            )}
-            {project.client_phone && (
-              <p className="text-xs text-slate-500 truncate flex items-center gap-1 mt-0.5">
-                <Phone className="w-3 h-3" />
-                {project.client_phone}
-              </p>
-            )}
-            <div className="mt-2">
-              {isConnected ? (
-                <span className="inline-block text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-medium">
-                  ✓ מחובר ל-Drive
-                </span>
-              ) : (
-                <span className="inline-block text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-medium">
-                  ממתין לחיבור
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      <CreateProjectDialog
+        open={showCreateProject}
+        onOpenChange={setShowCreateProject}
+        onCreated={() => {
+          queryClient.invalidateQueries({ queryKey: ['driveProjects'] });
+          queryClient.invalidateQueries({ queryKey: ['projects'] });
+        }}
+      />
+    </div>
   );
 }

@@ -63,7 +63,7 @@ export default function MagicLinkButton({ project }) {
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent dir="rtl" className="max-w-lg">
+        <DialogContent dir="rtl" className="max-w-lg bg-white text-slate-900">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
               <Sparkles className="w-5 h-5 text-amber-500" />
@@ -88,7 +88,7 @@ export default function MagicLinkButton({ project }) {
             {/* Preview link */}
             <div className="flex gap-2">
               <Input value={link} readOnly className="text-xs font-mono" dir="ltr" onClick={(e) => e.target.select()} />
-              <Button onClick={copy} size="icon" variant="outline" title="העתק קישור">
+              <Button onClick={copy} size="icon" variant="outline" title="העתק קישור" className="text-slate-900 border-slate-300 bg-white hover:bg-slate-50">
                 {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
               </Button>
             </div>

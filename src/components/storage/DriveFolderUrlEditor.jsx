@@ -75,7 +75,7 @@ export default function DriveFolderUrlEditor({ project, onSaved }) {
               setUrl(project.drive_folder_url || '');
               setEditing(true);
             }}
-            className="gap-1.5 shrink-0"
+            className="gap-1.5 shrink-0 text-slate-900 border-slate-300 bg-white hover:bg-slate-50"
           >
             <Pencil className="w-3.5 h-3.5" />
             שינוי
@@ -136,6 +136,7 @@ export default function DriveFolderUrlEditor({ project, onSaved }) {
                 setError('');
               }}
               disabled={saving}
+              className="text-slate-900 border-slate-300 bg-white hover:bg-slate-50"
             >
               ביטול
             </Button>

@@ -51,7 +51,7 @@ export default function LinkDriveFolderDialog({ project, onLinked, trigger }) {
       {trigger ? (
         <span onClick={() => setOpen(true)}>{trigger}</span>
       ) : (
-        <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-2">
+        <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-2 text-slate-900 border-slate-300 bg-white hover:bg-slate-50">
           <Link2 className="w-4 h-4" />
           קשר תיקייה קיימת
         </Button>
@@ -105,7 +105,7 @@ export default function LinkDriveFolderDialog({ project, onLinked, trigger }) {
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
                 שמור קישור
               </Button>
-              <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
+              <Button variant="outline" onClick={() => setOpen(false)} disabled={saving} className="text-slate-900 border-slate-300 bg-white hover:bg-slate-50">
                 ביטול
               </Button>
             </div>
