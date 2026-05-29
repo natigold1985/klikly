@@ -110,7 +110,7 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
         {open && (
           <>
             <div className="fixed inset-0 bg-black/20 z-[70] md:hidden" onClick={() => setOpen(false)} />
-            <div className="fixed left-3 right-3 top-20 max-h-[calc(100vh-96px)] md:absolute md:left-0 md:right-auto md:top-auto md:mt-3 md:w-[420px] rounded-3xl bg-white border border-slate-200 shadow-2xl overflow-hidden z-[80] flex flex-col" dir="rtl">
+            <div className="fixed left-3 right-3 top-20 bottom-[calc(88px+env(safe-area-inset-bottom))] md:bottom-auto md:absolute md:left-0 md:right-auto md:top-auto md:mt-3 md:w-[420px] md:max-h-[70vh] rounded-3xl bg-white border border-slate-200 shadow-2xl overflow-hidden z-[80] flex flex-col" dir="rtl">
             <div className="p-4 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
               <div>
                 <h3 className="font-black text-slate-900">משימות פולו-אפ להיום</h3>
@@ -121,15 +121,15 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
               </button>
             </div>
 
-            <div className="overflow-y-auto overscroll-contain p-3 space-y-2 flex-1 md:max-h-[420px]">
+            <div className="overflow-y-auto overflow-x-hidden overscroll-contain scroll-smooth [-webkit-overflow-scrolling:touch] p-3 space-y-2 flex-1 min-h-0">
               {dueLeads.length === 0 ? (
                 <div className="py-8 text-center text-slate-500">
                   <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
                   אין פולו-אפים פתוחים להיום
                 </div>
               ) : dueLeads.map((lead) => (
-                <div key={lead.id} className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-                  <div className="flex items-start justify-between gap-3">
+                <div key={lead.id} className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm w-full max-w-full overflow-hidden">
+                  <div className="flex items-start justify-between gap-2 min-w-0">
                     <div className="min-w-0">
                       <p className="font-black text-slate-900 truncate">{lead.name}</p>
                       <p className="text-xs text-slate-500 mt-0.5" dir="ltr">{lead.phone}</p>
@@ -140,7 +140,7 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
                     </div>
                     <button
                       onClick={() => handleSend(lead)}
-                      className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white px-3 py-2 text-xs font-black shadow-sm active:scale-95 transition-all"
+                      className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white px-2.5 md:px-3 py-2 text-xs font-black shadow-sm active:scale-95 transition-all"
                     >
                       <MessageCircle className="w-4 h-4" />
                       WhatsApp
@@ -155,8 +155,8 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
       </div>
 
       {showTodayAlert && dueLeads.length > 0 && (
-        <div className="fixed inset-0 bg-black/70 z-[90] flex items-start md:items-center justify-center p-3 pt-20 md:p-4" dir="rtl">
-          <div className="w-full max-w-lg max-h-[calc(100vh-96px)] rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-black/70 z-[90] flex items-start md:items-center justify-center p-3 pt-20 pb-[calc(88px+env(safe-area-inset-bottom))] md:p-4" dir="rtl">
+          <div className="w-full max-w-lg max-h-full rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
             <div className="p-5 bg-gradient-to-l from-[#FFD700] to-[#F6C400] text-black flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-black">משימות להיום</h2>
@@ -166,9 +166,9 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-4 space-y-2 overflow-y-auto overscroll-contain flex-1">
+            <div className="p-4 space-y-2 overflow-y-auto overflow-x-hidden overscroll-contain scroll-smooth [-webkit-overflow-scrolling:touch] flex-1 min-h-0">
               {dueLeads.slice(0, 5).map((lead) => (
-                <div key={lead.id} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 p-3">
+                <div key={lead.id} className="flex items-center justify-between gap-2 rounded-2xl border border-slate-200 p-3 w-full max-w-full overflow-hidden">
                   <div className="min-w-0">
                     <p className="font-black text-slate-900 truncate">{lead.name}</p>
                     <p className="text-xs text-slate-500">{getLeadStage(lead)} · <span dir="ltr">{lead.phone}</span></p>
