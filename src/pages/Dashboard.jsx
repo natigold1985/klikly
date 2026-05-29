@@ -17,6 +17,7 @@ import TaskBoard from '@/components/dashboard/TaskBoard';
 import QuickActions from '@/components/dashboard/QuickActions';
 import LeadQualityDashboard from '@/components/dashboard/LeadQualityDashboard';
 import JoniExportReminderAlert from '@/components/dashboard/JoniExportReminderAlert';
+import { normalizeLeadStatus } from '@/utils/leadDisplay';
 
 export default function Dashboard() {
   const { data: user } = useQuery({
@@ -39,10 +40,13 @@ export default function Dashboard() {
     localStorage.setItem('hasSeenWelcome_base44', 'true');
   };
 
-  // Data isolation: filter by created_by for photographer
+  const isAdmin = user?.role === 'admin' || user?.email === 'natigold04@gmail.com';
+
   const { data: leads = [] } = useQuery({
-    queryKey: ['dashboard_leads', user?.email],
-    queryFn: () => base44.entities.Lead.filter({ created_by: user.email }, '-created_date', 200),
+    queryKey: ['dashboard_leads', user?.email, isAdmin],
+    queryFn: () => isAdmin
+      ? base44.entities.Lead.list('-created_date', 1000)
+      : base44.entities.Lead.filter({ created_by: user.email }, '-created_date', 500),
     enabled: !!user && !isClient,
   });
 
@@ -75,7 +79,7 @@ export default function Dashboard() {
   const today = new Date().toISOString().split('T')[0];
   const leadsToday = leads.filter(l => l.created_date?.startsWith(today)).length;
   const totalLeads = leads.length;
-  const closedWon = leads.filter(l => l.status === 'closed_won').length;
+  const closedWon = leads.filter(l => normalizeLeadStatus(l.status) === 'נסגר בהצלחה').length;
   const conversionRate = totalLeads ? Math.round((closedWon / totalLeads) * 100) : 0;
   const totalRevenue = projects.reduce((sum, p) => sum + (p.total_price || 0), 0);
   const paidRevenue = projects.filter(p => p.payment_status === 'paid').reduce((sum, p) => sum + (p.total_price || 0), 0);
@@ -103,7 +107,7 @@ export default function Dashboard() {
     { title: 'אחוז המרה', value: `${conversionRate}%`, icon: Target, link: 'Analytics' },
     { title: 'הכנסות', value: `₪${totalRevenue.toLocaleString()}`, icon: DollarSign, link: 'Analytics' },
     { title: 'פרויקטים פעילים', value: activeProjects, icon: Briefcase, link: 'Projects' },
-    { title: 'ממתינים לטיפול', value: leads.filter(l => l.status === 'new').length, icon: MessageCircle, link: 'Leads' },
+    { title: 'ממתינים לטיפול', value: leads.filter(l => normalizeLeadStatus(l.status) === 'ליד חדש').length, icon: MessageCircle, link: 'Leads' },
     { title: 'משימות', value: tasks.length, icon: CheckSquare, link: 'Tasks' },
   ];
 
@@ -111,7 +115,7 @@ export default function Dashboard() {
   const upcomingTasks = tasks.slice(0, 5);
 
   const urgentLeads = leads.filter(l => {
-    return l.status === 'new' && new Date(l.created_date) < new Date(Date.now() - 24 * 60 * 60 * 1000);
+    return normalizeLeadStatus(l.status) === 'ליד חדש' && new Date(l.created_date) < new Date(Date.now() - 24 * 60 * 60 * 1000);
   });
 
   const getStatusBadge = (status) => {

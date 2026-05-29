@@ -16,18 +16,18 @@ export default function JoniExportReminderAlert() {
   if (!reminder) return null;
 
   return (
-    <div className="bg-amber-50 border border-amber-200 shadow-sm rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3" dir="rtl">
-      <div className="flex items-center gap-3">
+    <div className="bg-amber-50 border border-amber-200 shadow-sm rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 overflow-hidden" dir="rtl">
+      <div className="flex items-start gap-3 min-w-0">
         <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
           <AlertCircle className="w-6 h-6 text-amber-600" />
         </div>
-        <div>
+        <div className="min-w-0 flex-1">
           <h3 className="font-bold text-amber-800">תזכורת ייצוא לידים מ-JONI</h3>
-          <p className="text-sm text-amber-700">Reminder: It's time to export your WhatsApp leads from JONI. Click here to import them.</p>
+          <p className="text-sm text-amber-700 leading-relaxed break-words">Reminder: It's time to export your WhatsApp leads from JONI. Click here to import them.</p>
         </div>
       </div>
-      <Link to={createPageUrl('LeadImport')}>
-        <Button size="sm" className="gap-2 whitespace-nowrap">
+      <Link to={createPageUrl('LeadImport')} className="w-full md:w-auto shrink-0">
+        <Button size="sm" className="gap-2 whitespace-nowrap w-full md:w-auto">
           <Upload className="w-4 h-4" />
           לפתיחת Import Hub
         </Button>

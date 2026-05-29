@@ -603,9 +603,9 @@ export default function Leads() {
       {/* Data Actions Toolbar */}
       <Card className="border shadow-sm">
         <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-3">
+          <div className="flex flex-col md:flex-row gap-3 overflow-hidden">
             {/* View Switcher */}
-            <div className="flex bg-slate-100 p-1 rounded-lg shrink-0">
+            <div className="flex bg-slate-100 p-1 rounded-lg shrink-0 overflow-x-auto max-w-full">
               <Button variant={viewMode === 'table' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('table')} className="gap-1.5">
                 <List className="w-4 h-4" /> טבלה
               </Button>
@@ -621,14 +621,14 @@ export default function Leads() {
             </div>
 
             {/* Search */}
-            <div className="flex-1 relative min-w-[200px]">
+            <div className="flex-1 relative min-w-0 md:min-w-[200px]">
               <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
               <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="חיפוש שם, טלפון, אימייל..." className="pr-10 h-9" />
             </div>
 
             {/* Status Filter */}
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-32 md:w-40 h-9 text-xs font-bold">
+              <SelectTrigger className="w-full md:w-40 h-9 text-xs font-bold">
                 <SelectValue placeholder="סטטוס" />
               </SelectTrigger>
               <SelectContent dir="rtl">

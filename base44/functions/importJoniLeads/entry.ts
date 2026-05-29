@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
       name: lead.name,
       phone: lead.phone,
       source: 'WhatsApp JONI',
-      status: 'new',
+      status: 'ליד חדש',
       last_contact_date: new Date().toISOString(),
     })));
 

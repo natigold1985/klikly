@@ -108,7 +108,9 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
         </button>
 
         {open && (
-          <div className="fixed left-3 right-3 top-20 md:absolute md:left-0 md:right-auto md:top-auto md:mt-3 md:w-[420px] rounded-3xl bg-white border border-slate-200 shadow-2xl overflow-hidden z-[80]" dir="rtl">
+          <>
+            <div className="fixed inset-0 bg-black/20 z-[70] md:hidden" onClick={() => setOpen(false)} />
+            <div className="fixed left-3 right-3 top-20 max-h-[calc(100vh-96px)] md:absolute md:left-0 md:right-auto md:top-auto md:mt-3 md:w-[420px] rounded-3xl bg-white border border-slate-200 shadow-2xl overflow-hidden z-[80] flex flex-col" dir="rtl">
             <div className="p-4 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
               <div>
                 <h3 className="font-black text-slate-900">משימות פולו-אפ להיום</h3>
@@ -119,7 +121,7 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
               </button>
             </div>
 
-            <div className="max-h-[calc(100vh-170px)] md:max-h-[420px] overflow-y-auto overscroll-contain p-3 space-y-2">
+            <div className="overflow-y-auto overscroll-contain p-3 space-y-2 flex-1 md:max-h-[420px]">
               {dueLeads.length === 0 ? (
                 <div className="py-8 text-center text-slate-500">
                   <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
@@ -147,7 +149,8 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
                 </div>
               ))}
             </div>
-          </div>
+            </div>
+          </>
         )}
       </div>
 

@@ -28,6 +28,7 @@ export default function DataActionsToolbar({ leads }) {
       const res = await base44.functions.invoke('syncFromGoogleSheets', { sheetUrl });
       setImportResult({ success: true, added: res.data?.added || 0, updated: res.data?.updated || 0 });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard_leads'] });
       toast.success(`${res.data?.added || 0} חדשים, ${res.data?.updated || 0} עודכנו`);
     } catch (e) {
       setImportResult({ success: false, error: e.message });
@@ -64,7 +65,7 @@ export default function DataActionsToolbar({ leads }) {
           return {
             phone,
             name,
-            status: 'new',
+            status: 'ליד חדש',
             source: 'WhatsApp JONI',
           };
         })
@@ -80,6 +81,7 @@ export default function DataActionsToolbar({ leads }) {
       const imported = res.data?.imported || leads.length;
       setImportResult({ success: true, added: imported, updated: 0 });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard_leads'] });
       toast.success(`${imported} לידים יובאו בהצלחה`);
     } catch (err) {
       setImportResult({ success: false, error: err.message });
@@ -94,6 +96,7 @@ export default function DataActionsToolbar({ leads }) {
     try {
       const res = await base44.functions.invoke('syncFromGoogleSheets', {});
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard_leads'] });
       toast.success(`סנכרון הושלם: ${res.data?.added || 0} חדשים, ${res.data?.updated || 0} עודכנו`);
     } catch (e) {
       toast.error('שגיאה בסנכרון: ' + e.message);
@@ -121,7 +124,7 @@ export default function DataActionsToolbar({ leads }) {
 
   return (
     <>
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap max-w-full overflow-hidden">
         <Button
           variant="outline"
           size="sm"
