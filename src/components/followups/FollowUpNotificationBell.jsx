@@ -96,19 +96,19 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
       <div className="relative">
         <button
           onClick={() => setOpen((value) => !value)}
-          className="relative w-11 h-11 rounded-2xl bg-white/95 text-slate-900 border border-slate-200 shadow-lg hover:shadow-xl flex items-center justify-center transition-all active:scale-95"
+          className="relative w-10 h-10 md:w-11 md:h-11 rounded-xl bg-white text-slate-900 border border-slate-200 shadow-none md:shadow-lg flex items-center justify-center transition-all active:scale-95"
           title="התראות פולו-אפ"
         >
           <Bell className="w-5 h-5" />
           {dueLeads.length > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-600 text-white text-[11px] font-black flex items-center justify-center ring-2 ring-white">
+            <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-600 text-white text-[11px] font-black flex items-center justify-center ring-2 ring-black md:ring-white">
               {dueLeads.length}
             </span>
           )}
         </button>
 
         {open && (
-          <div className="absolute left-0 mt-3 w-[min(92vw,420px)] rounded-3xl bg-white border border-slate-200 shadow-2xl overflow-hidden z-[80]" dir="rtl">
+          <div className="fixed left-3 right-3 top-20 md:absolute md:left-0 md:right-auto md:top-auto md:mt-3 md:w-[420px] rounded-3xl bg-white border border-slate-200 shadow-2xl overflow-hidden z-[80]" dir="rtl">
             <div className="p-4 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
               <div>
                 <h3 className="font-black text-slate-900">משימות פולו-אפ להיום</h3>
@@ -119,7 +119,7 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
               </button>
             </div>
 
-            <div className="max-h-[420px] overflow-y-auto p-3 space-y-2">
+            <div className="max-h-[calc(100vh-170px)] md:max-h-[420px] overflow-y-auto overscroll-contain p-3 space-y-2">
               {dueLeads.length === 0 ? (
                 <div className="py-8 text-center text-slate-500">
                   <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
@@ -152,8 +152,8 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
       </div>
 
       {showTodayAlert && dueLeads.length > 0 && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] flex items-start md:items-center justify-center p-4 pt-24" dir="rtl">
-          <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
+        <div className="fixed inset-0 bg-black/70 z-[90] flex items-start md:items-center justify-center p-3 pt-20 md:p-4" dir="rtl">
+          <div className="w-full max-w-lg max-h-[calc(100vh-96px)] rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
             <div className="p-5 bg-gradient-to-l from-[#FFD700] to-[#F6C400] text-black flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-black">משימות להיום</h2>
@@ -163,7 +163,7 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-4 space-y-2 max-h-[50vh] overflow-y-auto">
+            <div className="p-4 space-y-2 overflow-y-auto overscroll-contain flex-1">
               {dueLeads.slice(0, 5).map((lead) => (
                 <div key={lead.id} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 p-3">
                   <div className="min-w-0">

@@ -146,9 +146,9 @@ export default function Layout({ children, currentPageName }) {
     return (
       <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-900" dir="rtl">
         {/* Mobile Header */}
-        <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-black/90 backdrop-blur-lg border-b border-white/10 z-40 flex items-center justify-center px-4 shadow-lg">
+        <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-black border-b border-white/10 z-40 grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 shadow-lg" dir="ltr">
           {user && (
-            <div className="absolute left-4 top-1/2 -translate-y-1/2">
+            <div className="justify-self-end shrink-0">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FFD700] to-[#b38f2d] flex items-center justify-center text-black font-bold text-sm shadow-[0_0_10px_rgba(255,215,0,0.3)]">
                 {user.full_name?.[0] || '?'}
               </div>
@@ -157,9 +157,9 @@ export default function Layout({ children, currentPageName }) {
           <img
             src="https://media.base44.com/images/public/699330cced2139a6e7aa06a9/1e11bfcc1_generated_image.png"
             alt="KLIKLY"
-            className="h-10 object-contain drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]"
+            className="h-12 w-16 object-contain justify-self-center shrink-0 drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]"
           />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0 justify-self-start" dir="rtl">
             <FollowUpNotificationBell user={user} isAdmin={isAdmin} />
             <button
               onClick={() => base44.auth.logout()}
@@ -310,10 +310,10 @@ export default function Layout({ children, currentPageName }) {
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden text-slate-900 dark:text-slate-50 transition-colors duration-300" dir="rtl">
       
       {/* ── Mobile Header (Central Logo) ── */}
-      <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-black/90 backdrop-blur-lg border-b border-white/10 z-40 flex items-center justify-center px-4 shadow-lg">
+      <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-black border-b border-white/10 z-40 grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 shadow-lg" dir="ltr">
         {/* User Avatar (Left aligned in RTL) */}
         {user && (
-          <div className="absolute left-4 top-1/2 -translate-y-1/2">
+          <div className="justify-self-end shrink-0">
              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FFD700] to-[#b38f2d] flex items-center justify-center text-black font-bold text-sm shadow-[0_0_10px_rgba(255,215,0,0.3)]">
               {user.full_name?.[0] || '?'}
             </div>
@@ -324,11 +324,11 @@ export default function Layout({ children, currentPageName }) {
         <img 
           src="https://media.base44.com/images/public/699330cced2139a6e7aa06a9/1e11bfcc1_generated_image.png" 
           alt="KLIKLY" 
-          className="h-10 object-contain drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]" 
+          className="h-12 w-16 object-contain justify-self-center shrink-0 drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]" 
         />
 
         {/* Right Side: Logout + Hamburger */}
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0 justify-self-start" dir="rtl">
           <FollowUpNotificationBell user={user} isAdmin={isAdmin} />
           <button
             onClick={() => base44.auth.logout()}
