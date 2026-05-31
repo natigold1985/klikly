@@ -122,10 +122,6 @@ function detectJunkLead(name, phone, email, source = '', notes = '', shootingTyp
         return { isJunk: true, reason: 'invalid_full_name' };
     }
 
-    if (!sourceUrl || !/^https?:\/\//i.test(sourceUrl)) {
-        return { isJunk: true, reason: 'missing_source_url' };
-    }
-
     if (text.includes('linkedin') && !isValidPhone(phone) && !isValidEmail(email)) {
         return { isJunk: true, reason: 'linkedin_without_real_contact' };
     }
@@ -133,9 +129,6 @@ function detectJunkLead(name, phone, email, source = '', notes = '', shootingTyp
     const junkTextPatterns = [
         'natigold.com/photography-course',
         'photography-course',
-        'קורס צילום',
-        'קורס',
-        'הדרכה',
         'שבעה ימים להבין הכל',
         'אני נתי גולד',
         'צרו קשר',
@@ -143,8 +136,6 @@ function detectJunkLead(name, phone, email, source = '', notes = '', shootingTyp
         'landing page',
         'facebook page',
         'פייסבוק page',
-        'linkedin.com/jobs',
-        'דרושים',
     ];
     if (junkTextPatterns.some(pattern => text.includes(pattern))) {
         return { isJunk: true, reason: 'marketing_or_non_person_lead' };
@@ -318,7 +309,17 @@ Deno.serve(async (req) => {
                 const notes = notesParts.join(' | ');
                 const sourceUrl = extractSourceUrl(linkCol, notesCol, sourceCol);
 
-                if (!name || !phone || !email || !isRealLeadName(name, phone, email) || !isValidPhone(phone) || !isValidEmail(email)) {
+                // Rule 1: must have name + (phone OR email)
+                if (!name || (!isValidPhone(phone) && !isValidEmail(email)) || !isRealLeadName(name, phone, email)) {
+                    tabSkipped++;
+                    skipped++;
+                    continue;
+                }
+
+                // Rule 2: job board / professional-site sources require an exact source URL
+                const JOB_BOARD_INDICATORS = ['drushim', 'alljobs', 'job.co.il', 'linkedin.com/jobs', 'yad2', 'gov.il', 'mod.gov.il', 'industry.co.il', 'ביטחון', 'דרושים'];
+                const allSourceText = [detectedSource, sourceCol, linkCol, notesCol].join(' ').toLowerCase();
+                if (JOB_BOARD_INDICATORS.some(k => allSourceText.includes(k)) && !sourceUrl) {
                     tabSkipped++;
                     skipped++;
                     continue;

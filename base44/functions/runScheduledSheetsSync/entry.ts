@@ -54,6 +54,25 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, error: 'googlesheets_not_connected' }, { status: 400 });
     }
 
+    const JOB_BOARD_INDICATORS = ['drushim', 'alljobs', 'job.co.il', 'linkedin.com/jobs', 'yad2', 'gov.il', 'mod.gov.il', 'industry.co.il', 'ביטחון', 'דרושים'];
+    const BAD_NAMES = ['לא ידוע', 'unknown', 'test', 'בדיקה', 'n/a', '-', '?', 'ללא שם', 'ללא'];
+
+    function normPhone(p) { return String(p || '').replace(/[^0-9]/g, ''); }
+    function isValidPhone(p) { const d = normPhone(p); return d.length >= 9 && d.length <= 15 && !/^(\d)\1+$/.test(d); }
+    function isValidEmail(e) { return !!(e && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e).trim())); }
+    function isRealName(n) {
+      const c = String(n || '').trim();
+      if (!c || c.length < 2) return false;
+      if (BAD_NAMES.some(b => c.toLowerCase() === b)) return false;
+      if (/^https?:\/\//i.test(c) || c.includes('@')) return false;
+      return /[א-תa-zA-Z]/.test(c);
+    }
+    function extractUrl(...parts) {
+      const text = parts.filter(Boolean).join(' ');
+      const m = text.match(/https?:\/\/[^\s|,)>\]"']+/i);
+      return m ? m[0].replace(/[)\]"'<>.,]+$/, '') : '';
+    }
+
     let totalAdded = 0;
     let totalUpdated = 0;
     const perOwner = [];
@@ -65,107 +84,136 @@ Deno.serve(async (req) => {
       // Extract spreadsheet ID
       let spreadsheetId = null;
       const trimmed = sheetUrl.trim();
-      let match = trimmed.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-      if (match) {
-        spreadsheetId = match[1];
-      } else {
-        const segMatch = trimmed.match(/([a-zA-Z0-9_-]{20,})/);
-        if (segMatch) spreadsheetId = segMatch[1];
-      }
+      const idMatch = trimmed.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+      if (idMatch) spreadsheetId = idMatch[1];
       if (!spreadsheetId) continue;
 
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/2039667077!A:Z`;
-      const response = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+      // Step 1: get all tab titles
+      const metaResp = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      if (!metaResp.ok) { console.warn(`Metadata fetch failed for ${ownerEmail}`); continue; }
+      const meta = await metaResp.json();
+      const tabs = (meta.sheets || []).map((s) => s.properties?.title).filter(Boolean);
+      if (!tabs.length) continue;
 
-      if (!response.ok) {
-        console.warn(`Sheet fetch failed for ${ownerEmail}:`, response.status);
-        continue;
-      }
-      const data = await response.json();
-      const rows = data.values || [];
-      if (rows.length < 2) continue;
+      // Step 2: batch fetch all tabs
+      const ranges = tabs.map(t => `ranges=${encodeURIComponent(`'${t}'!A1:Z1000`)}`).join('&');
+      const valResp = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchGet?${ranges}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      if (!valResp.ok) { console.warn(`Values fetch failed for ${ownerEmail}`); continue; }
+      const valData = await valResp.json();
+      const valueRanges = valData.valueRanges || [];
 
-      const headers = rows[0].map(h => h.toLowerCase().trim());
-      const nameIdx = headers.findIndex(h => h.includes('name') || h.includes('שם'));
-      const phoneIdx = headers.findIndex(h => h.includes('phone') || h.includes('טלפון'));
-      const emailIdx = headers.findIndex(h => h.includes('email') || h.includes('מייל') || h.includes('דוא"ל'));
-      const sourceIdx = headers.findIndex(h => h.includes('source') || h.includes('מקור'));
-      const notesIdx = headers.findIndex(h => h.includes('notes') || h.includes('note') || h.includes('הערות') || h.includes('הערה'));
-      const statusIdx = headers.findIndex(h => h.includes('status') || h.includes('סטטוס'));
-      const typeIdx = headers.findIndex(h => h.includes('type') || h.includes('סוג'));
-      const addressIdx = headers.findIndex(h => h.includes('address') || h.includes('כתובת'));
-
-      if (nameIdx === -1 || phoneIdx === -1) continue;
-
-      // Existing leads for this owner
-      const existing = await base44.asServiceRole.entities.Lead.filter({ created_by: ownerEmail }, '-created_date', 500);
+      // Step 3: dedup map (phone → lead, email → lead)
+      const existingAll = await base44.asServiceRole.entities.Lead.list('-created_date', 2000);
       const phoneMap = {};
-      for (const lead of existing) {
-        if (lead.phone) phoneMap[lead.phone.replace(/[^0-9]/g, '')] = lead;
+      const emailMap = {};
+      for (const lead of existingAll) {
+        const np = normPhone(lead.phone);
+        if (np) phoneMap[np] = lead;
+        if (lead.email) emailMap[String(lead.email).toLowerCase()] = lead;
       }
 
       let added = 0;
       let updated = 0;
 
-      for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        const name = row[nameIdx] || '';
-        const phone = row[phoneIdx] || '';
-        const email = emailIdx !== -1 ? (row[emailIdx] || '') : '';
-        const source = sourceIdx !== -1 ? (row[sourceIdx] || '') : 'Google Sheets';
-        const notes = notesIdx !== -1 ? (row[notesIdx] || '') : '';
-        const statusText = statusIdx !== -1 ? String(row[statusIdx] || '').trim() : '';
-        const status = ['חדש', 'new', 'New'].includes(statusText) ? 'new' : 'new';
-        const shootingType = typeIdx !== -1 ? (row[typeIdx] || '') : '';
-        const address = addressIdx !== -1 ? (row[addressIdx] || '') : '';
+      for (let t = 0; t < valueRanges.length; t++) {
+        const tabRows = valueRanges[t]?.values || [];
+        if (tabRows.length < 2) continue;
 
-        if (!name && !phone) continue;
-        const cleanPhone = phone.replace(/[^0-9]/g, '');
+        const headers = tabRows[0].map(h => String(h || '').toLowerCase().trim());
+        const idx = {
+          name:   headers.findIndex(h => h.includes('name') || h.includes('שם')),
+          phone:  headers.findIndex(h => h.includes('phone') || h.includes('טלפון') || h.includes('נייד')),
+          email:  headers.findIndex(h => h.includes('email') || h.includes('מייל') || h.includes('דוא"ל')),
+          source: headers.findIndex(h => h.includes('source') || h.includes('מקור') || h.includes('platform')),
+          notes:  headers.findIndex(h => h.includes('note') || h.includes('הערות') || h.includes('הערה') || h.includes('message') || h.includes('הודעה')),
+          type:   headers.findIndex(h => h.includes('type') || h.includes('סוג')),
+          link:   headers.findIndex(h => h.includes('link') || h.includes('קישור') || h.includes('url')),
+          address:headers.findIndex(h => h.includes('address') || h.includes('כתובת')),
+        };
 
-        // Detect junk leads (invalid phone / placeholder name) — they're still saved but marked as filtered
-        const lowName = String(name).toLowerCase().trim();
-        const junkNames = ['לא ידוע', 'unknown', 'test', 'בדיקה', 'n/a', '-', '?', 'ללא שם', 'ללא'];
-        const isInvalidPhone = !cleanPhone || cleanPhone.length < 9 || cleanPhone.length > 13;
-        const isPlaceholderName = !name || junkNames.some(j => lowName === j) || lowName.includes('ליד ללא שם');
-        const isJunk = isInvalidPhone || isPlaceholderName;
-        const junkReason = isInvalidPhone ? 'invalid_phone' : (isPlaceholderName ? 'no_name' : null);
+        if (idx.name === -1 && idx.phone === -1 && idx.email === -1) continue;
 
-        const matchLead = phoneMap[cleanPhone];
-        if (matchLead) {
-          const updates = {};
-          if (email && !matchLead.email) updates.email = email;
-          if (source && !matchLead.source) updates.source = source;
-          if (shootingType && !matchLead.shooting_type) updates.shooting_type = shootingType;
-          if (address && !matchLead.address) updates.address = address;
-          if (notes && !matchLead.notes) updates.notes = notes;
-          if (status && !matchLead.status) updates.status = status;
-          if (name && name !== matchLead.name && matchLead.name === 'לא ידוע') updates.name = name;
-          if (Object.keys(updates).length > 0) {
-            await base44.asServiceRole.entities.Lead.update(matchLead.id, updates);
-            updated++;
+        for (let i = 1; i < tabRows.length; i++) {
+          const row = tabRows[i];
+          if (!row || row.every(c => !c || !String(c).trim())) continue;
+
+          const g = (colIdx) => colIdx !== -1 ? String(row[colIdx] || '').trim() : '';
+          const name    = g(idx.name);
+          const phone   = g(idx.phone);
+          const email   = g(idx.email);
+          const source  = g(idx.source) || 'Google Sheets';
+          const notes   = g(idx.notes);
+          const type    = g(idx.type);
+          const link    = g(idx.link);
+          const address = g(idx.address);
+
+          // Rule 1: must have real name + (phone OR email)
+          if (!isRealName(name) || (!isValidPhone(phone) && !isValidEmail(email))) continue;
+
+          // Rule 2: job board sources require an exact URL
+          const sourceUrl = extractUrl(link, notes);
+          const allText = [source, link, notes].join(' ').toLowerCase();
+          if (JOB_BOARD_INDICATORS.some(k => allText.includes(k)) && !sourceUrl) continue;
+
+          const cleanPhone = normPhone(phone);
+          const cleanEmail = String(email).toLowerCase();
+
+          // Dedup by phone or email
+          const matchLead = (cleanPhone && phoneMap[cleanPhone]) || (email && emailMap[cleanEmail]);
+
+          if (matchLead) {
+            const updates = {};
+            if (email && !matchLead.email) updates.email = email;
+            if (!matchLead.source) updates.source = source;
+            if (type && !matchLead.shooting_type) updates.shooting_type = type;
+            if (address && !matchLead.address) updates.address = address;
+            if (notes && !matchLead.notes) updates.notes = notes;
+            if (phone && !matchLead.phone) updates.phone = phone;
+            if (sourceUrl && !matchLead.source_post_url) updates.source_post_url = sourceUrl;
+            if (Object.keys(updates).length > 0) {
+              await base44.asServiceRole.entities.Lead.update(matchLead.id, updates);
+              updated++;
+            }
+          } else {
+            const created = await base44.asServiceRole.entities.Lead.create({
+              name,
+              phone: phone || undefined,
+              email: email || undefined,
+              source,
+              source_post_url: sourceUrl || undefined,
+              shooting_type: type || undefined,
+              address: address || undefined,
+              notes: notes || undefined,
+              status: 'new',
+              last_contact_date: new Date().toISOString(),
+              is_filtered: false,
+            });
+            added++;
+            if (cleanPhone) phoneMap[cleanPhone] = created;
+            if (email) emailMap[cleanEmail] = created;
           }
-        } else {
-          await base44.asServiceRole.entities.Lead.create({
-            name: name || 'לא ידוע',
-            phone,
-            email: email || undefined,
-            source: source || 'Google Sheets',
-            shooting_type: shootingType || undefined,
-            address: address || undefined,
-            notes: notes || undefined,
-            status,
-            last_contact_date: new Date().toISOString(),
-            is_filtered: isJunk,
-            filter_reason: junkReason || undefined,
-          });
-          added++;
-          if (cleanPhone) phoneMap[cleanPhone] = { phone, name };
         }
       }
 
       totalAdded += added;
       totalUpdated += updated;
       perOwner.push({ owner: ownerEmail, added, updated });
+    }
+
+    // Push notification when new leads are found
+    if (totalAdded > 0) {
+      try {
+        await base44.asServiceRole.functions.invoke('sendPushNotification', {
+          title: 'לידים חדשים 🎯',
+          body: `${totalAdded} לידים חדשים נוספו מהסנכרון האוטומטי`,
+        });
+      } catch (_) { /* non-fatal */ }
     }
 
     await base44.asServiceRole.entities.SystemLog.create({

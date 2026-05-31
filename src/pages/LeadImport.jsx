@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Upload, FileSpreadsheet, MessageCircle, Instagram, Facebook, Mail, Loader2, CheckCircle2, Linkedin, RefreshCw, Clock, Sparkles, ClipboardPaste } from 'lucide-react';
+import { Upload, FileSpreadsheet, MessageCircle, Instagram, Facebook, Mail, Loader2, CheckCircle2, Linkedin, RefreshCw, Clock, Sparkles, ClipboardPaste, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import PasteLeadsDialog from '@/components/leads/PasteLeadsDialog';
 import LeadWebhookInfoDialog from '@/components/leads/LeadWebhookInfoDialog';
@@ -36,9 +36,12 @@ const LINKEDIN_SEARCHES = [
   { label: 'פוסטים אחרונים: "דרוש צלם"', url: 'https://www.linkedin.com/search/results/content/?keywords=%22%D7%93%D7%A8%D7%95%D7%A9%20%D7%A6%D7%9C%D7%9D%22&origin=GLOBAL_SEARCH_HEADER' },
 ];
 
+const MASTER_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1Acz_kFz4d2oGyJflAWyrY4yiAAlbvWVqR7UNgKHCdD4/edit?gid=2039667077#gid=2039667077';
+
 const CHANNELS = [
+  { id: 'master_sheet', label: 'סנכרון לידים אוטומטי', desc: 'קורא את כל הטאבים מה-Sheet המאסטר, מוסיף רק לידים עם שם + טלפון/מייל', icon: Zap, color: 'bg-emerald-600', available: true, directSync: true },
   { id: 'gmail_auto', label: 'Gmail סריקה חיה', desc: 'סריקה אוטומטית פעמיים ביום (09:00 / 21:00)', icon: Mail, color: 'bg-red-600', available: true },
-  { id: 'sheets', label: 'Google Sheets', desc: 'סנכרון דרך פונקציה בלבד — ללא AI, פעמיים ביום (09:00 / 21:00)', icon: FileSpreadsheet, color: 'bg-green-500', available: true },
+  { id: 'sheets', label: 'Google Sheets (ידני)', desc: 'סנכרון מכל Sheet — ללא AI, ניתן לשנות URL', icon: FileSpreadsheet, color: 'bg-green-500', available: true },
   { id: 'facebook', label: 'Facebook Ads', desc: 'Webhook Native מ-Meta Lead Ads', icon: Facebook, color: 'bg-blue-600', available: true, webhook: true },
   { id: 'instagram', label: 'Instagram', desc: 'Webhook Native מ-Meta / Instagram', icon: Instagram, color: 'bg-gradient-to-tr from-purple-500 to-pink-500', available: true, webhook: true },
   { id: 'whatsapp', label: 'WhatsApp', desc: 'Webhook Native מ-WhatsApp Business', icon: MessageCircle, color: 'bg-[#25D366]', available: true, webhook: true },
@@ -79,6 +82,31 @@ export default function LeadImport() {
     const hours = Math.floor(mins / 60);
     if (hours < 24) return `לפני ${hours} שעות`;
     return `לפני ${Math.floor(hours / 24)} ימים`;
+  };
+
+  const [masterSyncing, setMasterSyncing] = useState(false);
+
+  const handleMasterSheetSync = async () => {
+    setMasterSyncing(true);
+    setImportResult(null);
+    try {
+      const res = await base44.functions.invoke('runScheduledSheetsSync', {
+        sheetUrl: MASTER_SHEET_URL,
+        ownerEmail: undefined,
+      });
+      const added = res.data?.added || 0;
+      const updated = res.data?.updated || 0;
+      setImportResult({ success: true, count: added, updated });
+      updateSyncStatus('master_sheet');
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard_leads'] });
+      toast.success(`סנכרון הושלם: ${added} לידים חדשים, ${updated} עודכנו`);
+    } catch (e) {
+      setImportResult({ success: false, error: e.message });
+      toast.error('שגיאה בסנכרון: ' + e.message);
+    } finally {
+      setMasterSyncing(false);
+    }
   };
 
   const handleSheetsImport = async () => {
@@ -257,7 +285,12 @@ Return ONLY valid leads that have at least a name AND a phone number.`,
                   ? 'hover:shadow-md hover:border-indigo-200 active:scale-[0.98]'
                   : 'opacity-50 cursor-not-allowed'
               } ${activeChannel === ch.id ? 'border-indigo-400 shadow-md' : ''}`}
-              onClick={() => ch.available && (ch.webhook ? setShowWebhookInfo(true) : setActiveChannel(ch.id))}
+              onClick={() => {
+                if (!ch.available) return;
+                if (ch.webhook) { setShowWebhookInfo(true); return; }
+                if (ch.directSync) { handleMasterSheetSync(); return; }
+                setActiveChannel(ch.id);
+              }}
             >
               <div className="flex flex-col items-center text-center gap-3">
                 <div className={`w-14 h-14 rounded-2xl ${ch.color} flex items-center justify-center shadow-md`}>
@@ -267,7 +300,12 @@ Return ONLY valid leads that have at least a name AND a phone number.`,
                   <p className="font-semibold text-base text-gray-900">{ch.label}</p>
                   <p className="text-xs text-slate-500 mt-1 leading-relaxed">{ch.desc}</p>
                 </div>
-                {ch.available && lastSyncLabel ? (
+                {ch.directSync && masterSyncing ? (
+                  <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full font-medium flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    מסנכרן...
+                  </span>
+                ) : ch.available && lastSyncLabel ? (
                   <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full font-medium flex items-center gap-1">
                     <Clock className="w-3 h-3" />
                     סונכרן {lastSyncLabel}
