@@ -30,7 +30,7 @@ export default function LeadRadarWidget() {
     try {
       const res = await base44.functions.invoke('scanLeadRadar', {});
       queryClient.invalidateQueries({ queryKey: ['potentialLeads'] });
-      toast.success(`רדאר: ${res.data.found} תוצאות, ${res.data.saved} חדשות נשמרו`);
+      toast.success(`Claude Code Radar: ${res.data.found} תוצאות, ${res.data.saved} חדשות נשמרו`);
     } catch (e) {
       toast.error('שגיאה בסריקה: ' + e.message);
     } finally {
@@ -57,10 +57,10 @@ export default function LeadRadarWidget() {
             רדאר לידים
           </CardTitle>
           <p className="text-[11px] text-slate-400 mt-1">
-            סורק את ה-Gmail המחובר ומפעיל AI רק אחרי סינון קשיח וקישור תקין — כדי לחסוך בבדיקות מיותרות.
+            מחובר לטאב Claude Code בגוגל שיטס ומציג רק לידים עם איש קשר, טלפון/מייל וקישור מקור תקין.
           </p>
           <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-            ⚡ סינון חסכוני
+            ⚡ Claude Code Radar
           </span>
         </div>
         <Button
@@ -71,15 +71,15 @@ export default function LeadRadarWidget() {
           className="gap-1.5 border-[#C5A028]/30 text-[#C5A028] hover:bg-[#FFD700]/10 shrink-0"
         >
           {isScanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-          סרוק עכשיו
+          סנכרן Claude Code
         </Button>
       </CardHeader>
       <CardContent className="pt-0">
         {potentialLeads.length === 0 ? (
           <div className="text-center py-6 text-slate-400 text-sm">
             <Radar className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-            <p>הוסף את ה-Gmail שלך ל-Google Alerts (למשל "דרוש צלם") — והרדאר יזהה תוצאות חדשות אוטומטית.</p>
-            <p className="text-xs mt-1">לחץ "סרוק עכשיו" כדי לבדוק את התיבה.</p>
+            <p>אין כרגע לידים חדשים מרדאר Claude Code.</p>
+            <p className="text-xs mt-1">לחץ "סנכרן Claude Code" כדי למשוך תוצאות חדשות מהגיליון.</p>
           </div>
         ) : (
           <div className="space-y-3">

@@ -1,172 +1,91 @@
-// Lead Radar — scans Gmail alerts/forwards and saves only actionable, relevant leads.
-// Uses AI validation so irrelevant posts and broken/missing links are not shown in the radar.
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-const KEYWORDS = [
-  'דרוש צלם', 'דרושה צלמת', 'מחפש צלם', 'מחפשת צלם', 'מחפשים צלם',
-  'photographer needed', 'looking for a photographer', 'hiring photographer',
-  'need a photographer', 'event photographer',
-  'צלם לאירוע', 'צלם לחתונה', 'צלם לבר מצווה', 'צלם לבת מצווה',
-  'צלם וידאו', 'צלמת אירועים', 'צלם מקצועי',
-  'מכרז צילום', 'הצעת מחיר צילום', 'שירותי צילום',
-  'wedding photographer', 'bar mitzvah photographer', 'corporate photographer',
-];
+const SPREADSHEET_ID = '1Acz_kFz4d2oGyJflAWyrY4yiAAlbvWVqR7UNgKHCdD4';
+const SHEET_NAME = 'Claude Code';
 
-function b64decode(data = '') {
-  try {
-    const binary = atob(data.replace(/-/g, '+').replace(/_/g, '/'));
-    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-    return new TextDecoder('utf-8').decode(bytes);
-  } catch {
-    return '';
-  }
+function getCell(row, index) {
+  return String(row[index] || '').trim();
 }
 
-function extractMessageContent(payload) {
-  let text = '';
-  let html = '';
-
-  const walk = (part) => {
-    if (!part) return;
-    if (part.mimeType === 'text/plain' && part.body?.data) text += b64decode(part.body.data) + '\n';
-    if (part.mimeType === 'text/html' && part.body?.data) html += b64decode(part.body.data) + '\n';
-    if (part.parts) part.parts.forEach(walk);
-  };
-
-  walk(payload);
-
-  const readableHtml = html
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>|<\/div>|<\/li>|<\/tr>/gi, '\n')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
-
-  return { text: `${text}\n${readableHtml}`.trim(), html };
+function normalizePhone(phone) {
+  return String(phone || '').replace(/[^0-9]/g, '');
 }
 
-function pickKeywords(text) {
-  const lower = text.toLowerCase();
-  return KEYWORDS.filter(k => lower.includes(k.toLowerCase()));
+function isValidPhone(phone) {
+  const digits = normalizePhone(phone);
+  return digits.length >= 9 && digits.length <= 15 && !/^(\d)\1+$/.test(digits);
 }
 
-function extractContact(text) {
-  const phone = (text.match(/(?:\+?972[-\s]?|0)5\d[-\s]?\d{3}[-\s]?\d{4}/) || [])[0] || '';
-  const email = (text.match(/[\w.+-]+@[\w-]+\.[\w.-]+/) || [])[0] || '';
-  return { phone, email };
+function isValidEmail(email) {
+  return !!(email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim()));
 }
 
-function isValidContact(phone, email) {
-  const digits = String(phone || '').replace(/[^0-9]/g, '');
-  const hasPhone = digits.length === 10 && !/^(\d)\1+$/.test(digits);
-  const hasEmail = !!(email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim()));
-  return hasPhone || hasEmail;
+function extractUrl(...parts) {
+  const text = parts.filter(Boolean).join(' ');
+  const match = text.match(/https?:\/\/[^\s|,)>"]+/i);
+  return match ? match[0].replace(/[)\]"'<>.,]+$/g, '') : '';
 }
 
-function normalizeUrl(rawUrl = '') {
-  let url = rawUrl.replace(/[\]"'<>]+$/g, '').trim();
-  if (!url.startsWith('http')) return '';
-
-  try {
-    const parsed = new URL(url);
-    const nestedUrl = parsed.searchParams.get('url') || parsed.searchParams.get('q') || parsed.searchParams.get('u');
-    if (nestedUrl?.startsWith('http')) url = nestedUrl;
-  } catch {
-    return '';
-  }
-
-  return url;
-}
-
-function extractUrls(text, html) {
-  const combined = `${text}\n${html}`;
-  const urls = new Set();
-  const matches = combined.match(/https?:\/\/[^\s"'<>]+/g) || [];
-  for (const match of matches) {
-    const url = normalizeUrl(match);
-    if (!url) continue;
-    if (/google\.com\/alerts|accounts\.google|mail\.google|unsubscribe|support\.google/i.test(url)) continue;
-    urls.add(url);
-  }
-  return Array.from(urls).slice(0, 8);
-}
-
-function preprocessHtmlForAi(html = '') {
-  const title = (html.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1] || '';
-  const meta = Array.from(html.matchAll(/<meta[^>]+(?:name|property)=["'](?:description|og:title|og:description|twitter:title|twitter:description)["'][^>]+content=["']([^"']+)["'][^>]*>/gi))
-    .map(match => match[1]);
-  const jsonLd = Array.from(html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi))
-    .map(match => match[1].replace(/<[^>]+>/g, ' ').slice(0, 1200));
-  const bodyText = html
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<noscript[\s\S]*?<\/noscript>/gi, ' ')
-    .replace(/<svg[\s\S]*?<\/svg>/gi, ' ')
-    .replace(/<br\s*\/?>|<\/p>|<\/div>|<\/li>|<\/h[1-6]>/gi, '\n')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  return [title, ...meta, ...jsonLd, bodyText]
-    .filter(Boolean)
-    .join('\n')
-    .slice(0, 2500);
-}
-
-async function getReachableUrl(urls) {
-  for (const url of urls.slice(0, 3)) {
-    try {
-      const res = await fetch(url, { method: 'GET', redirect: 'follow' });
-      if (res.ok) {
-        const contentType = res.headers.get('content-type') || '';
-        const pageText = contentType.includes('text/html') ? preprocessHtmlForAi(await res.text()) : '';
-        return { url: res.url || url, pageText };
-      }
-    } catch {
-      // Broken links are ignored.
-    }
-  }
-  return { url: '', pageText: '' };
-}
-
-function platformFromSubjectAndFrom(subject = '', from = '', sourceUrl = '') {
-  const s = `${subject} ${from} ${sourceUrl}`.toLowerCase();
-  if (s.includes('linkedin')) return 'linkedin';
-  if (s.includes('facebook') || s.includes('פייסבוק')) return 'facebook';
-  if (s.includes('instagram') || s.includes('אינסטגרם')) return 'instagram';
-  if (s.includes('xplace')) return 'job_board';
-  if (s.includes('forum') || s.includes('פורום')) return 'forum';
-  if (s.includes('jobs') || s.includes('דרושים')) return 'job_board';
+function platformFromText(...parts) {
+  const text = parts.filter(Boolean).join(' ').toLowerCase();
+  if (text.includes('facebook') || text.includes('fb.com')) return 'facebook';
+  if (text.includes('instagram') || text.includes('ig.me') || text.includes('אינסטגרם')) return 'instagram';
+  if (text.includes('linkedin')) return 'linkedin';
+  if (text.includes('alljobs') || text.includes('drushim') || text.includes('xplace') || text.includes('דרושים')) return 'job_board';
+  if (text.includes('forum') || text.includes('פורום') || text.includes('prog.co.il')) return 'forum';
   return 'other';
 }
 
-async function validateLeadWithAi(base44, candidate) {
-  const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
-  prompt: `סנן ליד לצלם אירועים בישראל על בסיס טקסט מזוקק בלבד (Meta / JSON-LD / Text nodes), לא HTML מלא. אשר רק אם אדם/עסק מחפש צילום עכשיו. פסול: מאמר, קורס, שירות שהצלם מוכר, עמוד שגיאה, תוכן כללי.
-כותרת: ${candidate.title}
-קישור: ${candidate.source_url}
-טקסט: ${candidate.snippet}
-עמוד: ${candidate.pageText || ''}
-החזר JSON.`, 
-    response_json_schema: {
-      type: 'object',
-      properties: {
-        is_relevant: { type: 'boolean' },
-        relevance_score: { type: 'number' },
-        reason: { type: 'string' },
-        clean_title: { type: 'string' }
-      },
-      required: ['is_relevant', 'relevance_score', 'reason']
-    }
-  });
+function scoreLead({ phone, email, sourceUrl, source, notes }) {
+  let score = 6;
+  if (isValidPhone(phone)) score += 2;
+  if (isValidEmail(email)) score += 1;
+  if (sourceUrl) score += 1;
+  if (/defense|ביטחון|elbit|rafael|iai|תעשייה/i.test(`${source} ${notes}`)) score += 1;
+  return Math.min(10, score);
+}
 
-  return result;
+function isActionableRow({ name, phone, email, sourceUrl, sent }) {
+  const cleanName = String(name || '').trim().toLowerCase();
+  if (!name || ['לא ידוע', 'unknown', 'test', 'בדיקה', 'n/a', '-', '?'].includes(cleanName)) return false;
+  if (!isValidPhone(phone) && !isValidEmail(email)) return false;
+  if (!sourceUrl) return false;
+  if (String(sent || '').trim() === 'כן') return false;
+  return true;
+}
+
+function buildPotentialLead(row) {
+  const status = getCell(row, 0);
+  const name = getCell(row, 1);
+  const phone = getCell(row, 2);
+  const email = getCell(row, 3);
+  const source = getCell(row, 4) || 'Claude Code';
+  const service = getCell(row, 5);
+  const date = getCell(row, 6);
+  const notes = getCell(row, 7);
+  const link = getCell(row, 8);
+  const sent = getCell(row, 9);
+  const updateDate = getCell(row, 10);
+  const sourceUrl = extractUrl(link, notes, source);
+
+  if (!isActionableRow({ name, phone, email, sourceUrl, sent })) return null;
+
+  const titleParts = [name, service || source].filter(Boolean);
+  const snippetParts = [service, notes, date ? `תאריך: ${date}` : '', updateDate ? `עדכון: ${updateDate}` : ''].filter(Boolean);
+  const contactInfo = [phone, email].filter(Boolean).join(' / ');
+  const platform = platformFromText(source, sourceUrl, notes);
+
+  return {
+    title: titleParts.join(' — ').slice(0, 200),
+    platform,
+    snippet: snippetParts.join(' | ').slice(0, 500),
+    source_url: sourceUrl,
+    keywords_matched: [source, service].filter(Boolean).join(', '),
+    relevance_score: scoreLead({ phone, email, sourceUrl, source, notes }),
+    contact_info: contactInfo,
+    notes: [`Claude Code`, status ? `סטטוס: ${status}` : '', sent ? `נשלחה: ${sent}` : ''].filter(Boolean).join(' | '),
+    status: 'new',
+  };
 }
 
 Deno.serve(async (req) => {
@@ -177,138 +96,38 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const dryRun = body.dry_run === true;
+    const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
 
-    const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
-    const authHeader = { Authorization: `Bearer ${accessToken}` };
+    const range = encodeURIComponent(`'${SHEET_NAME}'!A1:Z1000`);
+    const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
 
-    const queries = [
-      'newer_than:14d (subject:"Google Alert" OR from:googlealerts-noreply@google.com)',
-      'newer_than:14d ("דרוש צלם" OR "מחפש צלם" OR "מחפשת צלמת" OR "photographer needed")',
-      'newer_than:14d from:linkedin.com',
-      'newer_than:14d (from:jobs-noreply@linkedin.com OR from:jobs-listings@linkedin.com OR from:notifications-noreply@linkedin.com)',
-      'newer_than:14d (subject:"linkedin" AND ("photographer" OR "צלם" OR "videographer"))',
-    ];
-
-    const messageIds = new Set();
-    for (const q of queries) {
-      const listRes = await fetch(
-        `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20&q=${encodeURIComponent(q)}`,
-        { headers: authHeader }
-      );
-      if (!listRes.ok) continue;
-      const data = await listRes.json();
-      (data.messages || []).forEach(m => messageIds.add(m.id));
+    if (!res.ok) {
+      const details = await res.text();
+      return Response.json({ error: 'Failed to read Claude Code radar sheet', details }, { status: res.status });
     }
 
-    if (messageIds.size === 0) {
-      return Response.json({ success: true, found: 0, saved: 0, rejected: 0, summary: 'אין תוצאות חדשות בתיבת המייל' });
-    }
+    const data = await res.json();
+    const rows = data.values || [];
+    const candidates = rows.slice(1).map(buildPotentialLead).filter(Boolean);
 
-    const existing = await base44.entities.PotentialLead.filter({}, '-created_date', 150);
-    const existingUrls = new Set(existing.map(e => e.source_url).filter(Boolean));
-    const existingKeys = new Set(existing.map(e => `${e.source_url || ''}|${e.title || ''}`.toLowerCase().trim()));
-
-    const discovered = [];
-    let rejected = 0;
-    let aiChecks = 0;
-    const maxAiChecks = 6;
-
-    for (const id of Array.from(messageIds).slice(0, 20)) {
-      const res = await fetch(
-        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=full`,
-        { headers: authHeader }
-      );
-      if (!res.ok) continue;
-
-      const msg = await res.json();
-      const headers = msg.payload?.headers || [];
-      const subject = headers.find(h => h.name === 'Subject')?.value || '';
-      const from = headers.find(h => h.name === 'From')?.value || '';
-      const { text, html } = extractMessageContent(msg.payload);
-      const matched = pickKeywords(text);
-
-      if (matched.length === 0) continue;
-
-      const urls = extractUrls(text, html);
-      if (urls.length === 0 || urls.some(url => existingUrls.has(url))) {
-        rejected++;
-        continue;
-      }
-
-      const { phone, email } = extractContact(text);
-      if (!isValidContact(phone, email)) {
-        rejected++;
-        continue;
-      }
-
-      const idx = text.toLowerCase().indexOf(matched[0].toLowerCase());
-      const snippet = text.substring(Math.max(0, idx - 60), Math.min(text.length, idx + 220)).trim();
-      if (snippet.length < 40 || aiChecks >= maxAiChecks) {
-        rejected++;
-        continue;
-      }
-
-      const reachable = await getReachableUrl(urls);
-      if (!reachable.url || existingUrls.has(reachable.url)) {
-        rejected++;
-        continue;
-      }
-
-      const platform = platformFromSubjectAndFrom(subject, from, reachable.url);
-
-      const candidate = {
-        title: (subject || matched[0]).substring(0, 200),
-        platform,
-        snippet,
-        source_url: reachable.url,
-        pageText: reachable.pageText,
-        keywords_matched: matched.join(', '),
-        contact_info: [phone, email].filter(Boolean).join(' / ') || 'N/A',
-      };
-
-      aiChecks++;
-      const ai = await validateLeadWithAi(base44, candidate);
-      if (!ai.is_relevant || Number(ai.relevance_score || 0) < 7) {
-        rejected++;
-        continue;
-      }
-
-      discovered.push({
-        ...candidate,
-        title: (ai.clean_title || candidate.title).substring(0, 200),
-        relevance_score: Math.min(10, Math.max(1, Number(ai.relevance_score || 7))),
-        notes: ai.reason || '',
-      });
-    }
-
-    if (discovered.length === 0) {
-      return Response.json({ success: true, found: 0, saved: 0, rejected, summary: `לא נמצאו פוסטים רלוונטיים עם קישור תקין. נפסלו ${rejected}.` });
-    }
-
-    const newOnes = discovered.filter(l => l.title && l.source_url && !existingKeys.has(`${l.source_url}|${l.title}`.toLowerCase().trim()));
+    const existing = await base44.asServiceRole.entities.PotentialLead.filter({}, '-created_date', 300);
+    const existingKeys = new Set(existing.map((lead) => `${lead.source_url || ''}|${lead.title || ''}`.toLowerCase().trim()));
+    const newOnes = candidates.filter((lead) => !existingKeys.has(`${lead.source_url}|${lead.title}`.toLowerCase().trim()));
 
     if (newOnes.length > 0 && !dryRun) {
-      await base44.entities.PotentialLead.bulkCreate(newOnes.map(l => ({
-        title: l.title.substring(0, 200),
-        platform: l.platform,
-        snippet: l.snippet?.substring(0, 500) || '',
-        source_url: l.source_url,
-        keywords_matched: l.keywords_matched,
-        relevance_score: l.relevance_score,
-        contact_info: l.contact_info,
-        notes: l.notes,
-        status: 'new',
-      })));
+      await base44.asServiceRole.entities.PotentialLead.bulkCreate(newOnes);
     }
 
     return Response.json({
       success: true,
-      found: discovered.length,
+      source: 'Claude Code',
+      found: candidates.length,
       saved: dryRun ? 0 : newOnes.length,
-      rejected,
+      rejected: Math.max(0, rows.length - 1 - candidates.length),
       dryRun,
-      aiChecks,
-      summary: `סריקה חסכונית הושלמה: ${discovered.length} רלוונטיים, ${rejected} נפסלו, ${aiChecks} בדיקות AI, ${dryRun ? 0 : newOnes.length} נשמרו`,
+      summary: `Claude Code Radar: ${candidates.length} תקינים, ${newOnes.length} חדשים`,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
