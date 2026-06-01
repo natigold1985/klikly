@@ -7,6 +7,36 @@ function normalizePhone(value) {
   return String(value || '').replace(/[^0-9]/g, '');
 }
 
+function toLocalPhone(value) {
+  const digits = normalizePhone(value);
+  if (digits.startsWith('972')) return `0${digits.slice(3)}`;
+  return digits;
+}
+
+function isValidPhone(value) {
+  const local = toLocalPhone(value);
+  if (!local) return false;
+  if (/^(\d)\1+$/.test(local)) return false;
+  if (/123456|234567|345678|456789|987654|876543|765432|654321/.test(local)) return false;
+  if (/(\d)\1{2,}/.test(local)) return false;
+  return /^05\d{8}$/.test(local) || /^0[23489]\d{7}$/.test(local);
+}
+
+function isValidEmail(value) {
+  return !!(value && /[^\s@]+@[^\s@]+\.[^\s@]+/.test(String(value).trim()));
+}
+
+function hasValidEmail(cells) {
+  return cells.some((cell) => isValidEmail(cell));
+}
+
+function hasInvalidPhoneOnly(cells) {
+  const phoneLike = cells
+    .map((cell) => String(cell || '').trim())
+    .filter((cell) => normalizePhone(cell).length >= 8 && !/^\d{1,2}[./-]\d{1,2}[./-]\d{2,4}$/.test(cell));
+  return phoneLike.length > 0 && !phoneLike.some((cell) => isValidPhone(cell)) && !hasValidEmail(cells);
+}
+
 function isGhostText(text) {
   const value = String(text || '').toLowerCase();
   return value.includes('לא ידוע') || value.includes('ליד ללא שם');
@@ -18,15 +48,20 @@ function isFakeCourseText(text) {
 }
 
 function isGhostRow(row) {
-  const joined = (row || []).join(' ');
+  const cells = row || [];
+  const joined = cells.join(' ');
   if (isGhostText(joined) || isFakeCourseText(joined)) return true;
-  return (row || []).some((cell) => TARGET_PHONES.has(normalizePhone(cell)));
+  if (cells.some((cell) => TARGET_PHONES.has(normalizePhone(cell)))) return true;
+  return hasInvalidPhoneOnly(cells);
 }
 
 function isGhostLead(lead) {
-  const phone = normalizePhone(lead.phone || lead.contact_info);
+  const phone = lead.phone || lead.contact_info || '';
+  const normalizedPhone = normalizePhone(phone);
   const text = [lead.name, lead.title, lead.notes, lead.shooting_type, lead.source, lead.source_post_url, lead.snippet].filter(Boolean).join(' ');
-  return isGhostText(text) || isFakeCourseText(text) || TARGET_PHONES.has(phone);
+  const hasEmail = isValidEmail(lead.email) || isValidEmail(lead.contact_info);
+  const hasPhone = isValidPhone(phone);
+  return isGhostText(text) || isFakeCourseText(text) || TARGET_PHONES.has(normalizedPhone) || (!hasEmail && !hasPhone);
 }
 
 async function deleteRelated(base44, leadId) {

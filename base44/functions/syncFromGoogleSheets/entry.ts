@@ -57,9 +57,12 @@ function tabNameToSource(tabName) {
 }
 
 function isValidPhone(phone) {
-    if (!phone) return false;
-    const digits = String(phone).replace(/[^0-9]/g, '');
-    return digits.length >= 9 && digits.length <= 15 && !/^(\d)\1+$/.test(digits);
+    const digits = String(phone || '').replace(/[^0-9]/g, '');
+    const local = digits.startsWith('972') ? `0${digits.slice(3)}` : digits;
+    if (!local || /^(\d)\1+$/.test(local)) return false;
+    if (/123456|234567|345678|456789|987654|876543|765432|654321/.test(local)) return false;
+    if (/(\d)\1{2,}/.test(local)) return false;
+    return /^05\d{8}$/.test(local) || /^0[23489]\d{7}$/.test(local);
 }
 
 function isValidEmail(email) {
