@@ -1,0 +1,83 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+
+const SPREADSHEET_ID = '1Acz_kFz4d2oGyJflAWyrY4yiAAlbvWVqR7UNgKHCdD4';
+const SHEET_NAME = 'Claude Code';
+
+function isIrrelevantMarketingLead(...parts) {
+  const text = parts.filter(Boolean).join(' ').toLowerCase();
+  return /מנהל\s*שיווק|מנהלת\s*שיווק|שיווק\s*בינלאומי|marketing\s*manager|intl\.\s*marketing|international\s*marketing|marcom/.test(text);
+}
+
+function leadText(record) {
+  return [
+    record.name,
+    record.title,
+    record.source,
+    record.shooting_type,
+    record.role_title,
+    record.notes,
+    record.snippet,
+    record.keywords_matched,
+    record.source_post_url,
+    record.source_url,
+  ].filter(Boolean).join(' ');
+}
+
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+    const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
+
+    const range = encodeURIComponent(`'${SHEET_NAME}'!A1:K1000`);
+    const readResp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!readResp.ok) {
+      const details = await readResp.text();
+      return Response.json({ error: 'Failed to read Claude Code sheet', details }, { status: readResp.status });
+    }
+
+    const sheetData = await readResp.json();
+    const rows = sheetData.values || [];
+    let sheetMarked = 0;
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i] || [];
+      if (!isIrrelevantMarketingLead(...row)) continue;
+      const rowNumber = i + 1;
+      const updateRange = encodeURIComponent(`'${SHEET_NAME}'!A${rowNumber}:K${rowNumber}`);
+      const nextRow = [...row];
+      while (nextRow.length < 11) nextRow.push('');
+      nextRow[0] = 'לא רלוונטי';
+      nextRow[10] = new Date().toISOString().slice(0, 10);
+      const updateResp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${updateRange}?valueInputOption=USER_ENTERED`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ values: [nextRow.slice(0, 11)] }),
+      });
+      if (updateResp.ok) sheetMarked++;
+    }
+
+    const potentialLeads = await base44.asServiceRole.entities.PotentialLead.list('-created_date', 1000);
+    let potentialDeleted = 0;
+    for (const lead of potentialLeads) {
+      if (isIrrelevantMarketingLead(leadText(lead))) {
+        await base44.asServiceRole.entities.PotentialLead.delete(lead.id);
+        potentialDeleted++;
+      }
+    }
+
+    const leads = await base44.asServiceRole.entities.Lead.list('-created_date', 2000);
+    let leadsDeleted = 0;
+    for (const lead of leads) {
+      if (isIrrelevantMarketingLead(leadText(lead))) {
+        await base44.asServiceRole.entities.Lead.delete(lead.id);
+        leadsDeleted++;
+      }
+    }
+
+    return Response.json({ success: true, sheetMarked, potentialDeleted, leadsDeleted });
+  } catch (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+});

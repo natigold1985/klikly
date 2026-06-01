@@ -64,6 +64,26 @@ function extractUrl(...parts) {
   return match ? match[0].replace(/[)\]"'<>.,]+$/g, '') : '';
 }
 
+function isDirectSourceUrl(url) {
+  const value = String(url || '').trim();
+  if (!value) return false;
+  const lower = value.toLowerCase();
+  if (/google\.[^/]+\/search|natigold\.com|\/groups\/?$|facebook\.com\/groups\/[^/]+\/?$/.test(lower)) return false;
+  try {
+    const parsed = new URL(value);
+    const path = parsed.pathname.replace(/\/+$/, '');
+    if (!path || path === '' || path === '/he' || path.split('/').filter(Boolean).length < 2) return false;
+  } catch (_) {
+    return false;
+  }
+  return true;
+}
+
+function isIrrelevantMarketingLead(...parts) {
+  const text = parts.filter(Boolean).join(' ').toLowerCase();
+  return /מנהל\s*שיווק|מנהלת\s*שיווק|שיווק\s*בינלאומי|marketing\s*manager|intl\.\s*marketing|international\s*marketing|marcom/.test(text);
+}
+
 function detectSource(...parts) {
   const text = parts.filter(Boolean).join(' ').toLowerCase();
   if (text.includes('linkedin')) return 'LinkedIn';
@@ -220,6 +240,11 @@ Deno.serve(async (req) => {
         const sourceUrl = extractUrl(link, notesCol, sourceCol);
 
         if (!isFullName(name) || (!isValidPhone(phone) && !isValidEmail(email))) {
+          skipped++; tabSkipped++;
+          continue;
+        }
+
+        if (isIrrelevantMarketingLead(name, sourceCol, type, notesCol, company) || !isDirectSourceUrl(sourceUrl)) {
           skipped++; tabSkipped++;
           continue;
         }

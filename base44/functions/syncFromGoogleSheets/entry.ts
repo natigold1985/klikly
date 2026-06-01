@@ -98,6 +98,26 @@ function extractSourceUrl(...fragments) {
     return match ? match[0].replace(/[)\]"'<>]+$/g, '') : '';
 }
 
+function isDirectSourceUrl(url) {
+    const value = String(url || '').trim();
+    if (!value) return false;
+    const lower = value.toLowerCase();
+    if (/google\.[^/]+\/search|natigold\.com|\/groups\/?$|facebook\.com\/groups\/[^/]+\/?$/.test(lower)) return false;
+    try {
+        const parsed = new URL(value);
+        const path = parsed.pathname.replace(/\/+$/, '');
+        if (!path || path === '' || path === '/he' || path.split('/').filter(Boolean).length < 2) return false;
+    } catch (_) {
+        return false;
+    }
+    return true;
+}
+
+function isIrrelevantMarketingLead(...fragments) {
+    const text = fragments.filter(Boolean).join(' ').toLowerCase();
+    return /מנהל\s*שיווק|מנהלת\s*שיווק|שיווק\s*בינלאומי|marketing\s*manager|intl\.\s*marketing|international\s*marketing|marcom/.test(text);
+}
+
 function classifyPipeline(source = '', notes = '', shootingType = '') {
     const text = [source, notes, shootingType].join(' ').toLowerCase();
     if (/רפאל|אלביט|תעא|תעשייה אווירית|iai|rafael|elbit|defense|ביטחון|ביטחונית/.test(text)) {
@@ -332,7 +352,14 @@ Deno.serve(async (req) => {
                     continue;
                 }
 
-                // Rule 2: job board / professional-site sources require an exact source URL
+                // Rule 2: reject irrelevant marketing-role contacts and require a direct source URL
+                if (isIrrelevantMarketingLead(name, sourceCol, typeCol, notesCol, companyCol) || !isDirectSourceUrl(sourceUrl)) {
+                    tabSkipped++;
+                    skipped++;
+                    continue;
+                }
+
+                // Rule 3: job board / professional-site sources require an exact source URL
                 const JOB_BOARD_INDICATORS = ['drushim', 'alljobs', 'job.co.il', 'linkedin.com/jobs', 'yad2', 'gov.il', 'mod.gov.il', 'industry.co.il', 'ביטחון', 'דרושים'];
                 const allSourceText = [detectedSource, sourceCol, linkCol, notesCol].join(' ').toLowerCase();
                 if (JOB_BOARD_INDICATORS.some(k => allSourceText.includes(k)) && !sourceUrl) {

@@ -26,6 +26,26 @@ function extractUrl(...parts) {
   return match ? match[0].replace(/[)\]"'<>.,]+$/g, '') : '';
 }
 
+function isDirectSourceUrl(url) {
+  const value = String(url || '').trim();
+  if (!value) return false;
+  const lower = value.toLowerCase();
+  if (/google\.[^/]+\/search|natigold\.com|\/groups\/?$|facebook\.com\/groups\/[^/]+\/?$/.test(lower)) return false;
+  try {
+    const parsed = new URL(value);
+    const path = parsed.pathname.replace(/\/+$/, '');
+    if (!path || path === '' || path === '/he' || path.split('/').filter(Boolean).length < 2) return false;
+  } catch (_) {
+    return false;
+  }
+  return true;
+}
+
+function isIrrelevantMarketingLead(...parts) {
+  const text = parts.filter(Boolean).join(' ').toLowerCase();
+  return /מנהל\s*שיווק|מנהלת\s*שיווק|שיווק\s*בינלאומי|marketing\s*manager|intl\.\s*marketing|international\s*marketing|marcom/.test(text);
+}
+
 function platformFromText(...parts) {
   const text = parts.filter(Boolean).join(' ').toLowerCase();
   if (text.includes('facebook') || text.includes('fb.com')) return 'facebook';
@@ -45,11 +65,12 @@ function scoreLead({ phone, email, sourceUrl, source, notes }) {
   return Math.min(10, score);
 }
 
-function isActionableRow({ name, phone, email, sourceUrl, sent }) {
+function isActionableRow({ name, phone, email, sourceUrl, sent, source, service, notes }) {
   const cleanName = String(name || '').trim().toLowerCase();
   if (!name || ['לא ידוע', 'unknown', 'test', 'בדיקה', 'n/a', '-', '?'].includes(cleanName)) return false;
+  if (isIrrelevantMarketingLead(name, source, service, notes)) return false;
   if (!isValidPhone(phone) && !isValidEmail(email)) return false;
-  if (!sourceUrl) return false;
+  if (!isDirectSourceUrl(sourceUrl)) return false;
   if (String(sent || '').trim() === 'כן') return false;
   return true;
 }
@@ -68,7 +89,7 @@ function buildPotentialLead(row) {
   const updateDate = getCell(row, 10);
   const sourceUrl = extractUrl(link, notes, source);
 
-  if (!isActionableRow({ name, phone, email, sourceUrl, sent })) return null;
+  if (!isActionableRow({ name, phone, email, sourceUrl, sent, source, service, notes })) return null;
 
   const titleParts = [name, service || source].filter(Boolean);
   const snippetParts = [service, notes, date ? `תאריך: ${date}` : '', updateDate ? `עדכון: ${updateDate}` : ''].filter(Boolean);
