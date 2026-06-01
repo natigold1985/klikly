@@ -258,7 +258,7 @@ Deno.serve(async (req) => {
             }
 
             const headers = rows[0];
-            const idx = {
+            let idx = {
                 name: findColumnIndex(headers, HEADER_KEYS.name),
                 phone: findColumnIndex(headers, HEADER_KEYS.phone),
                 email: findColumnIndex(headers, HEADER_KEYS.email),
@@ -269,6 +269,22 @@ Deno.serve(async (req) => {
                 link: findColumnIndex(headers, HEADER_KEYS.link),
                 company: findColumnIndex(headers, HEADER_KEYS.company),
                 status: findColumnIndex(headers, HEADER_KEYS.status),
+            };
+
+            // Claude Code tab has partially-empty headers; map its fixed export columns directly.
+            if (tabName.toLowerCase().includes('claude code')) {
+                idx = {
+                    status: 0,
+                    name: 1,
+                    phone: 2,
+                    email: 3,
+                    source: 4,
+                    type: 5,
+                    address: -1,
+                    notes: 7,
+                    link: 8,
+                    company: -1,
+                };
             };
 
             // Need at least name OR phone OR email to make sense of a row
@@ -309,8 +325,8 @@ Deno.serve(async (req) => {
                 const notes = notesParts.join(' | ');
                 const sourceUrl = extractSourceUrl(linkCol, notesCol, sourceCol);
 
-                // Rule 1: must have name + (phone OR email)
-                if (!name || (!isValidPhone(phone) && !isValidEmail(email)) || !isRealLeadName(name, phone, email)) {
+                // Rule 1: must have valid full name + (valid phone OR valid email)
+                if (!isFullName(name) || (!isValidPhone(phone) && !isValidEmail(email))) {
                     tabSkipped++;
                     skipped++;
                     continue;
