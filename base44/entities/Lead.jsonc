@@ -20,15 +20,15 @@
     },
     "shooting_type": {
       "type": "string",
-      "description": "\u05e1\u05d5\u05d2 \u05e6\u05d9\u05dc\u05d5\u05dd (\u05d7\u05ea\u05d5\u05e0\u05d4, \u05d1\u05e8 \u05de\u05e6\u05d5\u05d5\u05d4, \u05d0\u05d9\u05e8\u05d5\u05e2\u05d9\u05dd \u05d5\u05db\u05d5')"
+      "description": "\u05e1\u05d5\u05d2 \u05e6\u05d9\u05dc\u05d5\u05dd"
     },
     "lead_type": {
       "type": "string",
-      "description": "\u05e1\u05d5\u05d2 \u05d4\u05dc\u05d9\u05d3 / \u05ea\u05d7\u05d5\u05dd \u05e2\u05e0\u05d9\u05d9\u05df, \u05dc\u05de\u05e9\u05dc \u05e9\u05d9\u05e8\u05d5\u05ea\u05d9 \u05e6\u05d9\u05dc\u05d5\u05dd \u05d0\u05d5 \u05de\u05ea\u05e2\u05e0\u05d9\u05d9\u05df \u05d1\u05e7\u05d5\u05e8\u05e1"
+      "description": "\u05e1\u05d5\u05d2 \u05d4\u05dc\u05d9\u05d3 / \u05ea\u05d7\u05d5\u05dd \u05e2\u05e0\u05d9\u05d9\u05df"
     },
     "role_title": {
       "type": "string",
-      "description": "\u05ea\u05e4\u05e7\u05d9\u05d3 \u05d0\u05d5 \u05d8\u05d9\u05d9\u05d8\u05dc \u05de\u05e7\u05e6\u05d5\u05e2\u05d9 \u05e9\u05dc \u05d4\u05dc\u05d9\u05d3, \u05dc\u05de\u05e9\u05dc \u05de\u05e0\u05d4\u05dc \u05e9\u05d9\u05d5\u05d5\u05e7, HR, \u05de\u05e9\u05e7\u05d9\u05ea \u05ea\u05e9"
+      "description": "\u05ea\u05e4\u05e7\u05d9\u05d3 \u05d0\u05d5 \u05d8\u05d9\u05d9\u05d8\u05dc \u05de\u05e7\u05e6\u05d5\u05e2\u05d9"
     },
     "pipeline": {
       "type": "string",
@@ -59,14 +59,14 @@
     "status": {
       "type": "string",
       "enum": [
-        "new",
-        "in_progress",
-        "follow_up",
-        "quote_sent",
-        "closed_won",
-        "closed_lost"
+        "\u05dc\u05d9\u05d3 \u05d7\u05d3\u05e9",
+        "\u05e0\u05d5\u05e6\u05e8 \u05e7\u05e9\u05e8",
+        "\u05e0\u05e9\u05dc\u05d7 \u05e4\u05d5\u05dc\u05d5-\u05d0\u05e4",
+        "\u05e0\u05e2\u05e0\u05d4",
+        "\u05e0\u05e1\u05d2\u05e8 \u05d1\u05d4\u05e6\u05dc\u05d7\u05d4",
+        "\u05dc\u05d0 \u05e8\u05dc\u05d5\u05d5\u05e0\u05d8\u05d9"
       ],
-      "default": "new",
+      "default": "\u05dc\u05d9\u05d3 \u05d7\u05d3\u05e9",
       "description": "\u05e1\u05d8\u05d8\u05d5\u05e1 \u05d4\u05dc\u05d9\u05d3"
     },
     "source": {
@@ -75,7 +75,7 @@
     },
     "source_post_url": {
       "type": "string",
-      "description": "\u05e7\u05d9\u05e9\u05d5\u05e8 \u05de\u05d3\u05d5\u05d9\u05e7 \u05dc\u05e4\u05d5\u05e1\u05d8 / \u05de\u05d5\u05d3\u05e2\u05d4 / \u05e2\u05de\u05d5\u05d3 \u05d4\u05de\u05e7\u05d5\u05e8 \u05e9\u05de\u05de\u05e0\u05d5 \u05d4\u05d2\u05d9\u05e2 \u05d4\u05dc\u05d9\u05d3"
+      "description": "\u05e7\u05d9\u05e9\u05d5\u05e8 \u05de\u05d3\u05d5\u05d9\u05e7 \u05dc\u05e4\u05d5\u05e1\u05d8 / \u05de\u05d5\u05d3\u05e2\u05d4 / \u05e2\u05de\u05d5\u05d3 \u05d4\u05de\u05e7\u05d5\u05e8"
     },
     "event_date": {
       "type": "string",
@@ -89,6 +89,13 @@
     "notes": {
       "type": "string",
       "description": "\u05d4\u05e2\u05e8\u05d5\u05ea \u05db\u05dc\u05dc\u05d9\u05d5\u05ea"
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "\u05e7\u05d1\u05e6\u05d9\u05dd \u05de\u05e6\u05d5\u05e8\u05e4\u05d9\u05dd \u05dc\u05dc\u05d9\u05d3"
     },
     "last_contact_date": {
       "type": "string",
@@ -137,11 +144,11 @@
     "auto_followup_interval_days": {
       "type": "number",
       "default": 3,
-      "description": "\u05de\u05e1\u05e4\u05e8 \u05d9\u05de\u05d9\u05dd \u05d1\u05d9\u05df \u05d4\u05d5\u05d3\u05e2\u05d5\u05ea"
+      "description": "\u05de\u05e1\u05e4\u05e8 \u05d9\u05de\u05d9\u05dd \u05d1\u05d9\u05df \u05d4\u05d4\u05d5\u05d3\u05e2\u05d5\u05ea"
     },
     "auto_followup_send_time": {
       "type": "string",
-      "description": "\u05e9\u05e2\u05ea \u05e9\u05dc\u05d9\u05d7\u05ea \u05e4\u05d5\u05dc\u05d5-\u05d0\u05e4 \u05e7\u05d1\u05d5\u05e2\u05d4 \u05d1\u05e4\u05d5\u05e8\u05de\u05d8 HH:MM"
+      "description": "\u05e9\u05e2\u05ea \u05e9\u05dc\u05d9\u05d7\u05d4 \u05e7\u05d1\u05d5\u05e2\u05d4 \u05d1\u05e4\u05d5\u05e8\u05de\u05d8 HH:MM"
     },
     "auto_followup_send_day": {
       "type": "string",
@@ -156,7 +163,7 @@
         "6"
       ],
       "default": "any",
-      "description": "\u05d9\u05d5\u05dd \u05e9\u05dc\u05d9\u05d7\u05d4 \u05e7\u05d1\u05d5\u05e2: any \u05d0\u05d5 0-6 \u05db\u05d0\u05e9\u05e8 0 \u05d4\u05d5\u05d0 \u05e8\u05d0\u05e9\u05d5\u05df"
+      "description": "\u05d9\u05d5\u05dd \u05e9\u05dc\u05d9\u05d7\u05d4 \u05e7\u05d1\u05d5\u05e2"
     },
     "auto_followup_push_enabled": {
       "type": "boolean",
@@ -181,7 +188,7 @@
     "lead_auto_reply_sent": {
       "type": "boolean",
       "default": false,
-      "description": "\u05d4\u05d0\u05dd \u05e0\u05e9\u05dc\u05d7 \u05dc\u05dc\u05d9\u05d3 \u05de\u05d9\u05d9\u05dc \u05e4\u05d5\u05dc\u05d5\u05d0\u05e4 \u05d0\u05d5\u05d8\u05d5\u05de\u05d8\u05d9 '\u05d4\u05d9\u05d9 \u05de\u05d4 \u05e7\u05d5\u05e8\u05d4'"
+      "description": "\u05d4\u05d0\u05dd \u05e0\u05e9\u05dc\u05d7 \u05dc\u05dc\u05d9\u05d3 \u05de\u05d9\u05d9\u05dc \u05e4\u05d5\u05dc\u05d5\u05d0\u05e4 \u05d0\u05d5\u05d8\u05d5\u05de\u05d8\u05d9"
     },
     "is_filtered": {
       "type": "boolean",
@@ -195,7 +202,7 @@
     "synced_to_filtered_sheet": {
       "type": "boolean",
       "default": false,
-      "description": "\u05d4\u05d0\u05dd \u05d4\u05dc\u05d9\u05d3 \u05db\u05d1\u05e8 \u05e1\u05d5\u05e0\u05db\u05e8\u05df \u05dc\u05d2\u05d9\u05dc\u05d9\u05d5\u05df \u05de\u05e1\u05d5\u05e0\u05e0\u05d9\u05dd \u05d1\u05d2\u05d5\u05d2\u05dc \u05e9\u05d9\u05d8\u05e1"
+      "description": "\u05d4\u05d0\u05dd \u05d4\u05dc\u05d9\u05d3 \u05db\u05d1\u05e8 \u05e1\u05d5\u05e0\u05db\u05e8\u05df \u05dc\u05d2\u05d9\u05dc\u05d9\u05d5\u05df \u05de\u05e1\u05d5\u05e0\u05e0\u05d9\u05dd"
     }
   },
   "required": [

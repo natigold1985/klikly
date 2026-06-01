@@ -63,11 +63,13 @@
     "read": {
       "$or": [
         {
-          "created_by": "{{user.email}}"
+          "user_condition": {
+            "role": "admin"
+          }
         },
         {
           "user_condition": {
-            "role": "admin"
+            "role": "photographer"
           }
         }
       ]
@@ -81,6 +83,11 @@
           "user_condition": {
             "role": "admin"
           }
+        },
+        {
+          "user_condition": {
+            "role": "photographer"
+          }
         }
       ]
     },
@@ -92,6 +99,11 @@
         {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "photographer"
           }
         }
       ]

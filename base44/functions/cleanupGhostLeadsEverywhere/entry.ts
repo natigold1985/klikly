@@ -12,16 +12,21 @@ function isGhostText(text) {
   return value.includes('לא ידוע') || value.includes('ליד ללא שם');
 }
 
+function isFakeCourseText(text) {
+  const value = String(text || '').toLowerCase();
+  return value.includes('photography-course') || value.includes('קורס צילום') || value.includes('קורסי צילום');
+}
+
 function isGhostRow(row) {
   const joined = (row || []).join(' ');
-  if (isGhostText(joined)) return true;
+  if (isGhostText(joined) || isFakeCourseText(joined)) return true;
   return (row || []).some((cell) => TARGET_PHONES.has(normalizePhone(cell)));
 }
 
 function isGhostLead(lead) {
   const phone = normalizePhone(lead.phone || lead.contact_info);
   const text = [lead.name, lead.title, lead.notes, lead.shooting_type, lead.source, lead.source_post_url, lead.snippet].filter(Boolean).join(' ');
-  return isGhostText(text) || TARGET_PHONES.has(phone);
+  return isGhostText(text) || isFakeCourseText(text) || TARGET_PHONES.has(phone);
 }
 
 async function deleteRelated(base44, leadId) {
