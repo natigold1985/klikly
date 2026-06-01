@@ -24,42 +24,28 @@ Deno.serve(async (req) => {
     }
 
     const metadata = await metaResp.json();
-    const requests = [];
+    const ranges = [];
     const clearedBySheet = {};
 
     for (const sheet of metadata.sheets || []) {
-      const { sheetId, title, gridProperties } = sheet.properties;
-      const rowCount = gridProperties?.rowCount || 0;
-      if (rowCount <= 1) {
-        clearedBySheet[title] = 0;
-        continue;
-      }
-      requests.push({
-        deleteDimension: {
-          range: {
-            sheetId,
-            dimension: 'ROWS',
-            startIndex: 1,
-            endIndex: rowCount,
-          },
-        },
-      });
-      clearedBySheet[title] = rowCount - 1;
+      const title = sheet.properties.title;
+      ranges.push(`'${title.replace(/'/g, "''")}'!A2:Z10000`);
+      clearedBySheet[title] = 'cleared_from_row_2';
     }
 
-    if (requests.length > 0) {
-      const batchResp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+    if (ranges.length > 0) {
+      const clearResp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchClear`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requests }),
+        body: JSON.stringify({ ranges }),
       });
-      if (!batchResp.ok) {
-        const details = await batchResp.text();
-        return Response.json({ error: 'Failed to clear sheet rows', details }, { status: batchResp.status });
+      if (!clearResp.ok) {
+        const details = await clearResp.text();
+        return Response.json({ error: 'Failed to clear sheet values', details }, { status: clearResp.status });
       }
     }
 
-    return Response.json({ success: true, spreadsheetId, clearedTabs: requests.length, clearedBySheet });
+    return Response.json({ success: true, spreadsheetId, clearedTabs: ranges.length, clearedBySheet });
   } catch (error) {
     return Response.json({ error: error.message, stack: error.stack }, { status: 500 });
   }
