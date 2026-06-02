@@ -41,6 +41,7 @@ export default function BroadcastActions() {
   const [message, setMessage] = useState('היי {{שם}}, כאן נתי גולד. רציתי לעדכן אותך במשהו שיכול לעזור לעסק שלך עם צילום/וידאו מקצועי.');
   const [sending, setSending] = useState(false);
   const [whatsappIndex, setWhatsappIndex] = useState(0);
+  const [emailIndex, setEmailIndex] = useState(0);
 
   const { data: subscribers = [] } = useQuery({
     queryKey: ['broadcastSubscribers'],
@@ -61,10 +62,15 @@ export default function BroadcastActions() {
 
   const currentWhatsappRecipient = whatsappRecipients[whatsappIndex] || null;
   const currentWhatsappPhone = currentWhatsappRecipient ? cleanPhone(currentWhatsappRecipient.phone) : '';
+  const currentEmailRecipient = emailRecipients[emailIndex] || null;
 
   const buildWhatsappLink = (subscriber) => {
     const phone = cleanPhone(subscriber.phone);
     return `https://wa.me/${phone}?text=${encodeURIComponent(personalize(message, subscriber))}`;
+  };
+
+  const buildMailtoLink = (subscriber) => {
+    return `mailto:${subscriber.email}?subject=${encodeURIComponent(personalize(subject, subscriber))}&body=${encodeURIComponent(personalize(message, subscriber))}`;
   };
 
   const sendEmail = async () => {
@@ -73,18 +79,8 @@ export default function BroadcastActions() {
       return;
     }
 
-    if (!confirm(`לשלוח מייל ל-${emailRecipients.length} נמענים שאישרו דיוור?`)) return;
-
-    setSending(true);
-    toast.loading('שולח תפוצה במייל...', { id: 'broadcast-email' });
-    try {
-      const res = await base44.functions.invoke('sendNewsletterBroadcast', { subject, body: message });
-      toast.success(`נשלחו ${res.data.sent || 0} מיילים`, { id: 'broadcast-email' });
-    } catch (error) {
-      toast.error(`שגיאה בשליחת מייל: ${error.message}`, { id: 'broadcast-email' });
-    } finally {
-      setSending(false);
-    }
+    navigator.clipboard.writeText(emailRecipients.map((subscriber) => subscriber.email).join(', '));
+    toast.error('שליחה אוטומטית למיילים חיצוניים דורשת חיבור ספק מייל ייעודי. בינתיים רשימת המיילים הועתקה ואפשר לשלוח אחד־אחד.', { duration: 7000 });
   };
 
   const openWhatsAppRecipient = (index) => {
@@ -116,6 +112,27 @@ export default function BroadcastActions() {
       return;
     }
     openWhatsAppRecipient(nextIndex);
+  };
+
+  const openEmailRecipient = (index) => {
+    const subscriber = emailRecipients[index];
+    if (!subscriber) {
+      toast.error('אין נמען מייל לפתיחה');
+      return;
+    }
+
+    setEmailIndex(index);
+    window.location.href = buildMailtoLink(subscriber);
+    toast.success(`נפתח מייל לנמען ${index + 1} מתוך ${emailRecipients.length}`);
+  };
+
+  const openNextEmail = () => {
+    const nextIndex = Math.min(emailIndex + 1, emailRecipients.length - 1);
+    if (nextIndex === emailIndex) {
+      toast.success('הגעת לסוף רשימת המיילים');
+      return;
+    }
+    openEmailRecipient(nextIndex);
   };
 
   const copyEmailList = () => {
@@ -184,10 +201,35 @@ export default function BroadcastActions() {
             </p>
           </div>
 
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-3">
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <div>
+                <div className="font-bold text-amber-900">שליחת מייל אחד־אחד</div>
+                <div className="text-amber-700">
+                  {currentEmailRecipient
+                    ? `${emailIndex + 1}/${emailRecipients.length} · ${currentEmailRecipient.full_name || currentEmailRecipient.email} · ${currentEmailRecipient.email}`
+                    : 'אין נמענים עם מייל תקין'}
+                </div>
+              </div>
+              <Mail className="w-5 h-5 text-amber-700" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <Button onClick={() => openEmailRecipient(emailIndex)} variant="outline" disabled={emailRecipients.length === 0} className="border-amber-300 text-amber-800 hover:bg-amber-100">
+                פתח מייל נוכחי
+              </Button>
+              <Button onClick={openNextEmail} variant="outline" disabled={emailRecipients.length === 0 || emailIndex >= emailRecipients.length - 1} className="border-amber-300 text-amber-800 hover:bg-amber-100">
+                פתח הבא
+              </Button>
+            </div>
+            <p className="text-xs text-amber-700 leading-relaxed">
+              זה פותח את תוכנת המייל שלך עם נמען, נושא והודעה מוכנים — בלי מגבלת Base44 לנמענים חיצוניים.
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <Button onClick={sendEmail} disabled={sending || emailRecipients.length === 0} className="bg-[#D4AF37] hover:bg-[#C5A028] text-black font-bold">
               <Mail className="w-4 h-4 ml-2" />
-              שלח מייל
+              נסה אוטומציה
             </Button>
             <Button onClick={copyEmailList} variant="outline" disabled={emailRecipients.length === 0}>
               <Copy className="w-4 h-4 ml-2" />
@@ -196,7 +238,7 @@ export default function BroadcastActions() {
           </div>
 
           <p className="text-xs text-slate-500 leading-relaxed">
-            מייל נשלח רק למי שמופיע עם אישור דיוור מתועד. וואטסאפ נפתח אחד־אחד עם הודעה מוכנה; שליחה אוטומטית מלאה דורשת תבניות WhatsApp Business מאושרות.
+            מייל ו-WhatsApp נפתחים אחד־אחד עם הודעה מוכנה למי שאישר דיוור. אוטומציה מלאה למיילים חיצוניים דורשת חיבור ספק מייל ייעודי כמו Resend/Mailchimp.
           </p>
         </div>
       </DialogContent>
