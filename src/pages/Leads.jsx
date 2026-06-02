@@ -35,6 +35,7 @@ import DataActionsToolbar from '@/components/leads/DataActionsToolbar';
 import OutreachActions from '@/components/leads/OutreachActions';
 import AutoFollowUpDialog from '@/components/leads/AutoFollowUpDialog';
 import LeadsKanbanView from '@/components/leads/LeadsKanbanView';
+import BroadcastActions from '@/components/leads/BroadcastActions';
 import { enhanceLeadForDisplay, STATUS_STYLES, normalizeLeadStatus } from '@/utils/leadDisplay';
 
 // Fix leaflet icon
@@ -387,13 +388,15 @@ export default function Leads() {
           </h1>
           <p className="text-slate-400 text-sm mt-0.5">מסד נתונים מרכזי לכל הלידים</p>
         </div>
-        <Dialog open={showNewLeadDialog} onOpenChange={setShowNewLeadDialog}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="gap-1.5">
-              <Plus className="w-4 h-4" />
-              ליד חדש
-            </Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <BroadcastActions />
+          <Dialog open={showNewLeadDialog} onOpenChange={setShowNewLeadDialog}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gap-1.5">
+                <Plus className="w-4 h-4" />
+                ליד חדש
+              </Button>
+            </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]" dir="rtl">
             <DialogHeader>
               <DialogTitle>ליד חדש</DialogTitle>
@@ -498,8 +501,9 @@ export default function Leads() {
                 צור ליד
               </Button>
             </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* AI Assist Dialog */}

@@ -1,0 +1,151 @@
+import React, { useMemo, useState } from 'react';
+import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
+import { Mail, MessageCircle, Send, Copy, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
+
+function cleanPhone(phone = '') {
+  const digits = String(phone || '').replace(/[^0-9]/g, '');
+  if (!digits || digits.length < 9) return '';
+  return digits.startsWith('0') ? `972${digits.slice(1)}` : digits;
+}
+
+function firstName(name = '') {
+  return String(name || '').trim().split(/\s+/)[0] || '';
+}
+
+function personalize(text, subscriber) {
+  return String(text || '')
+    .replaceAll('{{שם}}', firstName(subscriber.full_name))
+    .replaceAll('{{שם מלא}}', subscriber.full_name || '')
+    .replaceAll('{{אימייל}}', subscriber.email || '');
+}
+
+export default function BroadcastActions() {
+  const [open, setOpen] = useState(false);
+  const [subject, setSubject] = useState('היי {{שם}}, רציתי לשתף אותך במשהו חדש');
+  const [message, setMessage] = useState('היי {{שם}}, כאן נתי גולד. רציתי לעדכן אותך במשהו שיכול לעזור לעסק שלך עם צילום/וידאו מקצועי.');
+  const [sending, setSending] = useState(false);
+
+  const { data: subscribers = [] } = useQuery({
+    queryKey: ['broadcastSubscribers'],
+    queryFn: () => base44.entities.NewsletterSubscriber.list('-created_date', 1000),
+  });
+
+  const activeSubscribers = useMemo(() => {
+    return subscribers.filter((subscriber) => subscriber.status === 'active' && subscriber.consent_given === true);
+  }, [subscribers]);
+
+  const emailRecipients = activeSubscribers.filter((subscriber) => subscriber.email);
+  const whatsappRecipients = activeSubscribers.filter((subscriber) => cleanPhone(subscriber.phone));
+
+  const whatsappLinks = whatsappRecipients.map((subscriber) => {
+    const phone = cleanPhone(subscriber.phone);
+    return `https://wa.me/${phone}?text=${encodeURIComponent(personalize(message, subscriber))}`;
+  });
+
+  const sendEmail = async () => {
+    if (!subject.trim() || !message.trim()) {
+      toast.error('צריך למלא נושא והודעה');
+      return;
+    }
+
+    if (!confirm(`לשלוח מייל ל-${emailRecipients.length} נמענים שאישרו דיוור?`)) return;
+
+    setSending(true);
+    toast.loading('שולח תפוצה במייל...', { id: 'broadcast-email' });
+    try {
+      const res = await base44.functions.invoke('sendNewsletterBroadcast', { subject, body: message });
+      toast.success(`נשלחו ${res.data.sent || 0} מיילים`, { id: 'broadcast-email' });
+    } catch (error) {
+      toast.error(`שגיאה בשליחת מייל: ${error.message}`, { id: 'broadcast-email' });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const openWhatsApp = () => {
+    if (!whatsappLinks.length) {
+      toast.error('אין נמענים עם מספר טלפון תקין');
+      return;
+    }
+
+    window.open(whatsappLinks[0], '_blank');
+    navigator.clipboard.writeText(whatsappLinks.join('\n'));
+    toast.success(`נפתח וואטסאפ לנמען הראשון והועתקו ${whatsappLinks.length} קישורים להמשך`);
+  };
+
+  const copyEmailList = () => {
+    navigator.clipboard.writeText(emailRecipients.map((subscriber) => subscriber.email).join(', '));
+    toast.success('רשימת המיילים הועתקה');
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" className="gap-1.5 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100">
+          <Users className="w-4 h-4" />
+          תפוצה
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[560px]" dir="rtl">
+        <DialogHeader>
+          <DialogTitle>שליחת תפוצה למאשרי דיוור</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 mt-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <div className="text-xs text-slate-500">נמעני מייל</div>
+              <div className="text-2xl font-bold text-slate-900">{emailRecipients.length}</div>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <div className="text-xs text-slate-500">נמעני וואטסאפ</div>
+              <div className="text-2xl font-bold text-slate-900">{whatsappRecipients.length}</div>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-slate-700 mb-1 block">נושא המייל</label>
+            <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-slate-700 mb-1 block">הודעה</label>
+            <Textarea rows={7} value={message} onChange={(e) => setMessage(e.target.value)} />
+            <p className="text-xs text-slate-500 mt-1">אפשר להשתמש ב־{'{{שם}}'} לשם פרטי.</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <Button onClick={sendEmail} disabled={sending || emailRecipients.length === 0} className="bg-[#D4AF37] hover:bg-[#C5A028] text-black font-bold">
+              <Mail className="w-4 h-4 ml-2" />
+              שלח מייל
+            </Button>
+            <Button onClick={openWhatsApp} variant="outline" disabled={whatsappRecipients.length === 0} className="border-emerald-300 text-emerald-700 hover:bg-emerald-50">
+              <MessageCircle className="w-4 h-4 ml-2" />
+              פתח וואטסאפ
+            </Button>
+            <Button onClick={copyEmailList} variant="outline" disabled={emailRecipients.length === 0}>
+              <Copy className="w-4 h-4 ml-2" />
+              העתק מיילים
+            </Button>
+          </div>
+
+          <p className="text-xs text-slate-500 leading-relaxed">
+            מייל נשלח אוטומטית לכל מי שאישר דיוור. וואטסאפ נפתח עם הודעה מוכנה, כי שליחה אוטומטית מלאה דורשת תבניות WhatsApp Business מאושרות.
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
