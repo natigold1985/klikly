@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Mail, MessageCircle, Send, Copy, Users } from 'lucide-react';
+import { Mail, MessageCircle, Copy, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,8 +16,12 @@ import { toast } from 'sonner';
 
 function cleanPhone(phone = '') {
   const digits = String(phone || '').replace(/[^0-9]/g, '');
-  if (!digits || digits.length < 9) return '';
-  return digits.startsWith('0') ? `972${digits.slice(1)}` : digits;
+
+  if (/^05\d{8}$/.test(digits)) return `972${digits.slice(1)}`;
+  if (/^5\d{8}$/.test(digits)) return `972${digits}`;
+  if (/^9725\d{8}$/.test(digits)) return digits;
+
+  return '';
 }
 
 function firstName(name = '') {
@@ -36,6 +40,7 @@ export default function BroadcastActions() {
   const [subject, setSubject] = useState('היי {{שם}}, רציתי לשתף אותך במשהו חדש');
   const [message, setMessage] = useState('היי {{שם}}, כאן נתי גולד. רציתי לעדכן אותך במשהו שיכול לעזור לעסק שלך עם צילום/וידאו מקצועי.');
   const [sending, setSending] = useState(false);
+  const [whatsappIndex, setWhatsappIndex] = useState(0);
 
   const { data: subscribers = [] } = useQuery({
     queryKey: ['broadcastSubscribers'],
@@ -54,10 +59,13 @@ export default function BroadcastActions() {
   const emailRecipients = activeSubscribers.filter((subscriber) => subscriber.email);
   const whatsappRecipients = activeSubscribers.filter((subscriber) => cleanPhone(subscriber.phone));
 
-  const whatsappLinks = whatsappRecipients.map((subscriber) => {
+  const currentWhatsappRecipient = whatsappRecipients[whatsappIndex] || null;
+  const currentWhatsappPhone = currentWhatsappRecipient ? cleanPhone(currentWhatsappRecipient.phone) : '';
+
+  const buildWhatsappLink = (subscriber) => {
     const phone = cleanPhone(subscriber.phone);
     return `https://wa.me/${phone}?text=${encodeURIComponent(personalize(message, subscriber))}`;
-  });
+  };
 
   const sendEmail = async () => {
     if (!subject.trim() || !message.trim()) {
@@ -79,15 +87,35 @@ export default function BroadcastActions() {
     }
   };
 
-  const openWhatsApp = () => {
-    if (!whatsappLinks.length) {
-      toast.error('אין נמענים עם מספר טלפון תקין');
+  const openWhatsAppRecipient = (index) => {
+    const subscriber = whatsappRecipients[index];
+    if (!subscriber) {
+      toast.error('אין נמען וואטסאפ לפתיחה');
       return;
     }
 
-    window.open(whatsappLinks[0], '_blank');
-    navigator.clipboard.writeText(whatsappLinks.join('\n'));
-    toast.success(`נפתח וואטסאפ לנמען הראשון והועתקו ${whatsappLinks.length} קישורים להמשך`);
+    setWhatsappIndex(index);
+    navigator.clipboard.writeText(personalize(message, subscriber));
+    window.open(buildWhatsappLink(subscriber), '_blank');
+    toast.success(`נפתח וואטסאפ לנמען ${index + 1} מתוך ${whatsappRecipients.length}`);
+  };
+
+  const openWhatsApp = () => {
+    if (!whatsappRecipients.length) {
+      toast.error('אין נמענים עם מספר טלפון ישראלי תקין');
+      return;
+    }
+
+    openWhatsAppRecipient(whatsappIndex);
+  };
+
+  const openNextWhatsApp = () => {
+    const nextIndex = Math.min(whatsappIndex + 1, whatsappRecipients.length - 1);
+    if (nextIndex === whatsappIndex) {
+      toast.success('הגעת לסוף רשימת הוואטסאפ');
+      return;
+    }
+    openWhatsAppRecipient(nextIndex);
   };
 
   const copyEmailList = () => {
@@ -131,14 +159,35 @@ export default function BroadcastActions() {
             <p className="text-xs text-slate-500 mt-1">אפשר להשתמש ב־{'{{שם}}'} לשם פרטי.</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 space-y-3">
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <div>
+                <div className="font-bold text-emerald-900">שליחת וואטסאפ אחד־אחד</div>
+                <div className="text-emerald-700">
+                  {currentWhatsappRecipient
+                    ? `${whatsappIndex + 1}/${whatsappRecipients.length} · ${currentWhatsappRecipient.full_name || currentWhatsappRecipient.email || 'ללא שם'} · ${currentWhatsappPhone}`
+                    : 'אין נמענים עם מספר ישראלי תקין'}
+                </div>
+              </div>
+              <MessageCircle className="w-5 h-5 text-emerald-700" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <Button onClick={openWhatsApp} variant="outline" disabled={whatsappRecipients.length === 0} className="border-emerald-300 text-emerald-700 hover:bg-emerald-100">
+                פתח נמען נוכחי
+              </Button>
+              <Button onClick={openNextWhatsApp} variant="outline" disabled={whatsappRecipients.length === 0 || whatsappIndex >= whatsappRecipients.length - 1} className="border-emerald-300 text-emerald-700 hover:bg-emerald-100">
+                פתח הבא
+              </Button>
+            </div>
+            <p className="text-xs text-emerald-700 leading-relaxed">
+              אם וואטסאפ מציג שהמספר לא קיים — זה אומר שהמספר עצמו לא מחובר ל-WhatsApp או הוזן לא נכון, ואז פשוט עוברים לנמען הבא.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <Button onClick={sendEmail} disabled={sending || emailRecipients.length === 0} className="bg-[#D4AF37] hover:bg-[#C5A028] text-black font-bold">
               <Mail className="w-4 h-4 ml-2" />
               שלח מייל
-            </Button>
-            <Button onClick={openWhatsApp} variant="outline" disabled={whatsappRecipients.length === 0} className="border-emerald-300 text-emerald-700 hover:bg-emerald-50">
-              <MessageCircle className="w-4 h-4 ml-2" />
-              פתח וואטסאפ
             </Button>
             <Button onClick={copyEmailList} variant="outline" disabled={emailRecipients.length === 0}>
               <Copy className="w-4 h-4 ml-2" />
@@ -147,7 +196,7 @@ export default function BroadcastActions() {
           </div>
 
           <p className="text-xs text-slate-500 leading-relaxed">
-            מייל נשלח רק למי שמופיע עם אישור דיוור מתועד: סטטוס פעיל, אישור=true, תאריך אישור ונוסח אישור. וואטסאפ נפתח עם הודעה מוכנה, כי שליחה אוטומטית מלאה דורשת תבניות WhatsApp Business מאושרות.
+            מייל נשלח רק למי שמופיע עם אישור דיוור מתועד. וואטסאפ נפתח אחד־אחד עם הודעה מוכנה; שליחה אוטומטית מלאה דורשת תבניות WhatsApp Business מאושרות.
           </p>
         </div>
       </DialogContent>
