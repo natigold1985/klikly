@@ -32,7 +32,11 @@ Deno.serve(async (req) => {
     const businessName = settings[0]?.business_name || 'KLIKLY';
     const subscribers = await base44.asServiceRole.entities.NewsletterSubscriber.list('-created_date', 1000);
     const recipients = subscribers.filter((subscriber) => {
-      return subscriber.status === 'active' && subscriber.consent_given === true && subscriber.email;
+      return subscriber.status === 'active' &&
+        subscriber.consent_given === true &&
+        !!subscriber.consent_timestamp &&
+        !!subscriber.consent_text &&
+        subscriber.email;
     });
 
     if (dryRun) {

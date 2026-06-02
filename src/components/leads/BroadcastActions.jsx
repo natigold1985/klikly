@@ -43,7 +43,12 @@ export default function BroadcastActions() {
   });
 
   const activeSubscribers = useMemo(() => {
-    return subscribers.filter((subscriber) => subscriber.status === 'active' && subscriber.consent_given === true);
+    return subscribers.filter((subscriber) => (
+      subscriber.status === 'active' &&
+      subscriber.consent_given === true &&
+      !!subscriber.consent_timestamp &&
+      !!subscriber.consent_text
+    ));
   }, [subscribers]);
 
   const emailRecipients = activeSubscribers.filter((subscriber) => subscriber.email);
@@ -142,7 +147,7 @@ export default function BroadcastActions() {
           </div>
 
           <p className="text-xs text-slate-500 leading-relaxed">
-            מייל נשלח אוטומטית לכל מי שאישר דיוור. וואטסאפ נפתח עם הודעה מוכנה, כי שליחה אוטומטית מלאה דורשת תבניות WhatsApp Business מאושרות.
+            מייל נשלח רק למי שמופיע עם אישור דיוור מתועד: סטטוס פעיל, אישור=true, תאריך אישור ונוסח אישור. וואטסאפ נפתח עם הודעה מוכנה, כי שליחה אוטומטית מלאה דורשת תבניות WhatsApp Business מאושרות.
           </p>
         </div>
       </DialogContent>
