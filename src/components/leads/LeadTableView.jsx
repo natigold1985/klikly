@@ -8,14 +8,14 @@ import LeadMobileCard from './LeadMobileCard';
 
 export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoFollowUp, onRestoreToActive, projectsByLeadId = {} }) {
   const getWhatsAppLink = (lead) => {
-    const cleanPhone = lead.phone.replace(/[^0-9]/g, '');
-    const israelPhone = cleanPhone.startsWith('0') ? '972' + cleanPhone.substring(1) : cleanPhone;
+    const cleanPhone = String(lead.phone || '').replace(/[^0-9]/g, '');
+    const israelPhone = cleanPhone.startsWith('972') ? cleanPhone : cleanPhone.startsWith('0') ? '972' + cleanPhone.substring(1) : cleanPhone;
     const hasRealName = lead.name && !['לא ידוע', 'unknown', 'Unknown'].includes(lead.name.trim());
     const leadType = lead.lead_type || lead.interest_label || lead.shooting_type || 'שירותי צילום';
     const msg = hasRealName
       ? `היי ${lead.name}, מה קורה? ראיתי שהשארת פרטים לגבי ${leadType}, אשמח לדבר ולתת עוד פרטים. מה אומר/ת?`
       : `היי, מה קורה? ראיתי שהשארת פרטים לגבי ${leadType}, אשמח לדבר ולתת עוד פרטים. מה אומר/ת?`;
-    return `whatsapp://send?phone=${israelPhone}&text=${encodeURIComponent(msg)}`;
+    return `https://wa.me/${israelPhone}?text=${encodeURIComponent(msg)}`;
   };
 
   return (

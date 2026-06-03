@@ -81,7 +81,9 @@ export default function OutreachActions({ lead, onLog, compact = false }) {
   const waText = hasRealName(lead.name)
     ? TEMPLATES.whatsapp.default(lead.name, leadType)
     : `היי, מה קורה? ראיתי שהשארת פרטים לגבי ${typeContext(leadType)}, אשמח לדבר ולתת עוד פרטים. מה אומר/ת?`;
-  const waLink = `https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(waText)}`;
+  const cleanPhone = (lead.phone || '').replace(/[^0-9]/g, '');
+  const israelPhone = cleanPhone.startsWith('0') ? `972${cleanPhone.slice(1)}` : cleanPhone;
+  const waLink = `https://wa.me/${israelPhone}?text=${encodeURIComponent(waText)}`;
 
   const emailSubject = TEMPLATES.email.subject(lead.name);
   const emailBody = TEMPLATES.email.body(lead.name, lead.shooting_type);

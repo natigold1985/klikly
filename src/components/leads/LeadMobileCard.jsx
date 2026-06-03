@@ -38,7 +38,7 @@ export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoF
   const combinedNotes = [extraNote, lead.notes].filter(Boolean).join(' • ');
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 active:scale-[0.99] transition-transform overflow-hidden">
+    <div className="bg-white rounded-3xl border border-slate-200 shadow-[0_10px_30px_rgba(15,23,42,0.06)] p-4 active:scale-[0.99] transition-transform overflow-hidden">
       {/* Top row: name (truncated) — full width */}
       <Link
         to={createPageUrl(`LeadDetails?id=${lead.id}`)}
@@ -56,7 +56,7 @@ export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoF
       </Link>
 
       {/* Status row — own row, prevents overlap with long names */}
-      <div className="grid grid-cols-2 gap-2 mb-3">
+      <div className={`grid gap-2 mb-3 ${showSource ? 'grid-cols-2' : 'grid-cols-1'}`}>
         <div className="rounded-2xl bg-amber-50 p-1.5 ring-1 ring-amber-100">
           <StatusSelect value={lead.status} onChange={(val) => onStatusChange(lead.id, val)} />
         </div>
@@ -78,7 +78,7 @@ export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoF
             {displayPhone}
           </a>
         ) : (
-          <span className="text-sm text-slate-400">—</span>
+          <span className="text-sm text-slate-400">אין טלפון תקין</span>
         )}
       </div>
 
@@ -118,17 +118,17 @@ export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoF
       {/* Actions row */}
       <div className="grid grid-cols-4 gap-2">
         <a
-          href={getWhatsAppLink(lead)}
+          href={displayPhone ? getWhatsAppLink(lead) : undefined}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm active:scale-95 transition-all"
+          className={`flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl shadow-sm active:scale-95 transition-all ${displayPhone ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'bg-slate-100 text-slate-400 pointer-events-none'}`}
         >
           <MessageCircle className="w-5 h-5" />
           <span className="text-[10px] font-bold">וואטסאפ</span>
         </a>
         <a
-          href={`tel:${lead.phone}`}
-          className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white shadow-sm active:scale-95 transition-all"
+          href={displayPhone ? `tel:${displayPhone}` : undefined}
+          className={`flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl shadow-sm active:scale-95 transition-all ${displayPhone ? 'bg-blue-500 hover:bg-blue-600 text-white' : 'bg-slate-100 text-slate-400 pointer-events-none'}`}
         >
           <Phone className="w-5 h-5" />
           <span className="text-[10px] font-bold">חיוג</span>

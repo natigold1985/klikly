@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 // ──────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -37,7 +37,7 @@ function detectSource(...fragments) {
     if (text.includes('instagram') || text.includes('ig.me') || text.includes('אינסטגרם')) return 'Instagram';
     if (text.includes('whatsapp') || text.includes('wa.me') || text.includes('וואטסאפ')) return 'WhatsApp';
     if (text.includes('google')) return 'Google Search';
-    if (text.includes('ratigold.com') || text.includes('אתר')) return 'Website';
+    if (text.includes('natigold.com') || text.includes('אתר')) return 'Website';
     if (text.includes('gmail') || text.includes('@') && text.includes('mail')) return 'Email';
     if (text.includes('המלצה') || text.includes('referral')) return 'המלצה';
     return null;
@@ -119,6 +119,11 @@ function isDirectSourceUrl(url) {
 function isIrrelevantMarketingLead(...fragments) {
     const text = fragments.filter(Boolean).join(' ').toLowerCase();
     return /מנהל\s*שיווק|מנהלת\s*שיווק|שיווק\s*בינלאומי|marketing\s*manager|intl\.\s*marketing|international\s*marketing|marcom/.test(text);
+}
+
+function isCourseLead(...fragments) {
+    const text = fragments.filter(Boolean).join(' ').toLowerCase();
+    return /קורס|course|photography-course|לימוד|סדנה|צילום מקצועי/.test(text);
 }
 
 function classifyPipeline(source = '', notes = '', shootingType = '') {
@@ -348,15 +353,18 @@ Deno.serve(async (req) => {
                 const notes = notesParts.join(' | ');
                 const sourceUrl = extractSourceUrl(linkCol, notesCol, sourceCol);
 
-                // Rule 1: must have valid full name + (valid phone OR valid email)
-                if (!isFullName(name) || (!isValidPhone(phone) && !isValidEmail(email))) {
+                const courseLead = isCourseLead(tabName, detectedSource, sourceCol, typeCol, notesCol, linkCol);
+
+                // Rule 1: regular leads need full name; course leads may arrive with first name only.
+                const hasUsableName = isFullName(name) || (courseLead && isRealLeadName(name, phone, email));
+                if (!hasUsableName || (!isValidPhone(phone) && !isValidEmail(email))) {
                     tabSkipped++;
                     skipped++;
                     continue;
                 }
 
-                // Rule 2: reject irrelevant marketing-role contacts and require a direct source URL
-                if (isIrrelevantMarketingLead(name, sourceCol, typeCol, notesCol, companyCol) || !isDirectSourceUrl(sourceUrl)) {
+                // Rule 2: reject irrelevant marketing-role contacts. Course leads can come from landing pages, so don't require a deep source URL for them.
+                if (isIrrelevantMarketingLead(name, sourceCol, typeCol, notesCol, companyCol) || (!courseLead && !isDirectSourceUrl(sourceUrl))) {
                     tabSkipped++;
                     skipped++;
                     continue;

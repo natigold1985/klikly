@@ -9,6 +9,18 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+const CONTACTABLE_STATUSES = ['ליד חדש', 'נוצר קשר', 'נשלח פולו-אפ', 'new', 'in_progress', 'follow_up', 'quote_sent'];
+
+const getContactableLeads = (leads = []) => leads.filter((lead) => {
+  const phoneDigits = String(lead.phone || '').replace(/[^0-9]/g, '');
+  return phoneDigits.length >= 7 && CONTACTABLE_STATUSES.includes(lead.status || 'ליד חדש');
+});
+
+const toWhatsAppPhone = (phone = '') => {
+  const cleanPhone = String(phone).replace(/[^0-9]/g, '');
+  return cleanPhone.startsWith('0') ? `972${cleanPhone.slice(1)}` : cleanPhone;
+};
+
 export default function DataActionsToolbar({ leads }) {
   const [showImport, setShowImport] = useState(null); // 'sheets' | 'csv' | null
   const [showBroadcast, setShowBroadcast] = useState(false);
@@ -26,6 +38,7 @@ export default function DataActionsToolbar({ leads }) {
     setImportResult(null);
     try {
       const res = await base44.functions.invoke('syncFromGoogleSheets', { sheetUrl });
+      if (res.data?.error) throw new Error(res.data.details || res.data.error);
       setImportResult({ success: true, added: res.data?.added || 0, updated: res.data?.updated || 0 });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard_leads'] });
@@ -95,6 +108,7 @@ export default function DataActionsToolbar({ leads }) {
     setIsSyncing(true);
     try {
       const res = await base44.functions.invoke('syncFromGoogleSheets', {});
+      if (res.data?.error) throw new Error(res.data.details || res.data.error);
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard_leads'] });
       toast.success(`סנכרון הושלם: ${res.data?.added || 0} חדשים, ${res.data?.updated || 0} עודכנו`);
@@ -107,28 +121,25 @@ export default function DataActionsToolbar({ leads }) {
 
   const handleBroadcast = () => {
     if (!broadcastMsg.trim()) return;
-    const newLeads = leads.filter(l => ['new', 'in_progress', 'follow_up', 'quote_sent'].includes(l.status));
-    if (newLeads.length === 0) {
-      toast.error('אין לידים פעילים לשליחה');
+    const contactableLeads = getContactableLeads(leads);
+    if (contactableLeads.length === 0) {
+      toast.error('אין לידים חדשים/פעילים עם טלפון תקין לשליחה');
       return;
     }
-    // Open first lead's WA with the message, user sends manually
-    const first = newLeads[0];
-    const cleanPhone = first.phone.replace(/[^0-9]/g, '');
-    const israelPhone = cleanPhone.startsWith('0') ? '972' + cleanPhone.substring(1) : cleanPhone;
-    window.open(`https://wa.me/${israelPhone}?text=${encodeURIComponent(broadcastMsg)}`, '_blank');
-    toast.success(`נפתח WhatsApp ל-${newLeads.length} לידים (שליחה ידנית)`);
+    const first = contactableLeads[0];
+    window.open(`https://wa.me/${toWhatsAppPhone(first.phone)}?text=${encodeURIComponent(broadcastMsg)}`, '_blank');
+    toast.success(`נפתח WhatsApp לליד הראשון מתוך ${contactableLeads.length} לידים מתאימים`);
     setShowBroadcast(false);
     setBroadcastMsg('');
   };
 
   return (
     <>
-      <div className="flex items-center gap-2 flex-wrap max-w-full overflow-hidden">
+      <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full max-w-full">
         <Button
           variant="outline"
           size="sm"
-          className="h-9 gap-1.5 text-xs font-semibold text-slate-700 border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300"
+          className="h-10 w-full sm:w-auto gap-1.5 text-xs font-bold text-slate-700 border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 shadow-sm"
           onClick={handleManualSync}
           disabled={isSyncing}
           title="סנכרון מגוגל שיטס"
@@ -139,7 +150,7 @@ export default function DataActionsToolbar({ leads }) {
         <Button
           variant="outline"
           size="sm"
-          className="h-9 gap-1.5 text-xs font-semibold text-slate-700 border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300"
+          className="h-10 w-full sm:w-auto gap-1.5 text-xs font-bold text-slate-700 border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 shadow-sm"
           onClick={() => setShowImport('sheets')}
           title="ייבוא מ-Google Sheets"
         >
@@ -149,7 +160,7 @@ export default function DataActionsToolbar({ leads }) {
         <Button
           variant="outline"
           size="sm"
-          className="h-9 gap-1.5 text-xs font-semibold text-slate-700 border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300"
+          className="h-10 w-full sm:w-auto gap-1.5 text-xs font-bold text-slate-700 border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 shadow-sm"
           onClick={() => setShowImport('csv')}
           title="העלאת קובץ CSV / Excel"
         >
@@ -159,7 +170,7 @@ export default function DataActionsToolbar({ leads }) {
         <Button
           variant="outline"
           size="sm"
-          className="h-9 gap-1.5 text-xs font-bold text-green-700 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-400"
+          className="h-10 w-full sm:w-auto col-span-2 sm:col-span-1 gap-1.5 text-xs font-bold text-green-700 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-400 shadow-sm"
           onClick={() => setShowBroadcast(true)}
           title="שידור WhatsApp"
         >
@@ -239,7 +250,7 @@ export default function DataActionsToolbar({ leads }) {
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <p className="text-sm text-slate-600">
-              ההודעה תישלח ל-<strong>{leads.filter(l => ['new', 'in_progress', 'follow_up', 'quote_sent'].includes(l.status)).length}</strong> לידים פעילים.
+              ההודעה תיפתח ידנית ב-WhatsApp עבור <strong>{getContactableLeads(leads).length}</strong> לידים חדשים/פעילים עם טלפון תקין.
             </p>
             <textarea
               value={broadcastMsg}
@@ -250,7 +261,7 @@ export default function DataActionsToolbar({ leads }) {
             />
             <Button onClick={handleBroadcast} disabled={!broadcastMsg.trim()} className="w-full gap-2">
               <Send className="w-4 h-4" />
-              שלח שידור
+              פתח פנייה ב-WhatsApp
             </Button>
           </div>
         </DialogContent>

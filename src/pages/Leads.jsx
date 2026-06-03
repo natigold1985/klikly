@@ -379,9 +379,9 @@ export default function Leads() {
   };
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-5 pb-24 md:pb-20" dir="rtl">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between gap-4 mb-6 rounded-3xl bg-gradient-to-l from-white to-slate-50 border border-slate-100 p-4 shadow-sm">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
             ניהול לידים
@@ -579,13 +579,13 @@ export default function Leads() {
 
 
       {/* Tabs: Active vs Filtered */}
-      <div className="flex items-center gap-2 border-b border-slate-200 -mb-2" dir="rtl">
+      <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-50 p-1 border border-slate-200 -mb-1" dir="rtl">
         <button
           onClick={() => setActiveTab('active')}
           className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${
             activeTab === 'active'
-              ? 'border-[#C5A028] text-slate-900'
-              : 'border-transparent text-slate-500 hover:text-slate-700'
+            ? 'border-[#C5A028] bg-white text-slate-900 shadow-sm rounded-xl'
+            : 'border-transparent text-slate-500 hover:text-slate-700 rounded-xl'
           }`}
         >
           לידים פעילים
@@ -595,8 +595,8 @@ export default function Leads() {
           onClick={() => setActiveTab('filtered')}
           className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${
             activeTab === 'filtered'
-              ? 'border-red-500 text-slate-900'
-              : 'border-transparent text-slate-500 hover:text-slate-700'
+            ? 'border-red-500 bg-white text-slate-900 shadow-sm rounded-xl'
+            : 'border-transparent text-slate-500 hover:text-slate-700 rounded-xl'
           }`}
         >
           מסוננים / לא רלוונטיים
@@ -605,21 +605,21 @@ export default function Leads() {
       </div>
 
       {/* Data Actions Toolbar */}
-      <Card className="border shadow-sm">
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-3 overflow-hidden">
+      <Card className="border border-slate-200 shadow-sm rounded-3xl overflow-hidden">
+        <CardContent className="p-4 bg-white">
+          <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto_auto] gap-3 items-stretch md:items-center overflow-hidden">
             {/* View Switcher */}
-            <div className="flex bg-slate-100 p-1 rounded-lg shrink-0 overflow-x-auto max-w-full">
-              <Button variant={viewMode === 'table' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('table')} className="gap-1.5">
+            <div className="grid grid-cols-4 bg-slate-100 p-1 rounded-2xl shrink-0 overflow-hidden max-w-full">
+              <Button variant={viewMode === 'table' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('table')} className={`gap-1.5 ${viewMode === 'table' ? '' : 'text-slate-500 hover:text-slate-800'}`}>
                 <List className="w-4 h-4" /> טבלה
               </Button>
-              <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('grid')} className="gap-1.5">
+              <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('grid')} className={`gap-1.5 ${viewMode === 'grid' ? '' : 'text-slate-500 hover:text-slate-800'}`}>
                 <LayoutGrid className="w-4 h-4" /> כרטיסים
               </Button>
-              <Button variant={viewMode === 'kanban' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('kanban')} className="gap-1.5">
+              <Button variant={viewMode === 'kanban' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('kanban')} className={`gap-1.5 ${viewMode === 'kanban' ? '' : 'text-slate-500 hover:text-slate-800'}`}>
                 <Columns3 className="w-4 h-4" /> קנבן
               </Button>
-              <Button variant={viewMode === 'map' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('map')} className="gap-1.5">
+              <Button variant={viewMode === 'map' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('map')} className={`gap-1.5 ${viewMode === 'map' ? '' : 'text-slate-500 hover:text-slate-800'}`}>
                 <Map className="w-4 h-4" /> מפה
               </Button>
             </div>
@@ -627,12 +627,12 @@ export default function Leads() {
             {/* Search */}
             <div className="flex-1 relative min-w-0 md:min-w-[200px]">
               <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-              <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="חיפוש שם, טלפון, אימייל..." className="pr-10 h-9" />
+              <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="חיפוש שם, טלפון, אימייל..." className="pr-10 h-11 rounded-2xl bg-white" />
             </div>
 
             {/* Status Filter */}
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-40 h-9 text-xs font-bold">
+              <SelectTrigger className="w-full md:w-40 h-11 rounded-2xl text-xs font-bold bg-white">
                 <SelectValue placeholder="סטטוס" />
               </SelectTrigger>
               <SelectContent dir="rtl">
