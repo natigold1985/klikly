@@ -610,18 +610,21 @@ export default function Leads() {
           <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto_auto] gap-3 items-stretch md:items-center overflow-hidden">
             {/* View Switcher */}
             <div className="grid grid-cols-4 bg-slate-100 p-1 rounded-2xl shrink-0 overflow-hidden max-w-full">
-              <Button variant={viewMode === 'table' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('table')} className={`gap-1.5 ${viewMode === 'table' ? '' : 'text-slate-500 hover:text-slate-800'}`}>
-                <List className="w-4 h-4" /> טבלה
-              </Button>
-              <Button variant={viewMode === 'grid' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('grid')} className={`gap-1.5 ${viewMode === 'grid' ? '' : 'text-slate-500 hover:text-slate-800'}`}>
-                <LayoutGrid className="w-4 h-4" /> כרטיסים
-              </Button>
-              <Button variant={viewMode === 'kanban' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('kanban')} className={`gap-1.5 ${viewMode === 'kanban' ? '' : 'text-slate-500 hover:text-slate-800'}`}>
-                <Columns3 className="w-4 h-4" /> קנבן
-              </Button>
-              <Button variant={viewMode === 'map' ? 'default' : 'ghost'} size="sm" onClick={() => setViewMode('map')} className={`gap-1.5 ${viewMode === 'map' ? '' : 'text-slate-500 hover:text-slate-800'}`}>
-                <Map className="w-4 h-4" /> מפה
-              </Button>
+              {[
+                { key: 'table', label: 'טבלה', icon: List },
+                { key: 'grid', label: 'כרטיסים', icon: LayoutGrid },
+                { key: 'kanban', label: 'קנבן', icon: Columns3 },
+                { key: 'map', label: 'מפה', icon: Map },
+              ].map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  onClick={() => setViewMode(key)}
+                  className={`h-11 rounded-xl flex items-center justify-center gap-1 text-xs font-black transition-all ${viewMode === key ? 'bg-[#FFD700] text-black shadow-sm' : 'text-slate-500 hover:bg-white hover:text-slate-800'}`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="hidden sm:inline">{label}</span>
+                </button>
+              ))}
             </div>
 
             {/* Search */}

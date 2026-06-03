@@ -9,15 +9,18 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const CONTACTABLE_STATUSES = ['ליד חדש', 'נוצר קשר', 'נשלח פולו-אפ', 'new', 'in_progress', 'follow_up', 'quote_sent'];
+const CONTACTABLE_STATUSES = ['ליד חדש', 'נוצר קשר', 'נשלח פולו-אפ', 'נענה', 'new', 'new lead', 'in_progress', 'follow_up', 'quote_sent'];
+const DEFAULT_BROADCAST_MESSAGE = 'היי, מה קורה? ראיתי שהשארת פרטים לגבי שירותי צילום, אשמח לדבר ולתת עוד פרטים. מה אומר/ת?';
 
 const getContactableLeads = (leads = []) => leads.filter((lead) => {
   const phoneDigits = String(lead.phone || '').replace(/[^0-9]/g, '');
-  return phoneDigits.length >= 7 && CONTACTABLE_STATUSES.includes(lead.status || 'ליד חדש');
+  const status = String(lead.status || 'ליד חדש').toLowerCase();
+  return phoneDigits.length >= 7 && CONTACTABLE_STATUSES.map((s) => s.toLowerCase()).includes(status);
 });
 
 const toWhatsAppPhone = (phone = '') => {
   const cleanPhone = String(phone).replace(/[^0-9]/g, '');
+  if (cleanPhone.startsWith('972')) return cleanPhone;
   return cleanPhone.startsWith('0') ? `972${cleanPhone.slice(1)}` : cleanPhone;
 };
 
@@ -28,17 +31,16 @@ export default function DataActionsToolbar({ leads }) {
   const [isImporting, setIsImporting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [importResult, setImportResult] = useState(null);
-  const [broadcastMsg, setBroadcastMsg] = useState('');
+  const [broadcastMsg, setBroadcastMsg] = useState(DEFAULT_BROADCAST_MESSAGE);
   const fileRef = useRef(null);
   const queryClient = useQueryClient();
 
   const handleSheetsImport = async () => {
-    if (!sheetUrl) return;
     setIsImporting(true);
     setImportResult(null);
     try {
-      const res = await base44.functions.invoke('syncFromGoogleSheets', { sheetUrl });
-      if (res.data?.error) throw new Error(res.data.details || res.data.error);
+      const payload = sheetUrl.trim() ? { sheetUrl: sheetUrl.trim() } : {};
+      const res = await base44.functions.invoke('syncFromGoogleSheets', payload);
       setImportResult({ success: true, added: res.data?.added || 0, updated: res.data?.updated || 0 });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard_leads'] });
@@ -108,7 +110,6 @@ export default function DataActionsToolbar({ leads }) {
     setIsSyncing(true);
     try {
       const res = await base44.functions.invoke('syncFromGoogleSheets', {});
-      if (res.data?.error) throw new Error(res.data.details || res.data.error);
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard_leads'] });
       toast.success(`סנכרון הושלם: ${res.data?.added || 0} חדשים, ${res.data?.updated || 0} עודכנו`);
@@ -130,7 +131,7 @@ export default function DataActionsToolbar({ leads }) {
     window.open(`https://wa.me/${toWhatsAppPhone(first.phone)}?text=${encodeURIComponent(broadcastMsg)}`, '_blank');
     toast.success(`נפתח WhatsApp לליד הראשון מתוך ${contactableLeads.length} לידים מתאימים`);
     setShowBroadcast(false);
-    setBroadcastMsg('');
+    setBroadcastMsg(DEFAULT_BROADCAST_MESSAGE);
   };
 
   return (
@@ -189,8 +190,8 @@ export default function DataActionsToolbar({ leads }) {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
-            <p className="text-sm text-slate-600">ודא שהגיליון כולל עמודות <strong>שם</strong> ו<strong>טלפון</strong>. לידים קיימים יעודכנו (לפי טלפון).</p>
-            <Input value={sheetUrl} onChange={(e) => setSheetUrl(e.target.value)} placeholder="https://docs.google.com/spreadsheets/d/..." className="text-sm" />
+            <p className="text-sm text-slate-600">אפשר להדביק URL של Google Sheets או להשאיר ריק כדי לסנכרן את הגיליון הקבוע. לידים קיימים יעודכנו לפי טלפון.</p>
+            <Input value={sheetUrl} onChange={(e) => setSheetUrl(e.target.value)} placeholder="אופציונלי: https://docs.google.com/spreadsheets/d/..." className="text-sm" />
             {importResult && (
               <div className={`p-3 rounded-lg text-sm ${importResult.success ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
                 {importResult.success ? (
@@ -198,9 +199,9 @@ export default function DataActionsToolbar({ leads }) {
                 ) : importResult.error}
               </div>
             )}
-            <Button onClick={handleSheetsImport} disabled={!sheetUrl || isImporting} className="w-full">
+            <Button onClick={handleSheetsImport} disabled={isImporting} className="w-full">
               {isImporting ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <Upload className="w-4 h-4 ml-2" />}
-              ייבוא עם Upsert
+              סנכרן עכשיו
             </Button>
           </div>
         </DialogContent>

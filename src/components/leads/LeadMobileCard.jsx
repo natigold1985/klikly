@@ -38,7 +38,7 @@ export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoF
   const combinedNotes = [extraNote, lead.notes].filter(Boolean).join(' • ');
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-200 shadow-[0_10px_30px_rgba(15,23,42,0.06)] p-4 active:scale-[0.99] transition-transform overflow-hidden">
+    <div className="bg-white rounded-[1.75rem] border border-slate-200 shadow-[0_10px_30px_rgba(15,23,42,0.06)] p-4 active:scale-[0.99] transition-transform overflow-hidden ring-1 ring-slate-100">
       {/* Top row: name (truncated) — full width */}
       <Link
         to={createPageUrl(`LeadDetails?id=${lead.id}`)}
