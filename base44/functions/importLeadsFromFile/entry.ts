@@ -1,5 +1,14 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+function normalizeIsraeliPhone(phone = '') {
+  const digits = String(phone || '').replace(/[^0-9]/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('972') && digits.length >= 11) return `0${digits.slice(3)}`;
+  if (digits.startsWith('0')) return digits;
+  if (/^[234589]\d{7,8}$/.test(digits)) return `0${digits}`;
+  return digits;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -43,8 +52,8 @@ Deno.serve(async (req) => {
 
     const rows = extracted.output.leads.filter(l => {
       const text = [l.name, l.source, l.source_post_url, l.notes, l.shooting_type].filter(Boolean).join(' ').toLowerCase();
-      const phoneDigits = String(l.phone || '').replace(/[^0-9]/g, '');
-      const hasRealPhone = phoneDigits.length === 10 && !/^(\d)\1+$/.test(phoneDigits);
+      const phoneDigits = normalizeIsraeliPhone(l.phone);
+      const hasRealPhone = /^0[234589]\d{7,8}$/.test(phoneDigits) && !/^(\d)\1+$/.test(phoneDigits);
       const hasRealEmail = !!(l.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(l.email).trim()));
       const hasFullName = String(l.name || '').trim().split(/\s+/).filter(Boolean).length >= 2;
       const sourceUrl = l.source_post_url || (text.match(/https?:\/\/[^\s|,]+/i) || [])[0] || '';
@@ -82,7 +91,7 @@ Deno.serve(async (req) => {
     };
 
     for (const row of rows) {
-      const cleanPhone = (row.phone || '').replace(/[^0-9]/g, '');
+      const cleanPhone = normalizeIsraeliPhone(row.phone);
       const cleanEmail = (row.email || '').toLowerCase().trim();
 
       // Check for existing by phone or email
@@ -113,7 +122,7 @@ Deno.serve(async (req) => {
         // Collect new leads and create them in one batch to reduce DB operations
         leadsToCreate.push({
           name: row.name,
-          phone: row.phone,
+          phone: cleanPhone,
           email: row.email || undefined,
           shooting_type: row.shooting_type || undefined,
           source: row.source || 'CSV Import',

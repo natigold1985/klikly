@@ -69,6 +69,15 @@ function isValidEmail(email) {
     return !!(email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim()));
 }
 
+function normalizeIsraeliPhone(phone = '') {
+    const digits = String(phone || '').replace(/[^0-9]/g, '');
+    if (!digits) return '';
+    if (digits.startsWith('972') && digits.length >= 11) return `0${digits.slice(3)}`;
+    if (digits.startsWith('0')) return digits;
+    if (/^[234589]\d{7,8}$/.test(digits)) return `0${digits}`;
+    return digits;
+}
+
 function isRealLeadName(name, phone = '', email = '') {
     const clean = String(name || '').trim();
     const lower = clean.toLowerCase();
@@ -326,7 +335,7 @@ Deno.serve(async (req) => {
                 if (!row || row.every(c => !c || !String(c).trim())) continue;
 
                 const name = idx.name !== -1 ? String(row[idx.name] || '').trim() : '';
-                const phone = idx.phone !== -1 ? String(row[idx.phone] || '').trim() : '';
+                const phone = normalizeIsraeliPhone(idx.phone !== -1 ? String(row[idx.phone] || '').trim() : '');
                 const email = idx.email !== -1 ? String(row[idx.email] || '').trim() : '';
                 const sourceCol = idx.source !== -1 ? String(row[idx.source] || '').trim() : '';
                 const typeCol = idx.type !== -1 ? String(row[idx.type] || '').trim() : '';

@@ -3,6 +3,9 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 function cleanPhone(value) {
   const digits = String(value || '').replace(/[^0-9]/g, '');
   if (digits.length < 7 || digits.length > 15 || /^(\d)\1+$/.test(digits)) return '';
+  if (digits.startsWith('972') && digits.length >= 11) return `0${digits.slice(3)}`;
+  if (digits.startsWith('0')) return digits;
+  if (/^[234589]\d{7,8}$/.test(digits)) return `0${digits}`;
   return digits;
 }
 
@@ -21,7 +24,7 @@ Deno.serve(async (req) => {
     }
 
     const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
-      prompt: `Extract CRM leads from this raw WhatsApp/JONI Hebrew text.\n\nRules:\n- Identify Hebrew names, phone numbers, and notes/context.\n- Keep phone numbers as clean digits only. If a phone starts with 972, preserve 972 format.\n- Return only rows with a valid phone number.\n- name should be the best Hebrew display name.\n- notes should include any extra descriptive text/labels from the row.\n\nRaw text:\n${text}`,
+      prompt: `Extract CRM leads from this raw WhatsApp/JONI Hebrew text.\n\nRules:\n- Identify Hebrew names, phone numbers, and notes/context.\n- Keep phone numbers as clean Israeli digits. If a mobile misses the leading 0, add it.\n- Return only rows with a valid phone number.\n- name should be the best Hebrew display name.\n- notes should include any extra descriptive text/labels from the row.\n\nRaw text:\n${text}`,
       response_json_schema: {
         type: 'object',
         properties: {
