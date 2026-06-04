@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const SPREADSHEET_ID = '1Acz_kFz4d2oGyJflAWyrY4yiAAlbvWVqR7UNgKHCdD4';
 const SHEET_NAME = 'Claude Code';
@@ -22,6 +22,13 @@ function isValidPhone(phone) {
 
 function isValidEmail(email) {
   return !!(email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim()));
+}
+
+function hasFullName(name) {
+  const clean = String(name || '').trim().replace(/\s+/g, ' ');
+  if (!clean || ['לא ידוע', 'unknown', 'test', 'בדיקה', 'n/a', '-', '?'].includes(clean.toLowerCase())) return false;
+  const parts = clean.split(' ').filter((part) => part.length >= 2);
+  return parts.length >= 2 && clean.length >= 5;
 }
 
 function extractUrl(...parts) {
@@ -70,8 +77,8 @@ function scoreLead({ phone, email, sourceUrl, source, notes }) {
 }
 
 function isActionableRow({ name, phone, email, sourceUrl, sent, source, service, notes }) {
-  const cleanName = String(name || '').trim().toLowerCase();
-  if (!name || ['לא ידוע', 'unknown', 'test', 'בדיקה', 'n/a', '-', '?'].includes(cleanName)) return false;
+  if (!hasFullName(name)) return false;
+  if (!String(source || '').trim()) return false;
   if (isIrrelevantMarketingLead(name, source, service, notes)) return false;
   if (!isValidPhone(phone) && !isValidEmail(email)) return false;
   if (!isDirectSourceUrl(sourceUrl)) return false;
@@ -84,7 +91,7 @@ function buildPotentialLead(row) {
   const name = getCell(row, 1);
   const phone = getCell(row, 2);
   const email = getCell(row, 3);
-  const source = getCell(row, 4) || 'Claude Code';
+  const source = getCell(row, 4);
   const service = getCell(row, 5);
   const date = getCell(row, 6);
   const notes = getCell(row, 7);

@@ -1,11 +1,66 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const SPREADSHEET_ID = '1Acz_kFz4d2oGyJflAWyrY4yiAAlbvWVqR7UNgKHCdD4';
 const SHEET_NAME = 'Claude Code';
 
+function normalizePhone(phone) {
+  return String(phone || '').replace(/[^0-9]/g, '');
+}
+
+function isValidPhone(phone) {
+  const digits = normalizePhone(phone);
+  const local = digits.startsWith('972') ? `0${digits.slice(3)}` : digits;
+  if (!local || /^(\d)\1+$/.test(local)) return false;
+  return /^05\d{8}$/.test(local) || /^0[23489]\d{7}$/.test(local);
+}
+
+function isValidEmail(email) {
+  return !!(email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim()));
+}
+
+function hasFullName(name) {
+  const clean = String(name || '').trim().replace(/\s+/g, ' ');
+  if (!clean || ['לא ידוע', 'unknown', 'test', 'בדיקה', 'n/a', '-', '?'].includes(clean.toLowerCase())) return false;
+  const parts = clean.split(' ').filter((part) => part.length >= 2);
+  return parts.length >= 2 && clean.length >= 5;
+}
+
+function isDirectSourceUrl(url) {
+  const value = String(url || '').trim();
+  if (!value) return false;
+  const lower = value.toLowerCase();
+  if (/google\.[^/]+\/search|natigold\.com|\/groups\/?$|facebook\.com\/groups\/[^/]+\/?$/.test(lower)) return false;
+  try {
+    const parsed = new URL(value);
+    const path = parsed.pathname.replace(/\/+$/, '');
+    if (!path || path === '' || path === '/he' || path.split('/').filter(Boolean).length < 2) return false;
+  } catch (_) {
+    return false;
+  }
+  return true;
+}
+
 function isIrrelevantMarketingLead(...parts) {
   const text = parts.filter(Boolean).join(' ').toLowerCase();
   return /מנהל\s*שיווק|מנהלת\s*שיווק|שיווק\s*בינלאומי|marketing\s*manager|intl\.\s*marketing|international\s*marketing|marcom/.test(text);
+}
+
+function isInvalidClaudeRow(row) {
+  const name = row[1];
+  const phone = row[2];
+  const email = row[3];
+  const source = row[4];
+  const link = row[8];
+  return !hasFullName(name) || (!isValidPhone(phone) && !isValidEmail(email)) || !String(source || '').trim() || !isDirectSourceUrl(link);
+}
+
+function potentialLeadName(record) {
+  return String(record.title || '').split('—')[0].trim();
+}
+
+function isInvalidPotentialLead(record) {
+  const contact = record.contact_info || '';
+  return !hasFullName(potentialLeadName(record)) || (!isValidPhone(contact) && !isValidEmail(contact)) || !record.keywords_matched || !isDirectSourceUrl(record.source_url);
 }
 
 function leadText(record) {
@@ -43,7 +98,7 @@ Deno.serve(async (req) => {
 
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i] || [];
-      if (!isIrrelevantMarketingLead(...row)) continue;
+      if (!isIrrelevantMarketingLead(...row) && !isInvalidClaudeRow(row)) continue;
       const rowNumber = i + 1;
       const updateRange = encodeURIComponent(`'${SHEET_NAME}'!A${rowNumber}:K${rowNumber}`);
       const nextRow = [...row];
@@ -61,7 +116,7 @@ Deno.serve(async (req) => {
     const potentialLeads = await base44.asServiceRole.entities.PotentialLead.list('-created_date', 1000);
     let potentialDeleted = 0;
     for (const lead of potentialLeads) {
-      if (isIrrelevantMarketingLead(leadText(lead))) {
+      if (isIrrelevantMarketingLead(leadText(lead)) || isInvalidPotentialLead(lead)) {
         await base44.asServiceRole.entities.PotentialLead.delete(lead.id);
         potentialDeleted++;
       }

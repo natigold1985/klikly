@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const SPREADSHEET_ID = '1Acz_kFz4d2oGyJflAWyrY4yiAAlbvWVqR7UNgKHCdD4';
 const SHEET_NAME = 'Claude Code';
@@ -9,6 +9,24 @@ function normalizePhone(phone) {
 
 function normalizeText(value) {
   return String(value || '').trim().toLowerCase();
+}
+
+function isValidPhone(phone) {
+  const digits = normalizePhone(phone);
+  const local = digits.startsWith('972') ? `0${digits.slice(3)}` : digits;
+  if (!local || /^(\d)\1+$/.test(local)) return false;
+  return /^05\d{8}$/.test(local) || /^0[23489]\d{7}$/.test(local);
+}
+
+function isValidEmail(email) {
+  return !!(email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim()));
+}
+
+function hasFullName(name) {
+  const clean = String(name || '').trim().replace(/\s+/g, ' ');
+  if (!clean || ['לא ידוע', 'unknown', 'test', 'בדיקה', 'n/a', '-', '?'].includes(clean.toLowerCase())) return false;
+  const parts = clean.split(' ').filter((part) => part.length >= 2);
+  return parts.length >= 2 && clean.length >= 5;
 }
 
 function isDirectSourceUrl(url) {
@@ -39,7 +57,7 @@ function buildRow(lead) {
     lead.name || '',
     lead.phone || '',
     lead.email || '',
-    lead.source || 'CRM',
+    lead.source || '',
     lead.shooting_type || lead.lead_type || '',
     lead.event_date || '',
     lead.notes || '',
@@ -71,8 +89,16 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const lead = body.data || body.lead || body;
 
-    if (!lead || !lead.name) {
-      return Response.json({ success: false, skipped: 'missing_lead' });
+    if (!lead || !hasFullName(lead.name)) {
+      return Response.json({ success: true, skipped: 'missing_full_name' });
+    }
+
+    if (!isValidPhone(lead.phone) && !isValidEmail(lead.email)) {
+      return Response.json({ success: true, skipped: 'missing_valid_phone_or_email' });
+    }
+
+    if (!String(lead.source || '').trim()) {
+      return Response.json({ success: true, skipped: 'missing_source' });
     }
 
     if (!isDirectSourceUrl(lead.source_post_url)) {
