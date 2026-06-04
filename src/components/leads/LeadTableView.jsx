@@ -5,11 +5,11 @@ import { Phone, MessageCircle, Trash2, Zap, Pencil, Undo2, ExternalLink, Sparkle
 import SourceBadge from './SourceBadge';
 import StatusSelect from './StatusSelect';
 import LeadMobileCard from './LeadMobileCard';
+import { normalizeIsraeliPhone, getIsraeliWhatsAppPhone } from '@/utils/leadDisplay';
 
 export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoFollowUp, onRestoreToActive, projectsByLeadId = {} }) {
   const getWhatsAppLink = (lead) => {
-    const cleanPhone = String(lead.phone || '').replace(/[^0-9]/g, '');
-    const israelPhone = cleanPhone.startsWith('972') ? cleanPhone : cleanPhone.startsWith('0') ? '972' + cleanPhone.substring(1) : cleanPhone;
+    const israelPhone = getIsraeliWhatsAppPhone(lead.phone);
     const hasRealName = lead.name && !['לא ידוע', 'unknown', 'Unknown'].includes(lead.name.trim());
     const leadType = lead.lead_type || lead.interest_label || lead.shooting_type || 'שירותי צילום';
     const msg = hasRealName
@@ -62,9 +62,9 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
           {leads.map((lead, idx) => {
             // If phone is invalid (too long / not a real phone), move it into notes display and clear the phone cell
             const rawPhone = (lead.phone || '').toString();
-            const digits = rawPhone.replace(/[^0-9]/g, '');
+            const displayPhone = normalizeIsraeliPhone(rawPhone);
+            const digits = displayPhone.replace(/[^0-9]/g, '');
             const isValidPhone = digits.length >= 7 && digits.length <= 15;
-            const displayPhone = isValidPhone ? rawPhone : '';
             const extraNote = !isValidPhone && rawPhone ? `טלפון שגוי: ${rawPhone}` : '';
             const combinedNotes = [extraNote, lead.notes].filter(Boolean).join(' • ');
 
@@ -149,14 +149,15 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
                   )}
                   <a
                     href={getWhatsAppLink(lead)}
-
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm hover:shadow transition-all active:scale-95"
                     title="וואטסאפ"
                   >
                     <MessageCircle className="w-4 h-4" />
                   </a>
                   <a
-                    href={`tel:${lead.phone}`}
+                    href={`tel:${displayPhone}`}
                     className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-sm hover:shadow transition-all active:scale-95"
                     title="חיוג"
                   >

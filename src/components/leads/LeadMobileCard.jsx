@@ -5,10 +5,10 @@ import { Phone, MessageCircle, Trash2, Zap, ChevronLeft, Undo2 } from 'lucide-re
 import SourceBadge from './SourceBadge';
 import StatusSelect from './StatusSelect';
 import PaymentStatusRow from './PaymentStatusRow';
+import { normalizeIsraeliPhone, getIsraeliWhatsAppPhone } from '@/utils/leadDisplay';
 
 const getWhatsAppLink = (lead) => {
-  const cleanPhone = (lead.phone || '').replace(/[^0-9]/g, '');
-  const israelPhone = cleanPhone.startsWith('0') ? '972' + cleanPhone.substring(1) : cleanPhone;
+  const israelPhone = getIsraeliWhatsAppPhone(lead.phone);
   const hasRealName = lead.name && !['לא ידוע', 'unknown', 'Unknown'].includes(lead.name.trim());
   const leadType = lead.lead_type || lead.interest_label || lead.shooting_type || 'שירותי צילום';
   const msg = hasRealName
@@ -31,9 +31,9 @@ export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoF
 
   // Validate phone: if invalid (too long / non-standard), move it to notes
   const rawPhone = (lead.phone || '').toString();
-  const digits = rawPhone.replace(/[^0-9]/g, '');
+  const displayPhone = normalizeIsraeliPhone(rawPhone);
+  const digits = displayPhone.replace(/[^0-9]/g, '');
   const isValidPhone = digits.length >= 7 && digits.length <= 15;
-  const displayPhone = isValidPhone ? rawPhone : '';
   const extraNote = !isValidPhone && rawPhone ? `טלפון שגוי: ${rawPhone}` : '';
   const combinedNotes = [extraNote, lead.notes].filter(Boolean).join(' • ');
 

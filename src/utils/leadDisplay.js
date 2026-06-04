@@ -26,6 +26,21 @@ export function normalizeLeadStatus(status) {
   return STATUS_VALUE_MAP[status] || status || 'ליד חדש';
 }
 
+export function normalizeIsraeliPhone(phone = '') {
+  const digits = String(phone || '').replace(/[^0-9]/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('972') && digits.length >= 11) return `0${digits.slice(3)}`;
+  if (digits.startsWith('0')) return digits;
+  if (/^[234589]\d{7,8}$/.test(digits)) return `0${digits}`;
+  return digits;
+}
+
+export function getIsraeliWhatsAppPhone(phone = '') {
+  const normalized = normalizeIsraeliPhone(phone);
+  if (!normalized) return '';
+  return normalized.startsWith('0') ? `972${normalized.slice(1)}` : normalized;
+}
+
 const UNKNOWN_SOURCES = ['לא ידוע', 'unknown', 'none', '-', 'n/a', ''];
 
 export function cleanLeadNotes(notes = '') {

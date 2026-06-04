@@ -1,6 +1,7 @@
 import React from 'react';
 import { MessageCircle, Mail, Phone, Instagram, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { normalizeIsraeliPhone, getIsraeliWhatsAppPhone } from '@/utils/leadDisplay';
 
 // Friendly greeting that handles missing/placeholder names gracefully
 function greet(name) {
@@ -81,8 +82,8 @@ export default function OutreachActions({ lead, onLog, compact = false }) {
   const waText = hasRealName(lead.name)
     ? TEMPLATES.whatsapp.default(lead.name, leadType)
     : `היי, מה קורה? ראיתי שהשארת פרטים לגבי ${typeContext(leadType)}, אשמח לדבר ולתת עוד פרטים. מה אומר/ת?`;
-  const cleanPhone = (lead.phone || '').replace(/[^0-9]/g, '');
-  const israelPhone = cleanPhone.startsWith('0') ? `972${cleanPhone.slice(1)}` : cleanPhone;
+  const displayPhone = normalizeIsraeliPhone(lead.phone);
+  const israelPhone = getIsraeliWhatsAppPhone(lead.phone);
   const waLink = `https://wa.me/${israelPhone}?text=${encodeURIComponent(waText)}`;
 
   const emailSubject = TEMPLATES.email.subject(lead.name);
@@ -107,7 +108,7 @@ export default function OutreachActions({ lead, onLog, compact = false }) {
 
       {/* Secondary Row */}
       <div className="flex gap-2 w-full">
-        <a href={`tel:${lead.phone}`} onClick={(e) => { e.stopPropagation(); onLog?.('log_call', lead); }} className="flex-1">
+        <a href={`tel:${displayPhone}`} onClick={(e) => { e.stopPropagation(); onLog?.('log_call', lead); }} className="flex-1">
           <Button variant="ghost" className="h-10 w-full rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200 gap-1.5">
             <Phone className="w-4 h-4" />
             התקשר
