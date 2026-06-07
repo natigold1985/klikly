@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Upload, Loader2, CheckCircle2, FileSpreadsheet } from 'lucide-react';
+import { Upload, Loader2, CheckCircle2, FileSpreadsheet, FileSpreadsheet as SheetsIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { cleanLeadNotes, inferLeadSource } from '@/utils/leadDisplay';
 
@@ -171,8 +171,21 @@ export default function WhatsAppCsvImporter({ onComplete }) {
       });
 
       await base44.entities.Lead.bulkCreate(leads);
-      setResult({ success: true, message: `${leads.length} לידים יובאו בהצלחה` });
-      toast.success(`${leads.length} לידים יובאו בהצלחה`);
+
+      // Sync to Google Sheets — WhatsApp tab
+      let sheetsMsg = '';
+      try {
+        const sheetsRes = await base44.functions.invoke('syncJoniLeadsToSheets', { leads });
+        const appended = sheetsRes.data?.appended ?? 0;
+        const skipped = sheetsRes.data?.skipped ?? 0;
+        sheetsMsg = ` | ${appended} נוספו לגוגל שיטס${skipped > 0 ? ` (${skipped} כפולים)` : ''}`;
+      } catch (e) {
+        console.warn('Sheets sync failed:', e.message);
+        sheetsMsg = ' | שגיאה בסנכרון לגוגל שיטס';
+      }
+
+      setResult({ success: true, message: `${leads.length} לידים יובאו בהצלחה${sheetsMsg}` });
+      toast.success(`${leads.length} לידים יובאו${sheetsMsg}`);
       setPreview(null);
       onComplete?.(leads.length);
     } catch (error) {
