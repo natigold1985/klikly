@@ -1,7 +1,9 @@
 // Scans Gmail for new natigold.com WordPress contact-form leads.
-// Uses deterministic regex parsing on the known form structure — no LLM credits needed.
-// Falls back to LLM ONLY for emails that look like a lead but don't match the WP template.
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+// Parses the actual email template from the website form, saves to Lead entity + Google Sheets.
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+
+const SHEET_ID = '1Acz_kFz4d2oGyJflAWyrY4yiAAlbvWVqR7UNgKHCdD4';
+const SHEET_TAB = 'לידים מהאתר';
 
 // Decode base64-url Gmail body
 function b64decode(data = '') {
@@ -35,80 +37,72 @@ function extractBody(payload) {
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
     .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
+    .replace(/&#39;/g, "'")
+    .replace(/\s{2,}/g, ' ');
 }
 
-// Parse the standard natigold.com WP form. Returns null if it doesn't match.
-function parseWordPressForm(body) {
+// Parse the natigold.com website contact form.
+// Fields arrive in this order: full name, email, phone, date, submit-time, service.
+// The form uses WPForms / Elementor — field labels followed by their values.
+function parseContactForm(body) {
   if (!body) return null;
-  const normalizedBody = body
-    .replace(/\s+/g, ' ')
-    .replace(/\s*[:：]\s*/g, ': ');
-  const lines = body.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
-  const get = (label) => {
-    // matches: "label: value", "label : value", or label on one line and value on the next line
-    const sameLine = new RegExp(`${label}\\s*[:：]\\s*([^\\n\\r]+)`, 'i');
-    const m = body.match(sameLine);
-    if (m?.[1]?.trim()) return m[1].trim();
 
-    const inline = new RegExp(`${label}\\s*[:：]\\s*(.{2,80}?)(?=\\s+(שם פרטי|שם מלא|שם|טלפון|טלפון נייד|נייד|אימייל|מייל|דואר אלקטרוני|תאריך|תאריך אירוע|שעה|URL מקור|דף מקור|עמוד מקור|Name|Phone|Email|Date|Time|$))`, 'i');
-    const inlineMatch = normalizedBody.match(inline);
-    if (inlineMatch?.[1]?.trim()) return inlineMatch[1].trim();
+  const lines = body.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
 
-    const labelLine = new RegExp(`^${label}\\s*[:：]?$`, 'i');
-    const index = lines.findIndex(line => labelLine.test(line));
-    if (index >= 0) return lines[index + 1] || '';
-
+  // Helper: find value after a label (same line or next line)
+  const get = (...labels) => {
+    for (const label of labels) {
+      const re = new RegExp(`^${label}\\s*[:：]?\\s*(.+)$`, 'i');
+      for (let i = 0; i < lines.length; i++) {
+        // "Label: value" on same line
+        const sameMatch = lines[i].match(re);
+        if (sameMatch?.[1]?.trim()) return sameMatch[1].trim();
+        // "Label" on one line, value on next
+        if (new RegExp(`^${label}\\s*[:：]?$`, 'i').test(lines[i]) && lines[i + 1]) {
+          return lines[i + 1].trim();
+        }
+      }
+    }
     return '';
   };
 
-  const name = get('שם פרטי') || get('שם מלא') || get('שם') || get('Name') || get('Full Name');
-  const phone = get('טלפון') || get('טלפון נייד') || get('נייד') || get('Phone') || get('Mobile');
-  const email = get('אימייל') || get('אימייל שלך') || get('מייל') || get('דואר אלקטרוני') || get('Email') || get('E-mail');
-  const eventDate = get('תאריך') || get('תאריך אירוע') || get('תאריך האירוע') || get('Date') || get('Event Date');
-  const eventTime = get('שעה') || get('שעת אירוע') || get('שעת האירוע') || get('Time') || get('Event Time');
-  const sourceUrl = get('URL מקור') || get('דף מקור') || get('עמוד מקור') || get('Source URL') || get('Page URL');
+  // Extract fields using Hebrew label names from the form
+  const name = get('שם מלא', 'שם פרטי', 'שם', 'Full Name', 'Name');
+  const email = get('אימייל', 'אימייל שלך', 'מייל', 'דואר אלקטרוני', 'Email', 'E-mail');
+  const phone = get('טלפון', 'טלפון נייד', 'נייד', 'Phone', 'Mobile');
+  const service = get('שירות', 'סוג שירות', 'מה השירות', 'Service', 'Product', 'מוצר', 'עניין', 'תחום', 'סוג צילום', 'צילום');
+  const date = get('תאריך', 'תאריך אירוע', 'Date', 'Event Date');
 
-  const fallbackPhone = phone || (body.match(/(?:\+972|0)(?:[\d\s\-()]){8,}/)?.[0] || '');
-  const fallbackEmail = email || (body.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || '');
+  // Fallback: extract phone/email from raw body if labels weren't found
+  const fallbackPhone = phone || (body.match(/(?:(?:\+972|972|0)[\s\-]?(?:5[0-9]|[2-9])[\d\s\-]{7,10})/)?.[0]?.replace(/\s/g, '') || '');
+  const fallbackEmail = email || (body.match(/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i)?.[0] || '');
 
-  const phoneDigits = String(fallbackPhone || '').replace(/[^0-9]/g, '');
-  const hasValidPhone = phoneDigits.length === 10 && !/^(\d)\1+$/.test(phoneDigits);
-  const hasValidEmail = !!(fallbackEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(fallbackEmail).trim()));
-  const hasFullName = String(name || '').trim().split(/\s+/).filter(Boolean).length >= 2;
-  const hasSourceUrl = /^https?:\/\//i.test(sourceUrl || '');
-
-  if (!hasFullName || (!hasValidPhone && !hasValidEmail) || !hasSourceUrl) return null;
-
-  // Detect shooting type from source URL or body
-  let shooting_type = '';
-  const lowerBody = body.toLowerCase();
-  const lowerUrl = sourceUrl.toLowerCase();
-  if (/wedding|חתונה/i.test(lowerBody) || /wedding/i.test(lowerUrl)) shooting_type = 'חתונה';
-  else if (/bar.?mitzvah|בר מצווה|בת מצווה/i.test(lowerBody)) shooting_type = 'בר/בת מצווה';
-  else if (/event|אירוע/i.test(lowerUrl)) shooting_type = 'אירוע';
-  else if (/portrait|תדמית/i.test(lowerBody)) shooting_type = 'תדמית';
-  else if (/family|משפחה/i.test(lowerBody)) shooting_type = 'משפחה';
-
-  const noteParts = [];
-  if (eventDate) noteParts.push(`תאריך: ${eventDate}${eventTime ? ' ' + eventTime : ''}`);
-  if (sourceUrl) {
-    const slug = sourceUrl.split('/').filter(Boolean).pop() || '';
-    if (slug) noteParts.push(`מקור: ${slug.split('#')[0]}`);
+  // Fallback: extract name — look for Reply-To or first line that looks like a name
+  let fallbackName = name;
+  if (!fallbackName) {
+    // Try to find a line with 2+ Hebrew words (likely a name)
+    const hebrewNameLine = lines.find(l => /^[\u05D0-\u05EA]+([\s\u05D0-\u05EA]{2,})$/.test(l));
+    fallbackName = hebrewNameLine || '';
   }
 
+  const phoneDigits = String(fallbackPhone || '').replace(/[^0-9]/g, '');
+  const hasPhone = phoneDigits.length >= 9;
+  const hasEmail = !!(fallbackEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fallbackEmail));
+
+  // Must have at least a name and phone/email
+  if (!fallbackName || (!hasPhone && !hasEmail)) return null;
+
   return {
-    name,
-    phone: fallbackPhone.replace(/[^\d+\-\s()]/g, '').trim(),
+    name: fallbackName,
     email: fallbackEmail,
-    shooting_type,
-    notes: noteParts.join(', '),
-    source_post_url: sourceUrl,
+    phone: fallbackPhone,
+    service: service || '',
+    date: date || '',
+    notes: [service && `שירות: ${service}`, date && `תאריך: ${date}`].filter(Boolean).join(', '),
   };
 }
 
-// In-memory guard against concurrent / runaway invocations within a single deploy instance.
-// (Cold starts reset this — combined with the DB circuit-breaker below for cross-instance safety.)
+// In-memory guard against concurrent invocations
 let isRunning = false;
 
 Deno.serve(async (req) => {
@@ -117,56 +111,48 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const messageIds = body.data?.new_message_ids || [];
 
-    // ── Concurrency guard ─────────────────────────────────────────────
     if (isRunning) {
-      console.log('scanGmailLeads: already running, skipping duplicate invocation');
+      console.log('scanGmailLeads: already running, skipping');
       return Response.json({ success: true, skipped: 'already_running' });
     }
     isRunning = true;
 
-    // ── Circuit breaker: prevent runaway loops ────────────────────────
-    // Count how many times this function ran in the last 60 minutes via SystemLog.
+    // Circuit breaker: max 5 runs per hour
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const recentLogs = await base44.asServiceRole.entities.SystemLog.filter(
-      { action: 'gmail_lead_scan' },
-      '-created_date',
-      20
+      { action: 'gmail_lead_scan' }, '-created_date', 20
     );
     const recentCount = recentLogs.filter(l => l.created_date > oneHourAgo).length;
     if (recentCount >= 5) {
-      console.warn(`scanGmailLeads: circuit-breaker tripped — ${recentCount} runs in last hour. Aborting.`);
+      console.warn(`scanGmailLeads: circuit-breaker tripped (${recentCount} runs/hour)`);
       isRunning = false;
-      await base44.asServiceRole.entities.SystemLog.create({
-        action: 'gmail_lead_scan_blocked',
-        details: `Circuit breaker tripped: ${recentCount} runs in last 60min`,
-        status: 'error',
-      });
-      return Response.json({ success: false, error: 'rate_limited', recentCount }, { status: 429 });
+      return Response.json({ success: false, error: 'rate_limited' }, { status: 429 });
     }
 
-    // Connector with single retry — if no auth, abort cleanly (no loop).
+    // Get Gmail access token
     let accessToken;
     try {
       const conn = await base44.asServiceRole.connectors.getConnection('gmail');
       accessToken = conn.accessToken;
     } catch (e) {
       isRunning = false;
-      console.error('scanGmailLeads: Gmail not connected:', e.message);
       return Response.json({ success: false, error: 'gmail_not_connected' }, { status: 400 });
     }
     const authHeader = { Authorization: `Bearer ${accessToken}` };
 
+    // If no message IDs provided (manual run), search last 7 days for contact-form emails
     let idsToProcess = messageIds;
-
     if (idsToProcess.length === 0) {
-      // Scan recent WordPress/contact-form notifications. Some Gmail messages arrive from wordpress@natigold.com,
-      // while others only expose the Hebrew subject/body, so don't rely only on the From header.
-      const query = encodeURIComponent('newer_than:7d (natigold.com OR wordpress OR wpforms OR elementor OR "contact form" OR "הודעה חדשה מאת" OR "שם פרטי" OR "טלפון")');
+      // Accept messages from the website form sender OR messages that look like contact forms
+      const query = encodeURIComponent(
+        'newer_than:7d (from:email@natigold.com OR "הודעה חדשה מאת" OR "נתי גולד צילום") subject:("הודעה חדשה" OR "New Message" OR "Contact Form")'
+      );
       const listRes = await fetch(
-        `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20&q=${query}`,
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=30&q=${query}`,
         { headers: authHeader }
       );
       if (!listRes.ok) {
+        isRunning = false;
         return Response.json({ error: 'Failed to list messages' }, { status: 500 });
       }
       const listData = await listRes.json();
@@ -178,10 +164,9 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, found: 0, saved: 0 });
     }
 
-    // Fetch + parse — no LLM in the happy path
-    // STRICT: only process emails coming from the website contact form (natigold.com).
+    // Fetch and parse each message
     const parsed = [];
-    for (const msgId of idsToProcess.slice(0, 20)) {
+    for (const msgId of idsToProcess.slice(0, 30)) {
       const res = await fetch(
         `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msgId}?format=full`,
         { headers: authHeader }
@@ -192,75 +177,51 @@ Deno.serve(async (req) => {
       const header = (name) => headers.find(h => h.name?.toLowerCase() === name.toLowerCase())?.value || '';
       const subject = header('Subject');
       const from = header('From');
-      const to = header('To');
       const replyTo = header('Reply-To');
 
-      const text = extractBody(msg.payload);
-      const combined = `${from}\n${to}\n${replyTo}\n${subject}\n${text}`;
+      // Accept: emails from the site's notification address, or with contact-form subject
+      const isFromSite =
+        /email@natigold\.com|wordpress@natigold\.com/i.test(from) ||
+        /הודעה חדשה מאת|contact form|new message/i.test(subject);
 
-      // Website-only filter: accept only messages that clearly came from the natigold.com contact form.
-      const isWebsiteForm =
-        /natigold\.com|wordpress|wpforms|elementor|contact form|טופס|הודעה חדשה מאת/i.test(combined) &&
-        /שם פרטי|שם מלא|שם|טלפון|טלפון נייד|אימייל|מייל|דואר אלקטרוני|Phone|Email|Name/i.test(text);
-      if (!isWebsiteForm) {
-        console.log(`scanGmailLeads: skipped non-website email ${msgId} subject="${subject}" from="${from}"`);
+      if (!isFromSite) {
+        console.log(`scanGmailLeads: skipped ${msgId} subject="${subject}" from="${from}"`);
         continue;
       }
 
-      const lead = parseWordPressForm(text);
+      const text = extractBody(msg.payload);
+
+      // The client's email is in Reply-To header (WPForms sets this automatically)
+      const replyToEmail = replyTo.match(/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i)?.[0] || '';
+
+      const lead = parseContactForm(text);
       if (lead) {
+        // Prefer Reply-To email (actual client email) over form-body parsed email
+        if (replyToEmail && !lead.email) lead.email = replyToEmail;
         parsed.push(lead);
+        console.log(`scanGmailLeads: parsed lead "${lead.name}" phone="${lead.phone}" email="${lead.email}" service="${lead.service}"`);
       } else {
-        console.log(`scanGmailLeads: website email matched but could not parse ${msgId} subject="${subject}"`);
-      }
-    }
-    const unparsed = []; // No LLM fallback — strict website-only mode
-
-    // Optional fallback to LLM only when we have unparsed but possibly relevant emails
-    let llmLeads = [];
-    if (unparsed.length > 0) {
-      try {
-        const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
-          prompt: `Extract photography leads from these Hebrew/English emails. Return only real leads with name + (phone or email).
-Emails:
-${unparsed.map(e => `From: ${e.from}\nSubject: ${e.subject}\n${e.body}\n---`).join('\n')}`,
-          response_json_schema: {
-            type: 'object',
-            properties: {
-              leads: {
-                type: 'array',
-                items: {
-                  type: 'object',
-                  properties: {
-                    name: { type: 'string' },
-                    phone: { type: 'string' },
-                    email: { type: 'string' },
-                    shooting_type: { type: 'string' },
-                    notes: { type: 'string' },
-                  }
-                }
-              }
-            }
-          }
-        });
-        llmLeads = (result.leads || []).filter(l => l.name && (l.phone || l.email));
-      } catch (e) {
-        console.error('LLM fallback failed:', e.message);
+        console.log(`scanGmailLeads: could not parse ${msgId} subject="${subject}"`);
+        console.log(`scanGmailLeads: body preview = ${text.slice(0, 300)}`);
       }
     }
 
-    const allLeads = [...parsed, ...llmLeads];
-    if (allLeads.length === 0) {
+    if (parsed.length === 0) {
       isRunning = false;
-      return Response.json({ success: true, found: 0, saved: 0, parsed: 0, llmFallback: 0 });
+      await base44.asServiceRole.entities.SystemLog.create({
+        action: 'gmail_lead_scan',
+        details: `No leads parsed from ${idsToProcess.length} emails`,
+        status: 'success',
+      });
+      return Response.json({ success: true, found: 0, saved: 0, parsed: 0 });
     }
 
-    // Deduplicate
+    // Deduplicate against existing leads
     const existingLeads = await base44.asServiceRole.entities.Lead.filter({}, '-created_date', 500);
     const newLeads = [];
     let updatedCount = 0;
 
-    for (const l of allLeads) {
+    for (const l of parsed) {
       const normalizedPhone = l.phone?.replace(/[^0-9]/g, '');
       const normalizedEmail = l.email?.toLowerCase();
       const existing =
@@ -269,7 +230,7 @@ ${unparsed.map(e => `From: ${e.from}\nSubject: ${e.subject}\n${e.body}\n---`).jo
 
       if (existing) {
         const updateData = {};
-        if (l.shooting_type && !existing.shooting_type) updateData.shooting_type = l.shooting_type;
+        if (l.service && !existing.shooting_type) updateData.shooting_type = l.service;
         if (l.notes) updateData.notes = [existing.notes, l.notes].filter(Boolean).join(' | ');
         if (l.email && !existing.email) updateData.email = l.email;
         if (l.phone && !existing.phone) updateData.phone = l.phone;
@@ -282,39 +243,78 @@ ${unparsed.map(e => `From: ${e.from}\nSubject: ${e.subject}\n${e.body}\n---`).jo
       }
     }
 
+    // Save new leads to Lead entity
+    const createdLeads = [];
     if (newLeads.length > 0) {
-      await base44.asServiceRole.entities.Lead.bulkCreate(newLeads.map(l => ({
+      const rows = newLeads.map(l => ({
         name: l.name,
         phone: l.phone || '',
         email: l.email || '',
-        shooting_type: l.shooting_type || '',
+        shooting_type: l.service || '',
         notes: l.notes || '',
-        status: 'new',
-        source: 'natigold.com (Gmail)',
-        source_post_url: l.source_post_url,
-        pipeline: /webinar|וובינר|ai|בינה מלאכותית/i.test(`${l.notes || ''} ${l.source_post_url || ''}`) ? 'ai_webinar' : 'events_b2b',
-        pipeline_stage: /webinar|וובינר|ai|בינה מלאכותית/i.test(`${l.notes || ''} ${l.source_post_url || ''}`) ? 'registered_webinar' : 'quote_sent',
+        status: 'ליד חדש',
+        source: 'natigold.com (אתר)',
+        pipeline: 'events_b2b',
+        pipeline_stage: 'lead_found',
         last_contact_date: new Date().toISOString(),
-      })));
+      }));
+      const created = await base44.asServiceRole.entities.Lead.bulkCreate(rows);
+      createdLeads.push(...(Array.isArray(created) ? created : newLeads));
+    }
+
+    // Write new leads to Google Sheets — לשונית "לידים מהאתר"
+    // Columns: A=שם, B=טלפון, C=מקור, D=עניין, E=הודעה מוכנה
+    if (newLeads.length > 0) {
+      try {
+        const sheetsConn = await base44.asServiceRole.connectors.getConnection('googlesheets');
+        const sheetsAuth = { Authorization: `Bearer ${sheetsConn.accessToken}` };
+
+        const values = newLeads.map(l => {
+          const waMsg = `היי ${l.name.split(' ')[0]}, קיבלתי את הפנייה שלך${l.service ? ` בנושא ${l.service}` : ''}. אחזור אליך בהקדם 🙏`;
+          return [
+            l.name,
+            l.phone,
+            'natigold.com (אתר)',
+            l.service || '',
+            waMsg,
+          ];
+        });
+
+        const encTab = encodeURIComponent(SHEET_TAB);
+        const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encTab}!A:E:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+        const sheetsRes = await fetch(appendUrl, {
+          method: 'POST',
+          headers: { ...sheetsAuth, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ values }),
+        });
+
+        if (!sheetsRes.ok) {
+          const err = await sheetsRes.text();
+          console.error('scanGmailLeads: Sheets append failed:', err);
+        } else {
+          console.log(`scanGmailLeads: appended ${values.length} rows to Sheets tab "${SHEET_TAB}"`);
+        }
+      } catch (e) {
+        console.error('scanGmailLeads: Sheets error:', e.message);
+      }
     }
 
     await base44.asServiceRole.entities.SystemLog.create({
       action: 'gmail_lead_scan',
-      details: `Parsed: ${parsed.length}, LLM fallback: ${llmLeads.length}, New: ${newLeads.length}, Updated: ${updatedCount}`,
+      details: `Parsed: ${parsed.length}, New: ${newLeads.length}, Updated: ${updatedCount}, Sheets: ${newLeads.length}`,
       status: 'success',
     });
 
     isRunning = false;
     return Response.json({
       success: true,
-      found: allLeads.length,
+      found: parsed.length,
       saved: newLeads.length,
       updated: updatedCount,
-      parsed: parsed.length,
-      llmFallback: llmLeads.length,
     });
   } catch (error) {
     isRunning = false;
+    console.error('scanGmailLeads error:', error.message);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
