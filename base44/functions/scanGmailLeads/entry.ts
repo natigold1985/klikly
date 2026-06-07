@@ -124,16 +124,11 @@ function parseContactForm(body) {
   };
 }
 
-// In-memory guard against concurrent invocations
-let isRunning = false;
-
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
     const messageIds = body.data?.new_message_ids || [];
-
-    isRunning = true;
 
     // Get Gmail access token
     let accessToken;
@@ -141,7 +136,6 @@ Deno.serve(async (req) => {
       const conn = await base44.asServiceRole.connectors.getConnection('gmail');
       accessToken = conn.accessToken;
     } catch (e) {
-      isRunning = false;
       return Response.json({ success: false, error: 'gmail_not_connected' }, { status: 400 });
     }
     const authHeader = { Authorization: `Bearer ${accessToken}` };
@@ -157,7 +151,6 @@ Deno.serve(async (req) => {
         { headers: authHeader }
       );
       if (!listRes.ok) {
-        isRunning = false;
         return Response.json({ error: 'Failed to list messages' }, { status: 500 });
       }
       const listData = await listRes.json();
@@ -166,7 +159,6 @@ Deno.serve(async (req) => {
     }
 
     if (idsToProcess.length === 0) {
-      isRunning = false;
       return Response.json({ success: true, found: 0, saved: 0 });
     }
 
@@ -213,7 +205,6 @@ Deno.serve(async (req) => {
     }
 
     if (parsed.length === 0) {
-      isRunning = false;
       await base44.asServiceRole.entities.SystemLog.create({
         action: 'gmail_lead_scan',
         details: `No leads parsed from ${idsToProcess.length} emails`,
@@ -329,7 +320,6 @@ Deno.serve(async (req) => {
       status: 'success',
     });
 
-    isRunning = false;
     return Response.json({
       success: true,
       found: parsed.length,
@@ -337,7 +327,6 @@ Deno.serve(async (req) => {
       updated: updatedCount,
     });
   } catch (error) {
-    isRunning = false;
     console.error('scanGmailLeads error:', error.message);
     return Response.json({ error: error.message }, { status: 500 });
   }
