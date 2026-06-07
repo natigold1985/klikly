@@ -133,23 +133,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const messageIds = body.data?.new_message_ids || [];
 
-    if (isRunning) {
-      console.log('scanGmailLeads: already running, skipping');
-      return Response.json({ success: true, skipped: 'already_running' });
-    }
     isRunning = true;
-
-    // Circuit breaker: max 20 runs per hour
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const recentLogs = await base44.asServiceRole.entities.SystemLog.filter(
-      { action: 'gmail_lead_scan' }, '-created_date', 30
-    );
-    const recentCount = recentLogs.filter(l => l.created_date > oneHourAgo).length;
-    if (recentCount >= 20) {
-      console.warn(`scanGmailLeads: circuit-breaker tripped (${recentCount} runs/hour)`);
-      isRunning = false;
-      return Response.json({ success: false, error: 'rate_limited' }, { status: 429 });
-    }
 
     // Get Gmail access token
     let accessToken;
