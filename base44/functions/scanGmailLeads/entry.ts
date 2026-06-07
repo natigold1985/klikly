@@ -162,15 +162,14 @@ Deno.serve(async (req) => {
     }
     const authHeader = { Authorization: `Bearer ${accessToken}` };
 
-    // If no message IDs provided (manual run), search last 7 days for contact-form emails
+    // If no message IDs provided (manual run), search last 30 days for contact-form emails
     let idsToProcess = messageIds;
     if (idsToProcess.length === 0) {
-      // Accept messages from the website form sender OR messages that look like contact forms
       const query = encodeURIComponent(
-        'newer_than:7d (from:email@natigold.com OR "הודעה חדשה מאת" OR "נתי גולד צילום") subject:("הודעה חדשה" OR "New Message" OR "Contact Form")'
+        'newer_than:30d (from:email@natigold.com OR "הודעה חדשה מאת" OR "נתי גולד צילום") subject:("הודעה חדשה" OR "New Message" OR "Contact Form")'
       );
       const listRes = await fetch(
-        `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=30&q=${query}`,
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=100&q=${query}`,
         { headers: authHeader }
       );
       if (!listRes.ok) {
@@ -179,6 +178,7 @@ Deno.serve(async (req) => {
       }
       const listData = await listRes.json();
       idsToProcess = (listData.messages || []).map(m => m.id);
+      console.log(`scanGmailLeads: found ${idsToProcess.length} emails in last 30 days`);
     }
 
     if (idsToProcess.length === 0) {
@@ -238,31 +238,49 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, found: 0, saved: 0, parsed: 0 });
     }
 
-    // Deduplicate against existing leads
-    const existingLeads = await base44.asServiceRole.entities.Lead.filter({}, '-created_date', 500);
+    // Deduplicate: first against existing DB leads, then within the parsed batch itself
+    const existingLeads = await base44.asServiceRole.entities.Lead.filter({}, '-created_date', 1000);
     const newLeads = [];
     let updatedCount = 0;
+
+    // Build a map of already-seen phones/emails within this batch to avoid intra-batch duplicates
+    const seenPhones = new Set();
+    const seenEmails = new Set();
 
     for (const l of parsed) {
       const normalizedPhone = l.phone?.replace(/[^0-9]/g, '');
       const normalizedEmail = l.email?.toLowerCase();
+
+      // Check against existing DB leads
       const existing =
         (normalizedPhone && existingLeads.find(ex => ex.phone?.replace(/[^0-9]/g, '') === normalizedPhone)) ||
         (normalizedEmail && existingLeads.find(ex => ex.email?.toLowerCase() === normalizedEmail));
 
       if (existing) {
+        // Only update if something meaningful is missing
         const updateData = {};
         if (l.service && !existing.shooting_type) updateData.shooting_type = l.service;
-        if (l.notes) updateData.notes = [existing.notes, l.notes].filter(Boolean).join(' | ');
         if (l.email && !existing.email) updateData.email = l.email;
         if (l.phone && !existing.phone) updateData.phone = l.phone;
         if (Object.keys(updateData).length > 0) {
           await base44.asServiceRole.entities.Lead.update(existing.id, updateData);
           updatedCount++;
         }
-      } else {
-        newLeads.push(l);
+        continue;
       }
+
+      // Check against intra-batch duplicates (same person, multiple emails)
+      if (
+        (normalizedPhone && seenPhones.has(normalizedPhone)) ||
+        (normalizedEmail && seenEmails.has(normalizedEmail))
+      ) {
+        console.log(`scanGmailLeads: skipping intra-batch duplicate "${l.name}" phone="${l.phone}"`);
+        continue;
+      }
+
+      if (normalizedPhone) seenPhones.add(normalizedPhone);
+      if (normalizedEmail) seenEmails.add(normalizedEmail);
+      newLeads.push(l);
     }
 
     // Save new leads to Lead entity
