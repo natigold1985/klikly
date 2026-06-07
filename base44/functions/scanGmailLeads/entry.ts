@@ -70,8 +70,29 @@ function parseContactForm(body) {
   const name = get('שם מלא', 'שם פרטי', 'שם', 'Full Name', 'Name');
   const email = get('אימייל', 'אימייל שלך', 'מייל', 'דואר אלקטרוני', 'Email', 'E-mail');
   const phone = get('טלפון', 'טלפון נייד', 'נייד', 'Phone', 'Mobile');
-  const service = get('שירות', 'סוג שירות', 'מה השירות', 'Service', 'Product', 'מוצר', 'עניין', 'תחום', 'סוג צילום', 'צילום');
+  const pageUrl = get('קישור לעמוד', 'עמוד מקור', 'URL מקור', 'Source URL', 'Page URL');
   const date = get('תאריך', 'תאריך אירוע', 'Date', 'Event Date');
+
+  // Map page URL slug to service name
+  const SERVICE_MAP = {
+    'promotional-video': 'סרטון תדמית',
+    'social': 'צילומי סושיאל',
+    'social-photography': 'צילומי סושיאל',
+    'photography-course': 'קורס צילום',
+    'course-price': 'קורס צילום',
+    'event-photography': 'צילום אירועים',
+    'sadnat-tzilum-learganim': 'סדנת צילום',
+    'product-photography': 'צילום מוצרים',
+    'stills': 'צילום סטילס',
+    'brand-photography': 'צילומי תדמית',
+    'portrait': 'צילומי תדמית',
+  };
+  let service = '';
+  if (pageUrl) {
+    const slug = pageUrl.replace(/\/$/, '').split('/').pop();
+    service = SERVICE_MAP[slug] || (slug && slug !== 'natigold.com' ? slug : 'צילומי תדמית');
+    if (!slug || pageUrl.replace(/\/$/, '') === 'https://natigold.com') service = 'צילומי תדמית';
+  }
 
   // Fallback: extract phone/email from raw body if labels weren't found
   const fallbackPhone = phone || (body.match(/(?:(?:\+972|972|0)[\s\-]?(?:5[0-9]|[2-9])[\d\s\-]{7,10})/)?.[0]?.replace(/\s/g, '') || '');
@@ -99,6 +120,7 @@ function parseContactForm(body) {
     service: service || '',
     date: date || '',
     notes: [service && `שירות: ${service}`, date && `תאריך: ${date}`].filter(Boolean).join(', '),
+    source_post_url: pageUrl || '',
   };
 }
 
