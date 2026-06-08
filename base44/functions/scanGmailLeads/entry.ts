@@ -41,74 +41,97 @@ function extractBody(payload) {
     .replace(/\s{2,}/g, ' ');
 }
 
-// Parse "ליד חדש מ-[Name]" email format (Studio Gold plugin format)
-// Body lines: שם, טלפון, מייל, URL
+// SERVICE_MAP shared between parsers
+const SERVICE_MAP = {
+  'promotional-video': 'סרטון תדמית',
+  'social': 'צילומי סושיאל',
+  'social-photography': 'צילומי סושיאל',
+  'photography-course': 'קורס צילום',
+  'course-price': 'קורס צילום',
+  'event-photography': 'צילום אירועים',
+  'sadnat-tzilum-learganim': 'סדנת צילום',
+  'product-photography': 'צילום מוצרים',
+  'stills': 'צילום סטילס',
+  'brand-photography': 'צילומי תדמית',
+  'portrait': 'צילומי תדמית',
+  'afokstoruno': 'אפוק סטרונו',
+  'afok-storuno': 'אפוק סטרונו',
+};
+
+function serviceFromUrl(url) {
+  if (!url) return '';
+  const slug = url.replace(/\/$/, '').split('/').pop();
+  return SERVICE_MAP[slug] || slug || '';
+}
+
+// Parse "ליד חדש מ-[Name]" email format (Studio Gold / natigold.com plugin).
+// The body looks like:
+//   אפוק סטרונו          ← name (may also be in subject)
+//   ofekstudent09@gmail.com
+//   0546854841
+//   אני אוי מאמלות...   ← consent line (skip)
+//   --
+//   תאריך: 08/05/2026
+//   ...technical lines...
+//   מקור בדפדפן: http://natigold.com/afokstoruno/
 function parseStudioGoldLead(subject, body) {
   if (!body) return null;
   const lines = body.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
 
-  const get = (...labels) => {
-    for (const label of labels) {
-      const re = new RegExp(`^${label}\\s*[:：]?\\s*(.+)$`, 'i');
-      for (let i = 0; i < lines.length; i++) {
-        const sameMatch = lines[i].match(re);
-        if (sameMatch?.[1]?.trim()) return sameMatch[1].trim();
-        if (new RegExp(`^${label}\\s*[:：]?$`, 'i').test(lines[i]) && lines[i + 1]) {
-          return lines[i + 1].trim();
-        }
-      }
-    }
-    return '';
-  };
+  console.log(`parseStudioGoldLead: subject="${subject}", lines=${lines.length}`);
+  console.log(`parseStudioGoldLead: first 10 lines: ${JSON.stringify(lines.slice(0, 10))}`);
 
-  // Extract name from subject "ליד חדש מ-[Name]" or from body
-  const subjectNameMatch = subject.match(/ליד חדש מ[־\-–—]\s*(.+)/i);
+  // Extract name from subject "ליד חדש – [Name]" / "ליד חדש מ-[Name]"
+  const subjectNameMatch = subject.match(/ליד חדש\s*[מ]?[־\-–—]\s*(.+)/i);
   const nameFromSubject = subjectNameMatch?.[1]?.trim() || '';
+  console.log(`parseStudioGoldLead: nameFromSubject="${nameFromSubject}"`);
 
-  const name = nameFromSubject || get('שם', 'שם מלא', 'שם פרטי', 'Full Name', 'Name');
-  const phone = get('טלפון', 'טלפון נייד', 'נייד', 'Phone', 'Mobile');
-  const email = get('מייל', 'אימייל', 'דואר אלקטרוני', 'Email');
-  const pageUrl = get('URL', 'קישור', 'עמוד', 'Source URL', 'Page URL', 'http');
+  // Extract email and phone using regex — more reliable than label-based parsing
+  const emailMatch = body.match(/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i);
+  const phoneMatch = body.match(/(?:(?:\+972|972|0)[\s\-]?(?:5[0-9]|[2-9])[\d\s\-]{6,10})/);
+  // Extract URL — look for מקור בדפדפן or any natigold.com URL
+  const urlMatch = body.match(/מקור בדפדפן[:\s]*(\S+)/i) ||
+                   body.match(/(https?:\/\/[^\s\n]+natigold[^\s\n]*)/i) ||
+                   body.match(/(https?:\/\/[^\s\n]+)/i);
 
-  // Also try to extract a URL directly from any line starting with http
-  const urlLine = lines.find(l => /^https?:\/\//i.test(l)) || '';
-  const finalUrl = pageUrl || urlLine;
+  const email = emailMatch?.[0] || '';
+  const phone = phoneMatch?.[0]?.replace(/\s/g, '') || '';
+  const pageUrl = urlMatch?.[1] || '';
 
-  // Map URL slug to service
-  const SERVICE_MAP = {
-    'promotional-video': 'סרטון תדמית',
-    'social': 'צילומי סושיאל',
-    'social-photography': 'צילומי סושיאל',
-    'photography-course': 'קורס צילום',
-    'course-price': 'קורס צילום',
-    'event-photography': 'צילום אירועים',
-    'sadnat-tzilum-learganim': 'סדנת צילום',
-    'product-photography': 'צילום מוצרים',
-    'stills': 'צילום סטילס',
-    'brand-photography': 'צילומי תדמית',
-    'portrait': 'צילומי תדמית',
-    'afokstoruno': 'אפוק סטרונו',
-    'afok-storuno': 'אפוק סטרונו',
-  };
-  let service = '';
-  if (finalUrl) {
-    const slug = finalUrl.replace(/\/$/, '').split('/').pop();
-    service = SERVICE_MAP[slug] || slug || '';
+  console.log(`parseStudioGoldLead: email="${email}", phone="${phone}", url="${pageUrl}"`);
+
+  // Name: from subject, or first non-email, non-phone, non-http line
+  let name = nameFromSubject;
+  if (!name) {
+    name = lines.find(l =>
+      l.length > 1 &&
+      !/^https?:\/\//i.test(l) &&
+      !/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i.test(l) &&
+      !/^[\d\s\-\+]{7,}$/.test(l) &&
+      !/^(תאריך|שעה|דפדפן|מערכת|IP|מקור|--)/i.test(l) &&
+      !/^אני אוי|^אני מאשר/i.test(l)
+    ) || '';
   }
 
-  const phoneDigits = String(phone || '').replace(/[^0-9]/g, '');
+  const service = serviceFromUrl(pageUrl);
+  console.log(`parseStudioGoldLead: name="${name}", service="${service}"`);
+
+  const phoneDigits = phone.replace(/[^0-9]/g, '');
   const hasPhone = phoneDigits.length >= 9;
   const hasEmail = !!(email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
 
-  if (!name || (!hasPhone && !hasEmail)) return null;
+  if (!name || (!hasPhone && !hasEmail)) {
+    console.log(`parseStudioGoldLead: FAILED validation name="${name}" hasPhone=${hasPhone} hasEmail=${hasEmail}`);
+    return null;
+  }
 
   return {
     name,
-    email: email || '',
-    phone: phone || '',
+    email,
+    phone,
     service,
-    notes: [service && `שירות: ${service}`, finalUrl && `URL: ${finalUrl}`].filter(Boolean).join(' | '),
-    source_post_url: finalUrl || '',
+    notes: [service && `שירות: ${service}`, pageUrl && `URL: ${pageUrl}`].filter(Boolean).join(' | '),
+    source_post_url: pageUrl,
     _format: 'studio_gold',
   };
 }
@@ -215,19 +238,21 @@ Deno.serve(async (req) => {
     // If no message IDs provided (manual run), search last 30 days for contact-form emails
     let idsToProcess = messageIds;
     if (idsToProcess.length === 0) {
-      const query = encodeURIComponent(
-        'newer_than:30d subject:("הודעה חדשה" OR "New Message" OR "Contact Form" OR "ליד חדש")'
-      );
+      const queryStr = 'newer_than:60d subject:("הודעה חדשה" OR "New Message" OR "Contact Form" OR "ליד חדש")';
+      console.log(`scanGmailLeads: searching Gmail with query="${queryStr}"`);
+      const query = encodeURIComponent(queryStr);
       const listRes = await fetch(
         `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=100&q=${query}`,
         { headers: authHeader }
       );
       if (!listRes.ok) {
-        return Response.json({ error: 'Failed to list messages' }, { status: 500 });
+        const errText = await listRes.text();
+        console.error(`scanGmailLeads: Gmail list failed: ${errText}`);
+        return Response.json({ error: 'Failed to list messages', details: errText }, { status: 500 });
       }
       const listData = await listRes.json();
       idsToProcess = (listData.messages || []).map(m => m.id);
-      console.log(`scanGmailLeads: found ${idsToProcess.length} emails in last 30 days`);
+      console.log(`scanGmailLeads: found ${idsToProcess.length} emails. IDs: ${idsToProcess.slice(0, 5).join(', ')}`);
     }
 
     if (idsToProcess.length === 0) {
@@ -249,14 +274,15 @@ Deno.serve(async (req) => {
       const from = header('From');
       const replyTo = header('Reply-To');
 
-      // Accept: emails from the site's notification address, contact-form subject, OR "ליד חדש מ-" subject
+      // Accept: emails from the site's notification address, contact-form subject, OR "ליד חדש" subject
       const isFromSite =
         /email@natigold\.com|wordpress@natigold\.com/i.test(from) ||
         /הודעה חדשה מאת|contact form|new message/i.test(subject) ||
-        /ליד חדש מ/i.test(subject);
+        /ליד חדש/i.test(subject);
+
+      console.log(`scanGmailLeads: msg=${msgId} subject="${subject}" from="${from}" isFromSite=${isFromSite}`);
 
       if (!isFromSite) {
-        console.log(`scanGmailLeads: skipped ${msgId} subject="${subject}" from="${from}"`);
         continue;
       }
 
@@ -265,23 +291,28 @@ Deno.serve(async (req) => {
       // The client's email is in Reply-To header (WPForms sets this automatically)
       const replyToEmail = replyTo.match(/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i)?.[0] || '';
 
-      // Try Studio Gold format first ("ליד חדש מ-[Name]"), then fall back to WordPress form
-      let lead = /ליד חדש מ/i.test(subject)
-        ? parseStudioGoldLead(subject, text)
-        : parseContactForm(text);
+      console.log(`scanGmailLeads: body length=${text.length}, preview="${text.slice(0, 200).replace(/\n/g, '|')}"`);
 
-      // If Studio Gold parse failed, try WordPress parser as fallback
-      if (!lead && /ליד חדש מ/i.test(subject)) {
+      // Try Studio Gold format first ("ליד חדש"), then fall back to WordPress form
+      let lead = null;
+      if (/ליד חדש/i.test(subject)) {
+        console.log(`scanGmailLeads: trying parseStudioGoldLead for ${msgId}`);
+        lead = parseStudioGoldLead(subject, text);
+        if (!lead) {
+          console.log(`scanGmailLeads: Studio Gold parse failed, trying WordPress parser`);
+          lead = parseContactForm(text);
+        }
+      } else {
         lead = parseContactForm(text);
       }
 
       if (lead) {
         if (replyToEmail && !lead.email) lead.email = replyToEmail;
         parsed.push(lead);
-        console.log(`scanGmailLeads: parsed lead "${lead.name}" phone="${lead.phone}" email="${lead.email}" service="${lead.service}" format="${lead._format || 'wordpress'}"`);
+        console.log(`scanGmailLeads: ✅ parsed lead name="${lead.name}" phone="${lead.phone}" email="${lead.email}" service="${lead.service}" format="${lead._format || 'wordpress'}"`);
       } else {
-        console.log(`scanGmailLeads: could not parse ${msgId} subject="${subject}"`);
-        console.log(`scanGmailLeads: body preview = ${text.slice(0, 300)}`);
+        console.log(`scanGmailLeads: ❌ could not parse ${msgId} subject="${subject}"`);
+        console.log(`scanGmailLeads: full body = ${text.slice(0, 500)}`);
       }
     }
 
