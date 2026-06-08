@@ -41,6 +41,78 @@ function extractBody(payload) {
     .replace(/\s{2,}/g, ' ');
 }
 
+// Parse "ליד חדש מ-[Name]" email format (Studio Gold plugin format)
+// Body lines: שם, טלפון, מייל, URL
+function parseStudioGoldLead(subject, body) {
+  if (!body) return null;
+  const lines = body.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+  const get = (...labels) => {
+    for (const label of labels) {
+      const re = new RegExp(`^${label}\\s*[:：]?\\s*(.+)$`, 'i');
+      for (let i = 0; i < lines.length; i++) {
+        const sameMatch = lines[i].match(re);
+        if (sameMatch?.[1]?.trim()) return sameMatch[1].trim();
+        if (new RegExp(`^${label}\\s*[:：]?$`, 'i').test(lines[i]) && lines[i + 1]) {
+          return lines[i + 1].trim();
+        }
+      }
+    }
+    return '';
+  };
+
+  // Extract name from subject "ליד חדש מ-[Name]" or from body
+  const subjectNameMatch = subject.match(/ליד חדש מ[־\-–—]\s*(.+)/i);
+  const nameFromSubject = subjectNameMatch?.[1]?.trim() || '';
+
+  const name = nameFromSubject || get('שם', 'שם מלא', 'שם פרטי', 'Full Name', 'Name');
+  const phone = get('טלפון', 'טלפון נייד', 'נייד', 'Phone', 'Mobile');
+  const email = get('מייל', 'אימייל', 'דואר אלקטרוני', 'Email');
+  const pageUrl = get('URL', 'קישור', 'עמוד', 'Source URL', 'Page URL', 'http');
+
+  // Also try to extract a URL directly from any line starting with http
+  const urlLine = lines.find(l => /^https?:\/\//i.test(l)) || '';
+  const finalUrl = pageUrl || urlLine;
+
+  // Map URL slug to service
+  const SERVICE_MAP = {
+    'promotional-video': 'סרטון תדמית',
+    'social': 'צילומי סושיאל',
+    'social-photography': 'צילומי סושיאל',
+    'photography-course': 'קורס צילום',
+    'course-price': 'קורס צילום',
+    'event-photography': 'צילום אירועים',
+    'sadnat-tzilum-learganim': 'סדנת צילום',
+    'product-photography': 'צילום מוצרים',
+    'stills': 'צילום סטילס',
+    'brand-photography': 'צילומי תדמית',
+    'portrait': 'צילומי תדמית',
+    'afokstoruno': 'אפוק סטרונו',
+    'afok-storuno': 'אפוק סטרונו',
+  };
+  let service = '';
+  if (finalUrl) {
+    const slug = finalUrl.replace(/\/$/, '').split('/').pop();
+    service = SERVICE_MAP[slug] || slug || '';
+  }
+
+  const phoneDigits = String(phone || '').replace(/[^0-9]/g, '');
+  const hasPhone = phoneDigits.length >= 9;
+  const hasEmail = !!(email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+
+  if (!name || (!hasPhone && !hasEmail)) return null;
+
+  return {
+    name,
+    email: email || '',
+    phone: phone || '',
+    service,
+    notes: [service && `שירות: ${service}`, finalUrl && `URL: ${finalUrl}`].filter(Boolean).join(' | '),
+    source_post_url: finalUrl || '',
+    _format: 'studio_gold',
+  };
+}
+
 // Parse the natigold.com website contact form.
 // Fields arrive in this order: full name, email, phone, date, submit-time, service.
 // The form uses WPForms / Elementor — field labels followed by their values.
@@ -144,7 +216,7 @@ Deno.serve(async (req) => {
     let idsToProcess = messageIds;
     if (idsToProcess.length === 0) {
       const query = encodeURIComponent(
-        'newer_than:30d (from:email@natigold.com OR "הודעה חדשה מאת" OR "נתי גולד צילום") subject:("הודעה חדשה" OR "New Message" OR "Contact Form")'
+        'newer_than:30d subject:("הודעה חדשה" OR "New Message" OR "Contact Form" OR "ליד חדש")'
       );
       const listRes = await fetch(
         `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=100&q=${query}`,
@@ -177,10 +249,11 @@ Deno.serve(async (req) => {
       const from = header('From');
       const replyTo = header('Reply-To');
 
-      // Accept: emails from the site's notification address, or with contact-form subject
+      // Accept: emails from the site's notification address, contact-form subject, OR "ליד חדש מ-" subject
       const isFromSite =
         /email@natigold\.com|wordpress@natigold\.com/i.test(from) ||
-        /הודעה חדשה מאת|contact form|new message/i.test(subject);
+        /הודעה חדשה מאת|contact form|new message/i.test(subject) ||
+        /ליד חדש מ/i.test(subject);
 
       if (!isFromSite) {
         console.log(`scanGmailLeads: skipped ${msgId} subject="${subject}" from="${from}"`);
@@ -192,12 +265,20 @@ Deno.serve(async (req) => {
       // The client's email is in Reply-To header (WPForms sets this automatically)
       const replyToEmail = replyTo.match(/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i)?.[0] || '';
 
-      const lead = parseContactForm(text);
+      // Try Studio Gold format first ("ליד חדש מ-[Name]"), then fall back to WordPress form
+      let lead = /ליד חדש מ/i.test(subject)
+        ? parseStudioGoldLead(subject, text)
+        : parseContactForm(text);
+
+      // If Studio Gold parse failed, try WordPress parser as fallback
+      if (!lead && /ליד חדש מ/i.test(subject)) {
+        lead = parseContactForm(text);
+      }
+
       if (lead) {
-        // Prefer Reply-To email (actual client email) over form-body parsed email
         if (replyToEmail && !lead.email) lead.email = replyToEmail;
         parsed.push(lead);
-        console.log(`scanGmailLeads: parsed lead "${lead.name}" phone="${lead.phone}" email="${lead.email}" service="${lead.service}"`);
+        console.log(`scanGmailLeads: parsed lead "${lead.name}" phone="${lead.phone}" email="${lead.email}" service="${lead.service}" format="${lead._format || 'wordpress'}"`);
       } else {
         console.log(`scanGmailLeads: could not parse ${msgId} subject="${subject}"`);
         console.log(`scanGmailLeads: body preview = ${text.slice(0, 300)}`);
@@ -269,6 +350,7 @@ Deno.serve(async (req) => {
         notes: l.notes || '',
         status: 'ליד חדש',
         source: 'natigold.com (אתר)',
+        source_post_url: l.source_post_url || '',
         pipeline: 'events_b2b',
         pipeline_stage: 'lead_found',
         last_contact_date: new Date().toISOString(),
@@ -292,11 +374,12 @@ Deno.serve(async (req) => {
             'natigold.com (אתר)',
             l.service || '',
             waMsg,
+            l.source_post_url || '',
           ];
         });
 
         const encTab = encodeURIComponent(SHEET_TAB);
-        const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encTab}!A:E:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+        const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encTab}!A:F:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
         const sheetsRes = await fetch(appendUrl, {
           method: 'POST',
           headers: { ...sheetsAuth, 'Content-Type': 'application/json' },
