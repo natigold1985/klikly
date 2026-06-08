@@ -159,12 +159,17 @@ export default function WhatsAppCsvImporter({ onComplete }) {
       const leads = preview.leads.map((lead) => {
         const notes = cleanLeadNotes(lead.full_name_notes);
         const sourceFromNotes = inferLeadSource({ source, notes });
+        const isCourse =
+          sourceFromNotes === 'קורס צילום' ||
+          /קורס|7 ימים|שבעה ימים|להבין הכל/i.test(notes) ||
+          /קורס|7 ימים|שבעה ימים|להבין הכל/i.test(lead.full_name_notes || '');
         return {
           name: lead.first_name || notes || lead.phone_number,
           phone: lead.phone_number,
           notes,
           source: 'WhatsApp',
-          lead_type: sourceFromNotes === 'קורס צילום' ? 'מתעניין בקורס' : 'שירותי צילום',
+          shooting_type: isCourse ? 'קורס צילום' : '',
+          lead_type: isCourse ? 'מתעניין בקורס' : 'שירותי צילום',
           status: 'new',
           last_contact_date: now,
         };
