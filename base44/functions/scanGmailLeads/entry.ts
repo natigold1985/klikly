@@ -319,7 +319,13 @@ Deno.serve(async (req) => {
     if (parsed.length === 0) {
       await base44.asServiceRole.entities.SystemLog.create({
         action: 'gmail_lead_scan',
-        details: `No leads parsed from ${idsToProcess.length} emails`,
+        details: JSON.stringify({
+          summary: `נסרקו ${idsToProcess.length} מיילים — לא נמצאו לידים חדשים`,
+          found: idsToProcess.length,
+          saved: 0,
+          updated: 0,
+          leads: [],
+        }),
         status: 'success',
       });
       return Response.json({ success: true, found: 0, saved: 0, parsed: 0 });
@@ -448,9 +454,30 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Build rich lead details for display in the log
+    const leadDetails = newLeads.map(l => {
+      const urlSlug = l.source_post_url
+        ? l.source_post_url.replace(/\/$/, '').split('/').pop()
+        : '';
+      return {
+        name: l.name,
+        phone: l.phone || '',
+        email: l.email || '',
+        page: l.source_post_url || '',
+        slug: urlSlug || '',
+        service: l.service || '',
+      };
+    });
+
     await base44.asServiceRole.entities.SystemLog.create({
       action: 'gmail_lead_scan',
-      details: `Parsed: ${parsed.length}, New: ${newLeads.length}, Updated: ${updatedCount}, Sheets: ${newLeads.length}`,
+      details: JSON.stringify({
+        summary: `נסרקו ${idsToProcess.length} מיילים — ${newLeads.length} לידים חדשים, ${updatedCount} עודכנו`,
+        found: idsToProcess.length,
+        saved: newLeads.length,
+        updated: updatedCount,
+        leads: leadDetails,
+      }),
       status: 'success',
     });
 

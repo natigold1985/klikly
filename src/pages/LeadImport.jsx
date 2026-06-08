@@ -368,21 +368,51 @@ Return ONLY valid leads that have at least a name AND a phone number.`,
             {gmailLogs && gmailLogs.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs font-bold text-slate-600">היסטוריית סריקות אחרונות</p>
-                <div className="max-h-48 overflow-y-auto space-y-1.5 rounded-xl border border-slate-100 p-2 bg-slate-50">
-                  {gmailLogs.map(log => (
-                    <div key={log.id} className={`flex items-start gap-2 text-xs rounded-lg px-2 py-1.5 ${log.status === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-white text-slate-600 border border-slate-100'}`}>
-                      {log.status === 'error'
-                        ? <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-red-500" />
-                        : <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-green-500" />
-                      }
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate">{log.details}</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">
-                          {new Date(log.created_date).toLocaleString('he-IL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                        </p>
+                <div className="max-h-[420px] overflow-y-auto space-y-2 rounded-xl border border-slate-100 p-2 bg-slate-50">
+                  {gmailLogs.map(log => {
+                    let parsed = null;
+                    try { parsed = JSON.parse(log.details); } catch { parsed = null; }
+                    const isError = log.status === 'error';
+                    const summary = parsed?.summary || log.details;
+                    const leads = parsed?.leads || [];
+                    return (
+                      <div key={log.id} className={`rounded-xl border text-xs overflow-hidden ${isError ? 'border-red-200 bg-red-50' : 'border-slate-200 bg-white'}`}>
+                        {/* Header row */}
+                        <div className={`flex items-center gap-2 px-3 py-2 ${isError ? 'bg-red-100/60' : 'bg-slate-50'}`}>
+                          {isError
+                            ? <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 text-red-500" />
+                            : <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0 text-green-500" />
+                          }
+                          <p className={`flex-1 font-medium ${isError ? 'text-red-700' : 'text-slate-700'}`}>{summary}</p>
+                          <p className="text-[10px] text-slate-400 whitespace-nowrap">
+                            {new Date(log.created_date).toLocaleString('he-IL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                        {/* Leads table */}
+                        {leads.length > 0 && (
+                          <div className="divide-y divide-slate-100">
+                            {leads.map((lead, i) => (
+                              <div key={i} className="px-3 py-2 grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5">
+                                <div className="flex items-center gap-1.5 font-semibold text-slate-800">
+                                  <span>👤</span>
+                                  <span>{lead.name}</span>
+                                  {lead.service && <span className="text-[10px] bg-indigo-50 text-indigo-600 border border-indigo-100 px-1.5 py-0.5 rounded-full">{lead.service}</span>}
+                                </div>
+                                <div className="text-[10px] text-slate-400 text-left row-span-2 self-center">
+                                  {lead.slug || 'אתר'}
+                                </div>
+                                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-slate-500">
+                                  {lead.phone && <span>📞 {lead.phone}</span>}
+                                  {lead.email && <span>✉️ {lead.email}</span>}
+                                  {lead.page && <a href={lead.page} target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:underline truncate max-w-[180px]">🔗 {lead.slug || lead.page}</a>}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
