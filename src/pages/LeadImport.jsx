@@ -5,7 +5,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Upload, FileSpreadsheet, MessageCircle, Instagram, Facebook, Mail, Loader2, CheckCircle2, Linkedin, RefreshCw, Clock, Sparkles, ClipboardPaste, Zap } from 'lucide-react';
+import { Upload, FileSpreadsheet, MessageCircle, Instagram, Facebook, Mail, Loader2, CheckCircle2, Linkedin, RefreshCw, Clock, Sparkles, ClipboardPaste, Zap, AlertCircle } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import PasteLeadsDialog from '@/components/leads/PasteLeadsDialog';
 import LeadWebhookInfoDialog from '@/components/leads/LeadWebhookInfoDialog';
@@ -129,6 +130,12 @@ export default function LeadImport() {
 
   const [pasteText, setPasteText] = useState('');
   const [gmailScanning, setGmailScanning] = useState(false);
+
+  const { data: gmailLogs } = useQuery({
+    queryKey: ['gmailScanLogs'],
+    queryFn: () => base44.entities.SystemLog.filter({ action: 'gmail_lead_scan' }, '-created_date', 10),
+    staleTime: 1000 * 30,
+  });
 
   const handleGmailScan = async () => {
     setGmailScanning(true);
@@ -356,6 +363,29 @@ Return ONLY valid leads that have at least a name AND a phone number.`,
               {gmailScanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
               סרוק עכשיו
             </Button>
+
+            {/* Scan history log */}
+            {gmailLogs && gmailLogs.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-bold text-slate-600">היסטוריית סריקות אחרונות</p>
+                <div className="max-h-48 overflow-y-auto space-y-1.5 rounded-xl border border-slate-100 p-2 bg-slate-50">
+                  {gmailLogs.map(log => (
+                    <div key={log.id} className={`flex items-start gap-2 text-xs rounded-lg px-2 py-1.5 ${log.status === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-white text-slate-600 border border-slate-100'}`}>
+                      {log.status === 'error'
+                        ? <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-red-500" />
+                        : <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-green-500" />
+                      }
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate">{log.details}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          {new Date(log.created_date).toLocaleString('he-IL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

@@ -462,6 +462,15 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error('scanGmailLeads error:', error.message);
+    // Log the error to SystemLog so it's visible in the UI
+    try {
+      const base44Err = createClientFromRequest(req);
+      await base44Err.asServiceRole.entities.SystemLog.create({
+        action: 'gmail_lead_scan',
+        details: `שגיאה: ${error.message}`,
+        status: 'error',
+      });
+    } catch (_) { /* ignore secondary error */ }
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
