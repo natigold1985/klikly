@@ -373,19 +373,39 @@ Deno.serve(async (req) => {
     // Save new leads to Lead entity
     const createdLeads = [];
     if (newLeads.length > 0) {
-      const rows = newLeads.map(l => ({
-        name: l.name,
-        phone: l.phone || '',
-        email: l.email || '',
-        shooting_type: l.service || '',
-        notes: l.notes || '',
-        status: 'ליד חדש',
-        source: 'natigold.com (אתר)',
-        source_post_url: l.source_post_url || '',
-        pipeline: 'events_b2b',
-        pipeline_stage: 'lead_found',
-        last_contact_date: new Date().toISOString(),
-      }));
+      const rows = newLeads.map(l => {
+        // Extract slug from the page URL
+        const urlSlug = l.source_post_url
+          ? l.source_post_url.replace(/\/$/, '').split('/').pop()
+          : '';
+        const slugIsPage = urlSlug && urlSlug !== 'natigold.com' && !/^https?/.test(urlSlug) && urlSlug.includes('-');
+
+        // source field: natigold.com/slug if we have a slug, otherwise generic
+        const sourceLabel = slugIsPage
+          ? `natigold.com • ${urlSlug}`
+          : 'natigold.com (אתר)';
+
+        // notes: service name + slug fallback + URL
+        const noteParts = [];
+        if (l.service) noteParts.push(`שירות: ${l.service}`);
+        else if (slugIsPage) noteParts.push(`שירות: ${urlSlug}`);
+        if (l.date) noteParts.push(`תאריך: ${l.date}`);
+        if (l.source_post_url) noteParts.push(`URL: ${l.source_post_url}`);
+
+        return {
+          name: l.name,
+          phone: l.phone || '',
+          email: l.email || '',
+          shooting_type: l.service || (slugIsPage ? urlSlug : ''),
+          notes: noteParts.join(' | '),
+          status: 'ליד חדש',
+          source: sourceLabel,
+          source_post_url: l.source_post_url || '',
+          pipeline: 'events_b2b',
+          pipeline_stage: 'lead_found',
+          last_contact_date: new Date().toISOString(),
+        };
+      });
       const created = await base44.asServiceRole.entities.Lead.bulkCreate(rows);
       createdLeads.push(...(Array.isArray(created) ? created : newLeads));
     }
