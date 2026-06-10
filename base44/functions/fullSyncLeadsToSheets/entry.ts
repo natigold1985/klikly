@@ -112,14 +112,14 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads, tabName
     },
   });
 
-  // Style header row (index 0) — bold text, background based on tab
+  // Style header row (index 0) — Claude-inspired warm orange background with black text
   const isClaude = tabName.toLowerCase().includes('claude');
   const headerBgColor = isClaude
-    ? { red: 0.91, green: 0.91, blue: 0.91 }  // Light gray (#E8E8E8) for Claude
+    ? { red: 0.95, green: 0.68, blue: 0.42 }  // Warm orange (#F2AD6D) for Claude
     : { red: 0.1, green: 0.1, blue: 0.1 };     // Dark gray for others
   
   const headerTextColor = isClaude
-    ? { red: 0.2, green: 0.2, blue: 0.2 }   // Dark gray text for Claude
+    ? { red: 0.1, green: 0.1, blue: 0.1 }   // Black text for Claude
     : { red: 1.0, green: 1.0, blue: 1.0 };   // White text for others
   
   requests.push({
@@ -147,7 +147,7 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads, tabName
     },
   });
 
-  // Claude Code tab: add light gray background to data rows
+  // Claude Code tab: add light orange/peach background to data rows
   if (isClaude) {
     requests.push({
       repeatCell: {
@@ -156,11 +156,11 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads, tabName
           startRowIndex: 1,
           endRowIndex: leads.length + 1,
           startColumnIndex: 0,
-          endColumnIndex: 9,
+          endColumnIndex: 8,
         },
         cell: {
           userEnteredFormat: {
-            backgroundColor: { red: 0.96, green: 0.96, blue: 0.96 }, // Lighter gray for rows
+            backgroundColor: { red: 0.98, green: 0.90, blue: 0.80 }, // Light peach (#FAE5CC) for rows
           },
         },
         fields: 'userEnteredFormat.backgroundColor',
