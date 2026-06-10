@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import LeadRadarWidget from '@/components/dashboard/LeadRadarWidget';
+import ClaudeCodeLeadsTable from '@/components/dashboard/ClaudeCodeLeadsTable';
 import TaskBoard from '@/components/dashboard/TaskBoard';
 import QuickActions from '@/components/dashboard/QuickActions';
 import LeadQualityDashboard from '@/components/dashboard/LeadQualityDashboard';
@@ -251,6 +252,9 @@ export default function Dashboard() {
 
         {/* AI Lead Radar */}
         <LeadRadarWidget />
+
+        {/* Claude Code Leads Table */}
+        <ClaudeCodeLeadsTable />
 
         {/* Mini Chart + Recent Leads */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

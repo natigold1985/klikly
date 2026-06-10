@@ -50,10 +50,15 @@ export default function LeadRadarWidget() {
     setIsScanning(true);
     try {
       const res = await base44.functions.invoke('scanLeadRadar', {});
-      toast.success(`✅ ${res.data.summary}`);
-      refetch();
+      if (res.data?.success) {
+        toast.success(`✅ ${res.data.summary || 'סקן הושלם'}`);
+        await refetch();
+      } else {
+        toast.error('❌ שגיאה בסקן');
+      }
     } catch (err) {
-      toast.error(`❌ ${err.message}`);
+      console.error('Scan error:', err);
+      toast.error(`❌ ${err.message || 'שגיאה בסקן'}`);
     } finally {
       setIsScanning(false);
     }
