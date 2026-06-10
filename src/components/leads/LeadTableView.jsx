@@ -88,7 +88,7 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
                 <LeadContextBadge lead={lead} />
               </td>
 
-              <td className="py-3 px-4 max-w-0">
+              <td className="py-3 px-4">
                 <div className="inline-flex max-w-full rounded-full bg-slate-100 px-2.5 py-1 ring-1 ring-slate-200">
                   <SourceBadge source={lead.source} />
                 </div>
@@ -143,15 +143,17 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
                       <ExternalLink className="w-4 h-4" />
                     </a>
                   )}
-                  <a
-                    href={getWhatsAppLink(lead)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm hover:shadow transition-all active:scale-95"
-                    title="וואטסאפ"
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                  </a>
+                  {getIsraeliWhatsAppPhone(lead.phone) && (
+                    <a
+                      href={getWhatsAppLink(lead)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm hover:shadow transition-all active:scale-95"
+                      title="וואטסאפ"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                    </a>
+                  )}
                   <a
                     href={`tel:${displayPhone}`}
                     className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-sm hover:shadow transition-all active:scale-95"
