@@ -611,7 +611,9 @@ export default function Leads() {
               if (b === 'ליד חדש') return 1;
               return a.localeCompare(b);
             })
-            .map(([status, count]) => (
+            .map(([status, count]) => {
+              const displayStatus = status === 'נענה' ? 'נשלחה הודעה ראשונה' : status === 'נוצר קשר' ? 'הלקוח ענה' : status;
+              return (
               <button
                 key={status}
                 onClick={() => setActiveTab(status)}
@@ -623,7 +625,7 @@ export default function Leads() {
                   : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-300'
                 }`}
               >
-                {status}
+                {displayStatus}
                 <span className={`mr-2 px-2 py-0.5 rounded-full text-xs font-bold ${
                   activeTab === status
                   ? 'bg-black/20 text-black'
@@ -632,7 +634,8 @@ export default function Leads() {
                   : 'bg-slate-100 text-slate-600'
                 }`}>{count}</span>
               </button>
-            ))}
+              );
+            })}
         </div>
       </div>
 
