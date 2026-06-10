@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { 
   Plus, Search, Briefcase, Upload, Download, Eye, CheckCircle2, 
-  Smartphone, ExternalLink, RefreshCw, ListTodo, MessageCircle, Trash2
+  Smartphone, ExternalLink, RefreshCw, ListTodo, MessageCircle, Trash2, FolderOpen
 } from 'lucide-react';
 import DeliveryLinkButton from '../components/DeliveryLinkButton';
 import FileUploader from '../components/FileUploader';

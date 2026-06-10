@@ -264,12 +264,13 @@ function UserGrid({ users, type, projects = [], onEdit, onDelete, currentUserEma
                     <span className="truncate">{u.email}</span>
                   </div>
                   {type === 'client' && <ClientEmailEditor user={u} onSaved={onEmailsSaved} />}
-                  {u.phone && (
+                  {u.phone ? (
                     <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
                       <Phone className="w-3 h-3" />
                       <span>{u.phone}</span>
                     </div>
-                  )}
+                  ) : null}
+                  <ClientPhoneEditor user={u} onSaved={onEmailsSaved} />
                 </div>
               </div>
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
@@ -342,6 +343,57 @@ function UserGrid({ users, type, projects = [], onEdit, onDelete, currentUserEma
           </Card>
         );
       })}
+    </div>
+  );
+}
+
+function ClientPhoneEditor({ user, onSaved }) {
+  const [editing, setEditing] = useState(false);
+  const [phone, setPhone] = useState(user.phone || '');
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await base44.entities.TeamMember.update(user.id, { phone });
+      toast.success('מספר הטלפון עודכן');
+      setEditing(false);
+      onSaved?.();
+    } catch (e) {
+      toast.error('שגיאה בעדכון טלפון');
+    }
+    setSaving(false);
+  };
+
+  if (!editing) {
+    return (
+      <button
+        onClick={() => setEditing(true)}
+        className="mt-1 text-[11px] text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1"
+      >
+        <Plus className="w-3 h-3" />
+        {user.phone ? `ערוך טלפון` : 'הוסף טלפון'}
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-2 space-y-2 rounded-xl border border-emerald-100 bg-emerald-50/40 p-2">
+      <Input
+        value={phone}
+        dir="ltr"
+        className="h-8 text-xs bg-white"
+        placeholder="05X-XXXXXXX"
+        onChange={(e) => setPhone(e.target.value)}
+      />
+      <div className="flex gap-1">
+        <Button size="sm" onClick={save} disabled={saving} className="h-8 flex-1">
+          <Save className="w-3 h-3" /> שמור
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => setEditing(false)} className="h-8 text-slate-900 border-slate-300 bg-white">
+          <X className="w-3 h-3" />
+        </Button>
+      </div>
     </div>
   );
 }
