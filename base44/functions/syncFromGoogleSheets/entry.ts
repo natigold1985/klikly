@@ -364,25 +364,34 @@ Deno.serve(async (req) => {
 
                 const courseLead = isCourseLead(tabName, detectedSource, sourceCol, typeCol, notesCol, linkCol);
 
-                // Rule 1: regular leads need full name; course leads may arrive with first name only.
-                const hasUsableName = isFullName(name) || (courseLead && isRealLeadName(name, phone, email));
+                // WhatsApp and website tabs are trusted sources — skip URL validation for them
+                const isTrustedTab =
+                    /whatsapp/i.test(tabName) ||
+                    /לידים מהאתר|website|אתר/i.test(tabName) ||
+                    /whatsapp/i.test(detectedSource) ||
+                    /whatsapp/i.test(sourceCol);
+
+                // Rule 1: need name + at least one contact method
+                const hasUsableName = isFullName(name) || isTrustedTab
+                    ? isRealLeadName(name, phone, email)
+                    : (isFullName(name) || (courseLead && isRealLeadName(name, phone, email)));
                 if (!hasUsableName || (!isValidPhone(phone) && !isValidEmail(email))) {
                     tabSkipped++;
                     skipped++;
                     continue;
                 }
 
-                // Rule 2: reject irrelevant marketing-role contacts. Course leads can come from landing pages, so don't require a deep source URL for them.
-                if (isIrrelevantMarketingLead(name, sourceCol, typeCol, notesCol, companyCol) || (!courseLead && !isDirectSourceUrl(sourceUrl))) {
+                // Rule 2: reject irrelevant marketing-role contacts. Trusted tabs and course leads skip URL check.
+                if (isIrrelevantMarketingLead(name, sourceCol, typeCol, notesCol, companyCol) || (!isTrustedTab && !courseLead && !isDirectSourceUrl(sourceUrl))) {
                     tabSkipped++;
                     skipped++;
                     continue;
                 }
 
-                // Rule 3: job board / professional-site sources require an exact source URL
+                // Rule 3: job board / professional-site sources require an exact source URL (non-trusted only)
                 const JOB_BOARD_INDICATORS = ['drushim', 'alljobs', 'job.co.il', 'linkedin.com/jobs', 'yad2', 'gov.il', 'mod.gov.il', 'industry.co.il', 'ביטחון', 'דרושים'];
                 const allSourceText = [detectedSource, sourceCol, linkCol, notesCol].join(' ').toLowerCase();
-                if (JOB_BOARD_INDICATORS.some(k => allSourceText.includes(k)) && !sourceUrl) {
+                if (!isTrustedTab && JOB_BOARD_INDICATORS.some(k => allSourceText.includes(k)) && !sourceUrl) {
                     tabSkipped++;
                     skipped++;
                     continue;
