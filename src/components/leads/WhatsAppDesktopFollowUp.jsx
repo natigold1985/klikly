@@ -59,10 +59,10 @@ export default function WhatsAppDesktopFollowUp({ lead, onDone }) {
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => sendMutation.mutate()}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white font-bold text-sm transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white font-bold text-sm whitespace-nowrap transition-colors active:scale-95 touch-manipulation"
         >
-          <MessageCircle className="w-4 h-4" />
-          שלח פולו-אפ
+          <MessageCircle className="w-4 h-4 flex-shrink-0" />
+          שלח בWhatsApp
         </a>
       </div>
     </div>
