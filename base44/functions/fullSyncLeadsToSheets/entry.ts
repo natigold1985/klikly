@@ -174,6 +174,28 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads) {
   );
 }
 
+// Force RTL on ALL tabs in the spreadsheet at once
+async function forceRtlAllTabs(sheetsAuth, allTabGids) {
+  const requests = Object.values(allTabGids).map(gid => ({
+    updateSheetProperties: {
+      properties: {
+        sheetId: gid,
+        rightToLeft: true,
+      },
+      fields: 'rightToLeft',
+    },
+  }));
+  if (requests.length === 0) return;
+  await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`,
+    {
+      method: 'POST',
+      headers: { ...sheetsAuth, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests }),
+    }
+  );
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -200,6 +222,10 @@ Deno.serve(async (req) => {
     for (const s of (meta.sheets || [])) {
       tabGids[s.properties.title] = s.properties.sheetId;
     }
+
+    // Force RTL on ALL tabs first (including WhatsApp and any other tab)
+    await forceRtlAllTabs(sheetsAuth, tabGids);
+    console.log(`fullSyncLeadsToSheets: RTL applied to ${Object.keys(tabGids).length} tabs`);
 
     // Group leads by tab
     const tabLeads = {};
