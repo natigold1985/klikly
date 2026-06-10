@@ -69,7 +69,52 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Always confirm to client via email (per user request: client gets email every download)
+    // If first login/download — notify photographer via email
+    if (isFirstDownload && photographerEmail) {
+      try {
+        await base44.asServiceRole.integrations.Core.SendEmail({
+          to: photographerEmail,
+          from_name: 'KLIKLY',
+          subject: `🎉 הלקוח ${me.full_name || me.email} התחבר לגלריה לראשונה`,
+          body: `<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,Helvetica,sans-serif;direction:rtl;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+        <tr><td style="background:#0a0a0a;padding:28px 40px;text-align:center;">
+          <span style="color:#FFD700;font-size:26px;font-weight:900;letter-spacing:2px;">KLIKLY</span>
+        </td></tr>
+        <tr><td style="padding:36px 40px;">
+          <h2 style="color:#0a0a0a;font-size:20px;margin:0 0 16px;">🎉 הלקוח התחבר לגלריה!</h2>
+          <p style="color:#444;font-size:16px;line-height:1.7;margin:0 0 16px;">
+            <strong>${me.full_name || me.email}</strong> נכנס לגלריה שלו לראשונה${file_name ? ` והוריד את "${file_name}"` : ''}.
+          </p>
+          <p style="color:#666;font-size:14px;line-height:1.7;margin:0 0 24px;">
+            שעון 90 הימים להורדת הקבצים התחיל לרוץ מעכשיו.
+          </p>
+          <div style="text-align:center;margin:28px 0;">
+            <a href="https://app.klikly.com/FileStorage" style="display:inline-block;background:#FFD700;color:#000;font-size:15px;font-weight:700;padding:14px 40px;border-radius:10px;text-decoration:none;">
+              📁 לצפייה בפרויקטים
+            </a>
+          </div>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;">
+          <p style="color:#999;font-size:12px;margin:0;">הודעה אוטומטית מ-KLIKLY</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
+        });
+        console.log('Photographer notified of first client login:', me.email);
+      } catch (e) {
+        console.error('photographer first-login email failed:', e.message);
+      }
+    }
+
+    // Confirm to client via email on first download
     try {
       await base44.asServiceRole.integrations.Core.SendEmail({
         to: me.email,
