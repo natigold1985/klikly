@@ -31,12 +31,17 @@ const STATUS_ROW_COLORS = {
   'ליד חדש':     null,                                         // no color (white)
 };
 
+const APP_BASE_URL = 'https://klikly.base44.app';
+
 function leadToRow(lead) {
   const date = lead.created_date
     ? new Date(lead.created_date).toLocaleDateString('he-IL')
     : '';
+  const nameLink = lead.id
+    ? `=HYPERLINK("${APP_BASE_URL}/LeadDetails?id=${lead.id}","${(lead.name || '').replace(/"/g, '""')}")`
+    : (lead.name || '');
   return [
-    lead.name || '',
+    nameLink,
     lead.phone || '',
     lead.email || '',
     lead.source || '',
@@ -75,6 +80,20 @@ async function clearAndWriteTab(sheetsAuth, tabName, rows) {
 // Color rows + set dropdown validation in one batchUpdate
 async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads) {
   const requests = [];
+
+  // Freeze first column (שם מלא) + header row
+  requests.push({
+    updateSheetProperties: {
+      properties: {
+        sheetId: sheetGid,
+        gridProperties: {
+          frozenRowCount: 1,
+          frozenColumnCount: 1,
+        },
+      },
+      fields: 'gridProperties.frozenRowCount,gridProperties.frozenColumnCount',
+    },
+  });
 
   // Status dropdown on column F (index 5), rows 2..N
   requests.push({
