@@ -65,6 +65,7 @@ export default function ProjectDetails() {
     setDetailsForm({
       client_name: project.client_name || '',
       client_phone: project.client_phone || '',
+      client_phone_2: project.client_phone_2 || '',
       client_emails: getProjectEmails(project).length ? getProjectEmails(project) : [''],
       shooting_date: project.shooting_date || '',
       shooting_location: project.shooting_location || '',
@@ -85,6 +86,7 @@ export default function ProjectDetails() {
     updateProjectMutation.mutate({
       client_name: detailsForm.client_name,
       client_phone: detailsForm.client_phone,
+      client_phone_2: detailsForm.client_phone_2 || null,
       client_email: emails[0] || '',
       client_emails: emails,
       shooting_date: detailsForm.shooting_date,
@@ -254,13 +256,24 @@ export default function ProjectDetails() {
                   )}
                 </div>
                 <div>
-                  <label className="text-sm text-slate-500 block mb-1">טלפון</label>
+                  <label className="text-sm text-slate-500 block mb-1">טלפון ראשי</label>
                   {isEditingDetails ? (
-                    <Input value={detailsForm?.client_phone || ''} onChange={(e) => setDetailsForm({ ...detailsForm, client_phone: e.target.value })} />
+                    <Input value={detailsForm?.client_phone || ''} onChange={(e) => setDetailsForm({ ...detailsForm, client_phone: e.target.value })} placeholder="05X-XXXXXXX" dir="ltr" />
                   ) : (
                     <div className="font-medium flex items-center gap-2">
                       <Phone className="w-4 h-4 text-slate-400" />
                       {project.client_phone || 'לא הוזן'}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm text-slate-500 block mb-1">וואטסאפ נוסף</label>
+                  {isEditingDetails ? (
+                    <Input value={detailsForm?.client_phone_2 || ''} onChange={(e) => setDetailsForm({ ...detailsForm, client_phone_2: e.target.value })} placeholder="05X-XXXXXXX" dir="ltr" />
+                  ) : (
+                    <div className="font-medium flex items-center gap-2">
+                      <MessageCircle className="w-4 h-4 text-slate-400" />
+                      {project.client_phone_2 || 'לא הוזן'}
                     </div>
                   )}
                 </div>
