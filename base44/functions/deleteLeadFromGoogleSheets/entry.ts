@@ -28,12 +28,12 @@ function rowMatchesLead(row, lead) {
 }
 
 // Fetch with exponential backoff for 429 rate-limit errors
-async function fetchWithRetry(url, options = {}, maxRetries = 3) {
+async function fetchWithRetry(url, options = {}, maxRetries = 5) {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     const resp = await fetch(url, options);
     if (resp.status !== 429) return resp;
     if (attempt === maxRetries) return resp;
-    const delay = Math.pow(2, attempt) * 1500 + Math.random() * 1000; // 1.5s, 3s, 6s + jitter
+    const delay = Math.pow(2, attempt) * 3000 + Math.random() * 2000; // 3s, 6s, 12s, 24s, 48s + jitter
     console.log(`deleteLeadFromGoogleSheets: 429 received, retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${maxRetries})`);
     await new Promise(r => setTimeout(r, delay));
   }
@@ -49,8 +49,8 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, deletedRows: 0, reason: 'no_lead_data' });
     }
 
-    // Random jitter (0–2s) to spread concurrent deletes and avoid burst 429s
-    await new Promise(r => setTimeout(r, Math.random() * 2000));
+    // Random jitter (0–10s) to spread concurrent deletes and avoid burst 429s
+    await new Promise(r => setTimeout(r, Math.random() * 10000));
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
     const authHeader = { Authorization: `Bearer ${accessToken}` };
