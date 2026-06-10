@@ -10,10 +10,16 @@ Deno.serve(async (req) => {
         if (!task || !task.due_date) return Response.json({ success: true, message: "No due date" });
         
         // Fetch user's calendar connection
-        const accessToken = await base44.asServiceRole.connectors.getCurrentAppUserAccessToken("69d3c4ec1ea49d48ce3fec2e");
-        
+        let accessToken;
+        try {
+            accessToken = await base44.asServiceRole.connectors.getCurrentAppUserAccessToken("69d3c4ec1ea49d48ce3fec2e");
+        } catch (_) {
+            // Calendar not connected — skip silently
+            return Response.json({ success: true, skipped: 'calendar_not_connected' });
+        }
+
         if (!accessToken) {
-            return Response.json({ error: "No calendar connection" }, { status: 400 });
+            return Response.json({ success: true, skipped: 'calendar_not_connected' });
         }
 
         const event = {
