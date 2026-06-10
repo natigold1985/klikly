@@ -10,7 +10,7 @@ const buildWhatsAppDesktopLink = (lead) => {
   const phone = cleanPhone.startsWith('0') ? `972${cleanPhone.slice(1)}` : cleanPhone;
   const name = lead?.name && !['לא ידוע', 'unknown'].includes(String(lead.name).toLowerCase()) ? ` ${lead.name}` : '';
   const text = lead?.auto_followup_message || `היי${name}, רציתי לבדוק אם קיבלת את הפרטים ששלחתי. אשמח לענות על כל שאלה, מחכה לשמוע ממך! 📸`;
-  return `whatsapp://send?phone=${phone}&text=${encodeURIComponent(text)}`;
+  return `https://web.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`;
 };
 
 export default function WhatsAppDesktopFollowUp({ lead, onDone }) {
@@ -48,7 +48,7 @@ export default function WhatsAppDesktopFollowUp({ lead, onDone }) {
       return;
     }
     sendMutation.mutate();
-    window.location.href = buildWhatsAppDesktopLink(lead);
+    window.open(buildWhatsAppDesktopLink(lead), '_blank');
   };
 
   return (

@@ -18,7 +18,7 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
       ? `היי ${name}, מה קורה? ראיתי שהשארת פרטים לגבי ${leadType}, אשמח לדבר ולתת עוד פרטים. מה אומר/ת?`
       : `היי, מה קורה? ראיתי שהשארת פרטים לגבי ${leadType}, אשמח לדבר ולתת עוד פרטים. מה אומר/ת?`;
     if (!israelPhone) return '#';
-    return `https://wa.me/${israelPhone}?text=${encodeURIComponent(msg)}`;
+    return `https://web.whatsapp.com/send?phone=${israelPhone}&text=${encodeURIComponent(msg)}`;
   };
 
   return (
@@ -91,9 +91,7 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
               </td>
 
               <td className="py-3 px-4">
-                <div className="inline-flex max-w-full rounded-full bg-slate-100 px-2.5 py-1 ring-1 ring-slate-200">
-                  <SourceBadge source={lead.source} />
-                </div>
+                <SourceBadge source={lead.source} />
               </td>
 
               <td className="py-3 px-4">
