@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Phone, MessageCircle, Trash2, Zap, Pencil, Undo2, ExternalLink, Sparkles } from 'lucide-react';
 import SourceBadge from './SourceBadge';
+import LeadContextBadge from './LeadContextBadge';
 import StatusSelect from './StatusSelect';
 import LeadMobileCard from './LeadMobileCard';
 import { normalizeIsraeliPhone, getIsraeliWhatsAppPhone } from '@/utils/leadDisplay';
@@ -84,12 +85,7 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
                   {lead.name || '—'}
                 </Link>
                 {lead.email && <p className="text-xs text-slate-400 mt-0.5 truncate" dir="ltr" title={lead.email}>{lead.email}</p>}
-                {lead.interest_label && (
-                  <p className="text-xs text-[#9A7500] font-bold mt-0.5 truncate flex items-center gap-1" title={lead.interest_label}>
-                    <Sparkles className="w-3 h-3" /> {lead.interest_label}
-                  </p>
-                )}
-                {lead.shooting_type && !lead.interest_label && <p className="text-xs text-slate-400 mt-0.5 truncate" title={lead.shooting_type}>{lead.shooting_type}</p>}
+                <LeadContextBadge lead={lead} />
               </td>
 
               <td className="py-3 px-4 max-w-0">

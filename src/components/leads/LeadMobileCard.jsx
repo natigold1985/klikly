@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Phone, MessageCircle, Trash2, Zap, ChevronLeft, Undo2 } from 'lucide-react';
 import SourceBadge from './SourceBadge';
+import LeadContextBadge from './LeadContextBadge';
 import StatusSelect from './StatusSelect';
 import PaymentStatusRow from './PaymentStatusRow';
 import { normalizeIsraeliPhone, getIsraeliWhatsAppPhone } from '@/utils/leadDisplay';
@@ -48,9 +49,7 @@ export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoF
           <h3 className="font-bold text-slate-900 text-base leading-tight truncate">
             {displayName}
           </h3>
-          {lead.shooting_type && (
-            <p className="text-xs text-slate-500 mt-0.5 truncate">{lead.shooting_type}</p>
-          )}
+          <LeadContextBadge lead={lead} />
         </div>
         <ChevronLeft className="w-4 h-4 text-slate-300 flex-shrink-0" />
       </Link>
@@ -81,12 +80,6 @@ export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoF
           <span className="text-sm text-slate-400">אין טלפון תקין</span>
         )}
       </div>
-
-      {lead.interest_label && (
-        <div className="mb-3 rounded-xl bg-[#FFD700]/10 border border-[#C5A028]/20 px-3 py-2 text-xs font-bold text-[#8A6500]">
-          {lead.interest_label}
-        </div>
-      )}
 
       {/* Notes (includes invalid phone if relevant) */}
       {combinedNotes && (
