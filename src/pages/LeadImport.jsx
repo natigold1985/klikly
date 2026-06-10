@@ -12,6 +12,7 @@ import PasteLeadsDialog from '@/components/leads/PasteLeadsDialog';
 import LeadWebhookInfoDialog from '@/components/leads/LeadWebhookInfoDialog';
 import WhatsAppCsvImporter from '@/components/leads/WhatsAppCsvImporter';
 import MagicPasteImporter from '@/components/leads/MagicPasteImporter';
+import WhatsAppContactsImporter from '@/components/leads/WhatsAppContactsImporter';
 
 const AI_CHANNELS = ['facebook', 'instagram', 'whatsapp', 'email', 'linkedin'];
 const AI_CHANNEL_LABELS = {
@@ -49,6 +50,7 @@ const CHANNELS = [
   { id: 'email', label: 'Gmail (ידני)', desc: 'הדבק טפסי "צור קשר" מהמייל', icon: Mail, color: 'bg-red-500', available: true },
   { id: 'linkedin', label: 'LinkedIn', desc: 'חיפוש מוכוון + הדבקת תוצאות', icon: Linkedin, color: 'bg-[#0A66C2]', available: true },
   { id: 'csv', label: 'העלאת קובץ CSV / Excel', desc: 'ייבוא לפי כותרות בעברית', icon: Upload, color: 'bg-slate-700', available: true },
+  { id: 'wa_contacts', label: 'ייצוא אנשי קשר WhatsApp', desc: 'קובץ CSV מתוסף WhatsApp Lead Manager', icon: MessageCircle, color: 'bg-[#25D366]', available: true },
   { id: 'paste', label: 'הדבקה מ-Sheets', desc: 'העתק שורות והדבק ישירות', icon: ClipboardPaste, color: 'bg-[#C5A028]', available: true },
 ];
 
@@ -539,6 +541,26 @@ Return ONLY valid leads that have at least a name AND a phone number.`,
           </DialogContent>
         </Dialog>
       ))}
+
+      {/* WhatsApp Contacts Export Import */}
+      <Dialog open={activeChannel === 'wa_contacts'} onOpenChange={(open) => !open && setActiveChannel(null)}>
+        <DialogContent className="sm:max-w-[500px]" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageCircle className="w-5 h-5 text-[#25D366]" />
+              ייצוא אנשי קשר מ-WhatsApp
+            </DialogTitle>
+          </DialogHeader>
+          <WhatsAppContactsImporter
+            onComplete={() => {
+              updateSyncStatus('wa_contacts');
+              queryClient.invalidateQueries({ queryKey: ['leads'] });
+              queryClient.invalidateQueries({ queryKey: ['dashboard_leads'] });
+              setActiveChannel(null);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
 
       <LeadWebhookInfoDialog
         open={showWebhookInfo}
