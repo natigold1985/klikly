@@ -126,7 +126,7 @@ export default function Leads() {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('table');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [activeTab, setActiveTab] = useState('active'); // 'active' | 'filtered'
+  const [activeTab, setActiveTab] = useState('all'); // 'active' | 'filtered'
   const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
   const [showFollowUpDialog, setShowFollowUpDialog] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
@@ -341,9 +341,8 @@ export default function Leads() {
 
   const filteredLeads = leads
     .filter((lead) => {
-      // Tab gate: active tab hides truly-filtered leads; filtered tab shows only them
-      if (activeTab === 'active' && isTrulyFiltered(lead)) return false;
-      if (activeTab === 'filtered' && !isTrulyFiltered(lead)) return false;
+      // Tab gate: filter by status tab
+      if (activeTab !== 'all' && lead.status !== activeTab) return false;
 
       const term = (searchTerm || '').toLowerCase();
       const displayLead = enhanceLeadForDisplay(lead);
@@ -592,66 +591,49 @@ export default function Leads() {
 
 
 
-      {/* Tabs: Active vs Filtered */}
+      {/* Tabs: Status filters */}
       <div className="space-y-2">
-        <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-50 p-1 border border-slate-200" dir="rtl">
+        <div className="flex flex-wrap gap-2" dir="rtl">
           <button
-            onClick={() => setActiveTab('active')}
-            className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${
-              activeTab === 'active'
-              ? 'border-[#C5A028] bg-white text-slate-900 shadow-sm rounded-xl'
-              : 'border-transparent text-slate-500 hover:text-slate-700 rounded-xl'
+            onClick={() => setActiveTab('all')}
+            className={`px-4 py-2.5 text-sm font-bold rounded-xl transition-all ${
+              activeTab === 'all'
+              ? 'bg-[#FFD700] text-black shadow-sm'
+              : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-300'
             }`}
           >
-            לידים פעילים
-            <span className="mr-2 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs">{activeCount}</span>
+            הכל
+            <span className="mr-2 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-bold">{leads.length}</span>
           </button>
-          <button
-            onClick={() => setActiveTab('filtered')}
-            className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${
-              activeTab === 'filtered'
-              ? 'border-red-500 bg-white text-slate-900 shadow-sm rounded-xl'
-              : 'border-transparent text-slate-500 hover:text-slate-700 rounded-xl'
-            }`}
-          >
-            מסוננים / לא רלוונטיים
-            <span className="mr-2 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs">{filteredCount}</span>
-          </button>
+          {Object.entries(countByStatus)
+            .sort(([a], [b]) => {
+              if (a === 'ליד חדש') return -1;
+              if (b === 'ליד חדש') return 1;
+              return a.localeCompare(b);
+            })
+            .map(([status, count]) => (
+              <button
+                key={status}
+                onClick={() => setActiveTab(status)}
+                className={`px-4 py-2.5 text-sm font-bold rounded-xl transition-all ${
+                  activeTab === status
+                  ? 'bg-[#FFD700] text-black shadow-sm'
+                  : status === 'לא רלוונטי'
+                  ? 'bg-red-50 border border-red-200 text-red-700 hover:border-red-300'
+                  : 'bg-white border border-slate-200 text-slate-700 hover:border-slate-300'
+                }`}
+              >
+                {status}
+                <span className={`mr-2 px-2 py-0.5 rounded-full text-xs font-bold ${
+                  activeTab === status
+                  ? 'bg-black/20 text-black'
+                  : status === 'לא רלוונטי'
+                  ? 'bg-red-100 text-red-700'
+                  : 'bg-slate-100 text-slate-600'
+                }`}>{count}</span>
+              </button>
+            ))}
         </div>
-
-        {/* Status counts breakdown */}
-        {activeTab === 'active' && (
-          <div className="flex flex-wrap gap-2 px-2 pb-2" dir="rtl">
-            {Object.entries(countByStatus)
-              .sort(([a], [b]) => {
-                // Sort: "ליד חדש" first, then others alphabetically, excluding "לא רלוונטי"
-                if (a === 'ליד חדש') return -1;
-                if (b === 'ליד חדש') return 1;
-                if (a === 'לא רלוונטי' || b === 'לא רלוונטי') return a === 'לא רלוונטי' ? 1 : -1;
-                return a.localeCompare(b);
-              })
-              .filter(([status]) => status !== 'לא רלוונטי')
-              .map(([status, count]) => (
-                <div key={status} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-medium text-slate-700 shadow-sm">
-                  <span>{status}</span>
-                  <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold text-[11px]">{count}</span>
-                </div>
-              ))}
-          </div>
-        )}
-
-        {activeTab === 'filtered' && (
-          <div className="flex flex-wrap gap-2 px-2 pb-2" dir="rtl">
-            {Object.entries(countByStatus)
-              .filter(([status]) => status === 'לא רלוונטי')
-              .map(([status, count]) => (
-                <div key={status} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-xs font-medium text-red-700 shadow-sm">
-                  <span>{status}</span>
-                  <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold text-[11px]">{count}</span>
-                </div>
-              ))}
-          </div>
-        )}
       </div>
 
       {/* Data Actions Toolbar */}
