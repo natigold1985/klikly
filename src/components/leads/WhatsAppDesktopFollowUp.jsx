@@ -4,12 +4,22 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
-const buildWhatsAppLink = (lead) => {
+const buildWhatsAppLink = (lead, isMobile) => {
   const cleanPhone = String(lead?.phone || '').replace(/[^0-9]/g, '');
   if (!cleanPhone) return null;
   const phone = cleanPhone.startsWith('0') ? `972${cleanPhone.slice(1)}` : cleanPhone;
   const text = lead?.auto_followup_message || `הי מה קורה, תרצה שנתקדם? 😊`;
-  return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+  
+  // Mobile: use wa.me (opens app if installed)
+  if (isMobile) {
+    return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+  }
+  // Desktop: use whatsapp:// protocol for app, fallback to wa.me
+  return { app: `whatsapp://send?phone=${phone}&text=${encodeURIComponent(text)}`, web: `https://wa.me/${phone}?text=${encodeURIComponent(text)}` };
+};
+
+const isMobileDevice = () => {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 };
 
 export default function WhatsAppDesktopFollowUp({ lead, onDone }) {
@@ -40,9 +50,26 @@ export default function WhatsAppDesktopFollowUp({ lead, onDone }) {
     },
   });
 
-  const whatsappUrl = buildWhatsAppLink(lead);
+  const isMobile = isMobileDevice();
+  const whatsappUrl = buildWhatsAppLink(lead, isMobile);
 
   if (!whatsappUrl) return null;
+
+  const handleClick = () => {
+    sendMutation.mutate();
+    
+    // Desktop with app protocol fallback
+    if (!isMobile && typeof whatsappUrl === 'object') {
+      // Try to open WhatsApp app first (desktop)
+      window.location.href = whatsappUrl.app;
+      // Fallback to web after 500ms if app doesn't open
+      setTimeout(() => {
+        window.location.href = whatsappUrl.web;
+      }, 500);
+    }
+  };
+
+  const linkHref = typeof whatsappUrl === 'string' ? whatsappUrl : whatsappUrl.web;
 
   return (
     <div className="rounded-3xl border border-emerald-100 bg-emerald-50/60 p-4">
@@ -50,15 +77,15 @@ export default function WhatsAppDesktopFollowUp({ lead, onDone }) {
         <div>
           <h3 className="font-black text-slate-900 flex items-center gap-2">
             <MessageCircle className="w-5 h-5 text-emerald-600" />
-            פולו-אפ מהיר ב-WhatsApp Desktop
+            פולו-אפ מהיר ב-WhatsApp
           </h3>
           <p className="text-sm text-slate-600 mt-1">פותח הודעה מוכנה ומעדכן את סטטוס הליד.</p>
         </div>
         <a
-          href={whatsappUrl}
+          href={linkHref}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={() => sendMutation.mutate()}
+          onClick={handleClick}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white font-bold text-sm whitespace-nowrap transition-colors active:scale-95 touch-manipulation"
         >
           <MessageCircle className="w-4 h-4 flex-shrink-0" />
