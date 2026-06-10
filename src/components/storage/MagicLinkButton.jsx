@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Link2, Copy, Check, Send, Sparkles, Mail } from 'lucide-react';
+import { Link2, Copy, Check, Send, Sparkles, Mail, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { base44 } from '@/api/base44Client';
 
 // Share-link button for a project. Generates a public Magic Link based on
 // project.client_access_token and provides quick share to WhatsApp / Email / Copy.
@@ -21,6 +22,7 @@ export default function MagicLinkButton({ project }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState(defaultMessage);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   if (!folderId) {
     return (
@@ -106,13 +108,31 @@ export default function MagicLinkButton({ project }) {
 
             {/* Secondary actions */}
             <div className="grid grid-cols-2 gap-2">
-              <a
-                href={`mailto:${project.client_email || ''}?subject=${encodeURIComponent('הגלריה שלך מוכנה ✨')}&body=${encodeURIComponent(message)}`}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 text-white hover:bg-slate-900 transition-colors text-sm font-medium"
+              <button
+                disabled={sendingEmail}
+                onClick={async () => {
+                  const email = project.client_email;
+                  if (!email) { toast.error('לא הוגדר מייל ללקוח'); return; }
+                  setSendingEmail(true);
+                  try {
+                    await base44.integrations.Core.SendEmail({
+                      to: email,
+                      from_name: 'KLIKLY',
+                      subject: `📸 הגלריה שלך מוכנה - ${project.client_name || ''}`,
+                      body: `<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,Helvetica,sans-serif;direction:rtl;"><table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;"><tr><td align="center"><table width="580" cellpadding="0" cellspacing="0" style="max-width:580px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);"><tr><td style="background:#0a0a0a;padding:24px 40px;text-align:center;"><span style="color:#FFD700;font-size:26px;font-weight:900;letter-spacing:3px;">KLIKLY</span></td></tr><tr><td style="padding:36px 40px 28px;"><h2 style="color:#0a0a0a;font-size:22px;margin:0 0 12px;">היי ${project.client_name || ''} 🎉</h2><p style="color:#444;font-size:16px;line-height:1.7;margin:0 0 24px;">הגלריה שלך מוכנה לצפייה והורדה!</p><div style="text-align:center;margin:24px 0;"><a href="${link}" style="display:inline-block;background:#FFD700;color:#000;font-size:16px;font-weight:700;padding:16px 48px;border-radius:12px;text-decoration:none;">📁 לצפייה בגלריה</a></div><hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px;"><p style="color:#999;font-size:12px;margin:0;text-align:center;">KLIKLY · מערכת ניהול גלריות מקצועית</p></td></tr></table></td></tr></table></body></html>`,
+                    });
+                    toast.success(`מייל נשלח ל-${email}`);
+                  } catch (e) {
+                    toast.error('שגיאה בשליחת המייל');
+                  } finally {
+                    setSendingEmail(false);
+                  }
+                }}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 text-white hover:bg-slate-900 transition-colors text-sm font-medium disabled:opacity-60"
               >
-                <Mail className="w-4 h-4" />
+                {sendingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
                 אימייל
-              </a>
+              </button>
               <button
                 onClick={copy}
                 className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 text-slate-800 hover:bg-slate-200 transition-colors text-sm font-medium"
