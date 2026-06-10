@@ -45,6 +45,10 @@ Deno.serve(async (req) => {
         const data = await response.json();
         return Response.json({ success: true, eventId: data.id });
     } catch (error) {
+        // If calendar is simply not connected, skip silently instead of failing
+        if (error.message && error.message.toLowerCase().includes('no active connection')) {
+            return Response.json({ success: true, skipped: 'calendar_not_connected' });
+        }
         return Response.json({ error: error.message }, { status: 500 });
     }
 });
