@@ -144,22 +144,52 @@ Deno.serve(async (req) => {
     const rows = data.values || [];
     const candidates = rows.slice(1).map(buildPotentialLead).filter(Boolean);
 
-    const existing = await base44.asServiceRole.entities.PotentialLead.filter({}, '-created_date', 300);
-    const existingKeys = new Set(existing.map((lead) => `${lead.source_url || ''}|${lead.title || ''}`.toLowerCase().trim()));
-    const newOnes = candidates.filter((lead) => !existingKeys.has(`${lead.source_url}|${lead.title}`.toLowerCase().trim()));
+    // Write directly to Google Sheets instead of creating PotentialLead entities
+    const existingRows = rows.slice(1);
+    const existingKeys = new Set(existingRows.map(row => {
+      const link = getCell(row, 8);
+      const title = getCell(row, 0);
+      return `${link}|${title}`.toLowerCase().trim();
+    }));
 
-    if (newOnes.length > 0 && !dryRun) {
-      await base44.asServiceRole.entities.PotentialLead.bulkCreate(newOnes);
+    const newRows = candidates.filter(lead => 
+      !existingKeys.has(`${lead.source_url}|${lead.title}`.toLowerCase().trim())
+    ).map(lead => [
+      lead.title,
+      '',
+      lead.contact_info.split(' / ')[0] || '',
+      lead.contact_info.split(' / ')[1] || '',
+      lead.keywords_matched,
+      lead.snippet,
+      '',
+      lead.notes,
+      lead.source_url,
+      '',
+      new Date().toISOString().slice(0, 10),
+    ]);
+
+    let savedCount = 0;
+    if (newRows.length > 0 && !dryRun) {
+      const appendRange = encodeURIComponent(`'${SHEET_NAME}'!A:K`);
+      const appendRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${appendRange}:append?valueInputOption=USER_ENTERED`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ values: newRows }),
+        }
+      );
+      if (appendRes.ok) savedCount = newRows.length;
     }
 
     return Response.json({
       success: true,
-      source: 'Claude Code',
+      source: 'Claude Code Radar',
       found: candidates.length,
-      saved: dryRun ? 0 : newOnes.length,
+      saved: dryRun ? 0 : savedCount,
       rejected: Math.max(0, rows.length - 1 - candidates.length),
       dryRun,
-      summary: `Claude Code Radar: ${candidates.length} תקינים, ${newOnes.length} חדשים`,
+      summary: `Claude Code Radar: ${candidates.length} תקינים, ${savedCount} חדשים (Google Sheets בלבד)`,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
