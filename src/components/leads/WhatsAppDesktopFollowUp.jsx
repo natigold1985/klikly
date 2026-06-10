@@ -8,9 +8,8 @@ const buildWhatsAppLink = (lead) => {
   const cleanPhone = String(lead?.phone || '').replace(/[^0-9]/g, '');
   if (!cleanPhone) return null;
   const phone = cleanPhone.startsWith('0') ? `972${cleanPhone.slice(1)}` : cleanPhone;
-  const name = lead?.name && !['לא ידוע', 'unknown'].includes(String(lead.name).toLowerCase()) ? ` ${lead.name}` : '';
-  const text = lead?.auto_followup_message || `היי${name}, רציתי לבדוק אם קיבלת את הפרטים ששלחתי. אשמח לענות על כל שאלה, מחכה לשמוע ממך! 📸`;
-  return `https://web.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`;
+  const text = lead?.auto_followup_message || `הי, תרצה שנתקדם ביחד 📸`;
+  return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
 };
 
 export default function WhatsAppDesktopFollowUp({ lead, onDone }) {
