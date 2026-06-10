@@ -35,14 +35,14 @@ const PIPELINE_STAGE_LABELS = {
 };
 const STATUS_VALUES = ['ליד חדש', 'נוצר קשר', 'נשלח פולו-אפ', 'נענה', 'נסגר בהצלחה', 'לא רלוונטי'];
 
-// RGB background colors per status (for Google Sheets)
+// RGB background colors per status (for Google Sheets) — matches KLIKLY UI colors exactly
 const STATUS_ROW_COLORS = {
-  'נסגר בהצלחה': { red: 0.714, green: 0.933, blue: 0.714 },  // green
-  'לא רלוונטי':  { red: 0.957, green: 0.714, blue: 0.714 },  // red
-  'נשלח פולו-אפ':{ red: 0.851, green: 0.773, blue: 0.957 },  // purple
-  'נוצר קשר':    { red: 1.0,   green: 0.949, blue: 0.686 },  // yellow
-  'נענה':         { red: 1.0,   green: 0.918, blue: 0.686 },  // orange-yellow
-  'ליד חדש':     null,                                         // no color (white)
+  'ליד חדש':     { red: 0.820, green: 0.906, blue: 0.980 },  // blue-100  (matches KLIKLY כחול)
+  'נוצר קשר':    { red: 0.996, green: 0.973, blue: 0.714 },  // yellow-200 (matches KLIKLY צהוב)
+  'נשלח פולו-אפ':{ red: 0.906, green: 0.824, blue: 0.992 },  // purple-200 (matches KLIKLY סגול)
+  'נענה':         { red: 1.0,   green: 0.953, blue: 0.784 },  // yellow-100 lighter (matches KLIKLY כתום-צהוב)
+  'נסגר בהצלחה': { red: 0.776, green: 0.937, blue: 0.776 },  // green-200  (matches KLIKLY ירוק)
+  'לא רלוונטי':  { red: 0.992, green: 0.808, blue: 0.808 },  // red-200    (matches KLIKLY אדום)
 };
 
 const APP_BASE_URL = 'https://klikly.base44.app';

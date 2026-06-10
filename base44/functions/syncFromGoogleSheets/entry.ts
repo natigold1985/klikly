@@ -422,7 +422,8 @@ Deno.serve(async (req) => {
                     if (name && name !== match.name && !match.name?.includes(name)) updates.name = name;
                     if (notes && !match.notes) updates.notes = notes;
                     if (phone && !match.phone) updates.phone = phone;
-                    if (normalizedStatus && !match.status) updates.status = normalizedStatus;
+                    // Always sync status from Sheets if it's different (bi-directional)
+                    if (normalizedStatus && normalizedStatus !== match.status) updates.status = normalizedStatus;
 
                     if (Object.keys(updates).length > 0) {
                         await base44.asServiceRole.entities.Lead.update(match.id, updates);
