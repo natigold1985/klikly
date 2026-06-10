@@ -98,7 +98,7 @@ async function clearAndWriteTab(sheetsAuth, tabName, rows) {
 }
 
 // Color rows + set dropdown validation + RTL in one batchUpdate
-async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads) {
+async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads, tabName = '') {
   const requests = [];
 
   // Freeze first column (שם מלא) + header row + set RTL direction
@@ -113,6 +113,36 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads) {
         rightToLeft: true,
       },
       fields: 'gridProperties.frozenRowCount,gridProperties.frozenColumnCount,rightToLeft',
+    },
+  });
+
+  // Style header row (index 0) — bold, dark background, white text
+  const headerBgColor = tabName.toLowerCase().includes('claude') 
+    ? { red: 0.2, green: 0.2, blue: 0.3 }  // Dark navy-blue for Claude Code
+    : { red: 0.1, green: 0.1, blue: 0.1 }; // Dark gray for others
+  
+  requests.push({
+    repeatCell: {
+      range: {
+        sheetId: sheetGid,
+        startRowIndex: 0,
+        endRowIndex: 1,
+        startColumnIndex: 0,
+        endColumnIndex: 9,
+      },
+      cell: {
+        userEnteredFormat: {
+          backgroundColor: headerBgColor,
+          textFormat: {
+            bold: true,
+            fontSize: 12,
+            foregroundColor: { red: 1.0, green: 1.0, blue: 1.0 }, // White text
+          },
+          horizontalAlignment: 'CENTER',
+          textDirection: 'RIGHT_TO_LEFT',
+        },
+      },
+      fields: 'userEnteredFormat.backgroundColor,userEnteredFormat.textFormat,userEnteredFormat.horizontalAlignment,userEnteredFormat.textDirection',
     },
   });
 
@@ -265,7 +295,7 @@ Deno.serve(async (req) => {
     // Write + format "כל הלידים"
     await clearAndWriteTab(sheetsAuth, ALL_LEADS_TAB, allRows);
     if (tabGids[ALL_LEADS_TAB]) {
-      await applyFormattingAndValidation(sheetsAuth, tabGids[ALL_LEADS_TAB], allLeads);
+      await applyFormattingAndValidation(sheetsAuth, tabGids[ALL_LEADS_TAB], allLeads, ALL_LEADS_TAB);
     }
 
     // Write + format each source tab
@@ -277,7 +307,7 @@ Deno.serve(async (req) => {
       }
       const rows = leads.map(leadToRow);
       await clearAndWriteTab(sheetsAuth, tabName, rows);
-      await applyFormattingAndValidation(sheetsAuth, tabGids[tabName], leads);
+      await applyFormattingAndValidation(sheetsAuth, tabGids[tabName], leads, tabName);
       tabSummary[tabName] = leads.length;
       console.log(`fullSyncLeadsToSheets: wrote ${leads.length} rows to "${tabName}"`);
     }
