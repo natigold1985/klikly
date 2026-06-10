@@ -329,6 +329,16 @@ export default function Leads() {
   const activeCount = leads.filter(l => !isTrulyFiltered(l)).length;
   const filteredCount = leads.filter(l => isTrulyFiltered(l)).length;
 
+  // Count by status
+  const countByStatus = React.useMemo(() => {
+    const counts = {};
+    leads.forEach(lead => {
+      const status = lead.status || 'ליד חדש';
+      counts[status] = (counts[status] || 0) + 1;
+    });
+    return counts;
+  }, [leads]);
+
   const filteredLeads = leads
     .filter((lead) => {
       // Tab gate: active tab hides truly-filtered leads; filtered tab shows only them
@@ -583,29 +593,58 @@ export default function Leads() {
 
 
       {/* Tabs: Active vs Filtered */}
-      <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-50 p-1 border border-slate-200 -mb-1" dir="rtl">
-        <button
-          onClick={() => setActiveTab('active')}
-          className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${
-            activeTab === 'active'
-            ? 'border-[#C5A028] bg-white text-slate-900 shadow-sm rounded-xl'
-            : 'border-transparent text-slate-500 hover:text-slate-700 rounded-xl'
-          }`}
-        >
-          לידים פעילים
-          <span className="mr-2 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs">{activeCount}</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('filtered')}
-          className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${
-            activeTab === 'filtered'
-            ? 'border-red-500 bg-white text-slate-900 shadow-sm rounded-xl'
-            : 'border-transparent text-slate-500 hover:text-slate-700 rounded-xl'
-          }`}
-        >
-          מסוננים / לא רלוונטיים
-          <span className="mr-2 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs">{filteredCount}</span>
-        </button>
+      <div className="space-y-2">
+        <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-50 p-1 border border-slate-200" dir="rtl">
+          <button
+            onClick={() => setActiveTab('active')}
+            className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${
+              activeTab === 'active'
+              ? 'border-[#C5A028] bg-white text-slate-900 shadow-sm rounded-xl'
+              : 'border-transparent text-slate-500 hover:text-slate-700 rounded-xl'
+            }`}
+          >
+            לידים פעילים
+            <span className="mr-2 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs">{activeCount}</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('filtered')}
+            className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${
+              activeTab === 'filtered'
+              ? 'border-red-500 bg-white text-slate-900 shadow-sm rounded-xl'
+              : 'border-transparent text-slate-500 hover:text-slate-700 rounded-xl'
+            }`}
+          >
+            מסוננים / לא רלוונטיים
+            <span className="mr-2 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs">{filteredCount}</span>
+          </button>
+        </div>
+
+        {/* Status counts breakdown */}
+        {activeTab === 'active' && (
+          <div className="flex flex-wrap gap-2 px-2 pb-2" dir="rtl">
+            {Object.entries(countByStatus)
+              .filter(([status]) => status !== 'לא רלוונטי')
+              .map(([status, count]) => (
+                <div key={status} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-medium text-slate-700 shadow-sm">
+                  <span>{status}</span>
+                  <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold text-[11px]">{count}</span>
+                </div>
+              ))}
+          </div>
+        )}
+
+        {activeTab === 'filtered' && (
+          <div className="flex flex-wrap gap-2 px-2 pb-2" dir="rtl">
+            {Object.entries(countByStatus)
+              .filter(([status]) => status === 'לא רלוונטי')
+              .map(([status, count]) => (
+                <div key={status} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-xs font-medium text-red-700 shadow-sm">
+                  <span>{status}</span>
+                  <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold text-[11px]">{count}</span>
+                </div>
+              ))}
+          </div>
+        )}
       </div>
 
       {/* Data Actions Toolbar */}
