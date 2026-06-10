@@ -11,11 +11,13 @@ import { normalizeIsraeliPhone, getIsraeliWhatsAppPhone } from '@/utils/leadDisp
 export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoFollowUp, onRestoreToActive, projectsByLeadId = {} }) {
   const getWhatsAppLink = (lead) => {
     const israelPhone = getIsraeliWhatsAppPhone(lead.phone);
-    const hasRealName = lead.name && !['לא ידוע', 'unknown', 'Unknown'].includes(lead.name.trim());
+    const name = (lead.name || '').trim();
+    const hasRealName = name && !['לא ידוע', 'unknown', 'Unknown', '—', '-'].includes(name);
     const leadType = lead.lead_type || lead.interest_label || lead.shooting_type || 'שירותי צילום';
     const msg = hasRealName
-      ? `היי ${lead.name}, מה קורה? ראיתי שהשארת פרטים לגבי ${leadType}, אשמח לדבר ולתת עוד פרטים. מה אומר/ת?`
+      ? `היי ${name}, מה קורה? ראיתי שהשארת פרטים לגבי ${leadType}, אשמח לדבר ולתת עוד פרטים. מה אומר/ת?`
       : `היי, מה קורה? ראיתי שהשארת פרטים לגבי ${leadType}, אשמח לדבר ולתת עוד פרטים. מה אומר/ת?`;
+    if (!israelPhone) return '#';
     return `https://wa.me/${israelPhone}?text=${encodeURIComponent(msg)}`;
   };
 

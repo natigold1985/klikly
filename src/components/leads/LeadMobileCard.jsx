@@ -10,10 +10,12 @@ import { normalizeIsraeliPhone, getIsraeliWhatsAppPhone } from '@/utils/leadDisp
 
 const getWhatsAppLink = (lead) => {
   const israelPhone = getIsraeliWhatsAppPhone(lead.phone);
-  const hasRealName = lead.name && !['לא ידוע', 'unknown', 'Unknown'].includes(lead.name.trim());
+  if (!israelPhone) return null;
+  const name = (lead.name || '').trim();
+  const hasRealName = name && !['לא ידוע', 'unknown', 'Unknown', '—', '-'].includes(name);
   const leadType = lead.lead_type || lead.interest_label || lead.shooting_type || 'שירותי צילום';
   const msg = hasRealName
-    ? `היי ${lead.name}, מה קורה? ראיתי שהשארת פרטים לגבי ${leadType}, אשמח לדבר ולתת עוד פרטים. מה אומר/ת?`
+    ? `היי ${name}, מה קורה? ראיתי שהשארת פרטים לגבי ${leadType}, אשמח לדבר ולתת עוד פרטים. מה אומר/ת?`
     : `היי, מה קורה? ראיתי שהשארת פרטים לגבי ${leadType}, אשמח לדבר ולתת עוד פרטים. מה אומר/ת?`;
   return `https://wa.me/${israelPhone}?text=${encodeURIComponent(msg)}`;
 };
@@ -111,10 +113,10 @@ export default function LeadMobileCard({ lead, onStatusChange, onDelete, onAutoF
       {/* Actions row */}
       <div className="grid grid-cols-4 gap-2">
         <a
-          href={displayPhone ? getWhatsAppLink(lead) : undefined}
+          href={getWhatsAppLink(lead) || undefined}
           target="_blank"
           rel="noopener noreferrer"
-          className={`flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl shadow-sm active:scale-95 transition-all ${displayPhone ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'bg-slate-100 text-slate-400 pointer-events-none'}`}
+          className={`flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl shadow-sm active:scale-95 transition-all ${getWhatsAppLink(lead) ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'bg-slate-100 text-slate-400 pointer-events-none'}`}
         >
           <MessageCircle className="w-5 h-5" />
           <span className="text-[10px] font-bold">וואטסאפ</span>
