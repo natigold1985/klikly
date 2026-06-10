@@ -1,13 +1,13 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const SPREADSHEET_ID = '1Acz_kFz4d2oGyJflAWyrY4yiAAlbvWVqR7UNgKHCdD4';
 
-function normalize(value) {
-  return String(value || '').trim().toLowerCase();
-}
-
 function phoneDigits(value) {
   return String(value || '').replace(/[^0-9]/g, '');
+}
+
+function normalize(value) {
+  return String(value || '').trim().toLowerCase();
 }
 
 function rowMatchesLead(row, lead) {
@@ -17,7 +17,10 @@ function rowMatchesLead(row, lead) {
   const leadName = normalize(lead.name || lead.title);
   const leadUrl = normalize(lead.source_post_url || lead.source_url);
 
-  if (leadPhone && (row || []).some((cell) => phoneDigits(cell).includes(leadPhone) || leadPhone.includes(phoneDigits(cell)))) return true;
+  if (leadPhone && (row || []).some((cell) => {
+    const d = phoneDigits(cell);
+    return d && (d.includes(leadPhone) || leadPhone.includes(d));
+  })) return true;
   if (leadEmail && rowText.includes(leadEmail)) return true;
   if (leadUrl && rowText.includes(leadUrl)) return true;
   if (leadName && leadName.length > 3 && rowText.includes(leadName)) return true;
@@ -35,61 +38,75 @@ Deno.serve(async (req) => {
     }
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
-    const metaResp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?fields=sheets.properties`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+    const authHeader = { Authorization: `Bearer ${accessToken}` };
+
+    // Step 1: Get all tab names (1 read request)
+    const metaResp = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?fields=sheets.properties`,
+      { headers: authHeader }
+    );
     if (!metaResp.ok) {
       const details = await metaResp.text();
       return Response.json({ error: 'Failed to read sheet metadata', details }, { status: metaResp.status });
     }
-
     const metadata = await metaResp.json();
-    const requests = [];
+    const sheets = metadata.sheets || [];
+
+    // Step 2: Fetch ALL tabs in ONE batchGet request (1 read request instead of N)
+    const ranges = sheets.map(s => `'${s.properties.title.replace(/'/g, "''")}'!A1:Z2000`);
+    const rangesQuery = ranges.map(r => `ranges=${encodeURIComponent(r)}`).join('&');
+    const batchGetResp = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values:batchGet?${rangesQuery}`,
+      { headers: authHeader }
+    );
+    if (!batchGetResp.ok) {
+      const details = await batchGetResp.text();
+      return Response.json({ error: 'Failed to read sheet values', details }, { status: batchGetResp.status });
+    }
+    const batchData = await batchGetResp.json();
+    const valueRanges = batchData.valueRanges || [];
+
+    // Step 3: Find rows to delete across all tabs
+    const deleteRequests = [];
     const deletedBySheet = {};
 
-    for (const sheet of metadata.sheets || []) {
-      const { sheetId, title } = sheet.properties;
-      const range = encodeURIComponent(`'${title.replace(/'/g, "''")}'!A1:Z2000`);
-      const valuesResp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (!valuesResp.ok) continue;
-
-      const valuesData = await valuesResp.json();
-      const rows = valuesData.values || [];
+    for (let t = 0; t < sheets.length; t++) {
+      const { sheetId, title } = sheets[t].properties;
+      const rows = valueRanges[t]?.values || [];
       const rowsToDelete = [];
+
       for (let i = 1; i < rows.length; i++) {
         if (rowMatchesLead(rows[i], lead)) rowsToDelete.push(i);
       }
 
       deletedBySheet[title] = rowsToDelete.length;
+      // Sort descending so row indices stay valid as we delete
       rowsToDelete.sort((a, b) => b - a).forEach((rowIndex) => {
-        requests.push({
+        deleteRequests.push({
           deleteDimension: {
-            range: {
-              sheetId,
-              dimension: 'ROWS',
-              startIndex: rowIndex,
-              endIndex: rowIndex + 1,
-            },
+            range: { sheetId, dimension: 'ROWS', startIndex: rowIndex, endIndex: rowIndex + 1 },
           },
         });
       });
     }
 
-    if (requests.length > 0) {
-      const batchResp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}:batchUpdate`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requests }),
-      });
-      if (!batchResp.ok) {
-        const details = await batchResp.text();
-        return Response.json({ error: 'Failed to delete matching sheet rows', details }, { status: batchResp.status });
+    // Step 4: Delete matching rows in one batchUpdate
+    if (deleteRequests.length > 0) {
+      const batchUpdateResp = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}:batchUpdate`,
+        {
+          method: 'POST',
+          headers: { ...authHeader, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requests: deleteRequests }),
+        }
+      );
+      if (!batchUpdateResp.ok) {
+        const details = await batchUpdateResp.text();
+        return Response.json({ error: 'Failed to delete matching sheet rows', details }, { status: batchUpdateResp.status });
       }
     }
 
-    return Response.json({ success: true, deletedRows: requests.length, deletedBySheet });
+    return Response.json({ success: true, deletedRows: deleteRequests.length, deletedBySheet });
   } catch (error) {
     return Response.json({ error: error.message, stack: error.stack }, { status: 500 });
   }
