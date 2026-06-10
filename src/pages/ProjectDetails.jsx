@@ -119,6 +119,8 @@ export default function ProjectDetails() {
   };
 
   const [creatingFolder, setCreatingFolder] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+
   const handleCreateDriveFolder = async () => {
     setCreatingFolder(true);
     const res = await base44.functions.invoke('createDriveFolder', { project_id: projectId });
@@ -176,12 +178,52 @@ export default function ProjectDetails() {
     window.open(phone ? `https://wa.me/${phone}?text=${msg}` : `https://wa.me/?text=${msg}`, '_blank');
   };
 
-  const handleSendGalleryEmail = () => {
+  const handleSendGalleryEmail = async () => {
+    const emails = getProjectEmails(project);
+    if (!emails.length) { toast.error('לא הוגדר מייל ללקוח'); return; }
     const folderId = getDriveFolderIdFromUrl(project.drive_folder_url);
-    const url = folderId ? `${window.location.origin}/gallery/${folderId}` : '';
-    const subject = encodeURIComponent(`הגלריה שלך מוכנה - ${project.client_name || ''}`);
-    const body = encodeURIComponent(`היי ${project.client_name || ''},\n\nהגלריה שלך מוכנה לצפייה והורדה:\n${url}\n\nבברכה`);
-    window.open(`mailto:${project.client_email || ''}?subject=${subject}&body=${body}`, '_blank');
+    const galleryUrl = folderId ? `${window.location.origin}/gallery/${folderId}` : window.location.origin;
+    setSendingEmail(true);
+    try {
+      await base44.integrations.Core.SendEmail({
+        to: emails[0],
+        from_name: 'KLIKLY',
+        subject: `📸 הגלריה שלך מוכנה - ${project.client_name || ''}`,
+        body: `<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,Helvetica,sans-serif;direction:rtl;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
+    <tr><td align="center">
+      <table width="580" cellpadding="0" cellspacing="0" style="max-width:580px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+        <tr><td style="background:#0a0a0a;padding:24px 40px;text-align:center;">
+          <span style="color:#FFD700;font-size:26px;font-weight:900;letter-spacing:3px;">KLIKLY</span>
+        </td></tr>
+        <tr><td style="padding:36px 40px 28px;">
+          <h2 style="color:#0a0a0a;font-size:22px;margin:0 0 12px;">היי ${project.client_name || ''} 🎉</h2>
+          <p style="color:#444;font-size:16px;line-height:1.7;margin:0 0 24px;">
+            הגלריה שלך מוכנה לצפייה והורדה! ניתן לגשת אליה בלחיצה על הכפתור:
+          </p>
+          <div style="text-align:center;margin:24px 0;">
+            <a href="${galleryUrl}" style="display:inline-block;background:#FFD700;color:#000;font-size:16px;font-weight:700;padding:16px 48px;border-radius:12px;text-decoration:none;">
+              📁 לצפייה בגלריה
+            </a>
+          </div>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px;">
+          <p style="color:#999;font-size:12px;margin:0;text-align:center;">KLIKLY · מערכת ניהול גלריות מקצועית</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
+      });
+      toast.success(`מייל נשלח ל-${emails[0]}`);
+    } catch (e) {
+      toast.error('שגיאה בשליחת המייל');
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   return (
@@ -207,8 +249,8 @@ export default function ProjectDetails() {
               <MessageCircle className="w-4 h-4" />
               וואטסאפ
             </button>
-            <button onClick={handleSendGalleryEmail} className="flex items-center justify-center gap-2 bg-blue-500 text-white rounded-xl px-3 py-3 text-sm font-semibold hover:bg-blue-600 transition-colors">
-              <Send className="w-4 h-4" />
+            <button onClick={handleSendGalleryEmail} disabled={sendingEmail} className="flex items-center justify-center gap-2 bg-blue-500 text-white rounded-xl px-3 py-3 text-sm font-semibold hover:bg-blue-600 transition-colors disabled:opacity-60">
+              {sendingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               שלח מייל
             </button>
           </div>
