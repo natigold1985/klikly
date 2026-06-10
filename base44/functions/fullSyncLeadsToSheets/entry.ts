@@ -77,11 +77,11 @@ async function clearAndWriteTab(sheetsAuth, tabName, rows) {
   });
 }
 
-// Color rows + set dropdown validation in one batchUpdate
+// Color rows + set dropdown validation + RTL in one batchUpdate
 async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads) {
   const requests = [];
 
-  // Freeze first column (שם מלא) + header row
+  // Freeze first column (שם מלא) + header row + set RTL direction
   requests.push({
     updateSheetProperties: {
       properties: {
@@ -90,8 +90,29 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads) {
           frozenRowCount: 1,
           frozenColumnCount: 1,
         },
+        rightToLeft: true,
       },
-      fields: 'gridProperties.frozenRowCount,gridProperties.frozenColumnCount',
+      fields: 'gridProperties.frozenRowCount,gridProperties.frozenColumnCount,rightToLeft',
+    },
+  });
+
+  // Right-align + RTL text direction for ALL data cells (rows 1..N+1, all columns)
+  requests.push({
+    repeatCell: {
+      range: {
+        sheetId: sheetGid,
+        startRowIndex: 0,
+        endRowIndex: leads.length + 1,
+        startColumnIndex: 0,
+        endColumnIndex: 8,
+      },
+      cell: {
+        userEnteredFormat: {
+          horizontalAlignment: 'RIGHT',
+          textDirection: 'RIGHT_TO_LEFT',
+        },
+      },
+      fields: 'userEnteredFormat.horizontalAlignment,userEnteredFormat.textDirection',
     },
   });
 
