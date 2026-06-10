@@ -15,6 +15,8 @@ const SOURCE_TO_TAB = {
   linkedin: 'לידים ביטחון 🎯',
   'course lead': 'מתעניינים בקורס',
   'קורס': 'מתעניינים בקורס',
+  'claude code': 'Claude Code',
+  'claude': 'Claude Code',
 };
 
 const ALL_LEADS_TAB = '🎯 כל הלידים';

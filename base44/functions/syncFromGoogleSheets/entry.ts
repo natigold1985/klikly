@@ -321,6 +321,7 @@ Deno.serve(async (req) => {
                     notes: 7,
                     link: 8,
                     company: -1,
+                    klikly_id: 11, // KLIKLY ID reference
                 };
             };
 
@@ -344,6 +345,7 @@ Deno.serve(async (req) => {
                 const linkCol = idx.link !== -1 ? String(row[idx.link] || '').trim() : '';
                 const companyCol = idx.company !== -1 ? String(row[idx.company] || '').trim() : '';
                 const statusCol = idx.status !== -1 ? String(row[idx.status] || '').trim() : '';
+                const kliklyIdCol = idx.klikly_id !== -1 ? String(row[idx.klikly_id] || '').trim() : '';
 
                 // Source detection: explicit column → link → notes → tab name
                 const detectedSource =
@@ -403,10 +405,16 @@ Deno.serve(async (req) => {
                     : ['לא רלוונטי', 'closed lost', 'not relevant'].includes(statusCol.toLowerCase()) ? 'לא רלוונטי'
                     : 'ליד חדש';
 
-                // Find existing record by phone, then email, then name+source
+                // Find existing record by KLIKLY ID (if from Claude Code), phone, email, or name+source
                 let match = null;
                 const cleanPhone = normPhone(phone);
-                if (cleanPhone && phoneMap[cleanPhone]) match = phoneMap[cleanPhone];
+                
+                // Claude Code: try KLIKLY ID first
+                if (kliklyIdCol && tabName.toLowerCase().includes('claude code')) {
+                    match = await base44.asServiceRole.entities.Lead.filter({ id: kliklyIdCol }).then(results => results[0] || null).catch(() => null);
+                }
+                
+                if (!match && cleanPhone && phoneMap[cleanPhone]) match = phoneMap[cleanPhone];
                 if (!match && email && emailMap[normalizeKey(email)]) match = emailMap[normalizeKey(email)];
                 if (!match && name) {
                     const k = normalizeKey(name) + '|' + normalizeKey(detectedSource);

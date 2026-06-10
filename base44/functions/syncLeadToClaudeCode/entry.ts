@@ -64,6 +64,7 @@ function buildRow(lead) {
     lead.source_post_url || '',
     lead.status === 'נשלח פולו-אפ' ? 'כן' : '',
     now,
+    lead.id || '', // KLIKLY ID
   ];
 }
 
@@ -106,7 +107,7 @@ Deno.serve(async (req) => {
     }
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
-    const range = encodeURIComponent(`'${SHEET_NAME}'!A1:K1000`);
+    const range = encodeURIComponent(`'${SHEET_NAME}'!A1:L1000`);
     const readResp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
@@ -122,7 +123,7 @@ Deno.serve(async (req) => {
     const matchRow = findMatchingRow(rows, lead);
 
     if (matchRow) {
-      const updateRange = encodeURIComponent(`'${SHEET_NAME}'!A${matchRow}:K${matchRow}`);
+      const updateRange = encodeURIComponent(`'${SHEET_NAME}'!A${matchRow}:L${matchRow}`);
       const updateResp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${updateRange}?valueInputOption=USER_ENTERED`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
@@ -135,7 +136,7 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, action: 'updated', row: matchRow });
     }
 
-    const appendRange = encodeURIComponent(`'${SHEET_NAME}'!A:K`);
+    const appendRange = encodeURIComponent(`'${SHEET_NAME}'!A:L`);
     const appendResp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${appendRange}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
