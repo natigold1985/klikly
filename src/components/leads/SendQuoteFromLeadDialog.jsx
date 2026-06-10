@@ -85,7 +85,7 @@ export default function SendQuoteFromLeadDialog({ lead, open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
-      <DialogContent className="sm:max-w-[640px] max-h-[95vh] w-[95vw] overflow-y-auto" dir="rtl">
+      <DialogContent className="sm:max-w-[640px] h-[85vh] sm:max-h-[90vh] w-[95vw] overflow-y-auto fixed bottom-0 sm:bottom-auto rounded-t-3xl sm:rounded-3xl" dir="rtl">
         <DialogHeader>
           <DialogTitle>
             {createdQuote ? 'שלח את ההצעה ללקוח' : `הצעת מחיר עבור ${lead?.name || ''}`}
