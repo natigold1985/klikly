@@ -116,10 +116,15 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads, tabName
     },
   });
 
-  // Style header row (index 0) — bold, dark background, white text
-  const headerBgColor = tabName.toLowerCase().includes('claude') 
-    ? { red: 0.2, green: 0.2, blue: 0.3 }  // Dark navy-blue for Claude Code
-    : { red: 0.1, green: 0.1, blue: 0.1 }; // Dark gray for others
+  // Style header row (index 0) — bold text, background based on tab
+  const isClaude = tabName.toLowerCase().includes('claude');
+  const headerBgColor = isClaude
+    ? { red: 0.91, green: 0.91, blue: 0.91 }  // Light gray (#E8E8E8) for Claude
+    : { red: 0.1, green: 0.1, blue: 0.1 };     // Dark gray for others
+  
+  const headerTextColor = isClaude
+    ? { red: 0.2, green: 0.2, blue: 0.2 }   // Dark gray text for Claude
+    : { red: 1.0, green: 1.0, blue: 1.0 };   // White text for others
   
   requests.push({
     repeatCell: {
@@ -136,7 +141,7 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads, tabName
           textFormat: {
             bold: true,
             fontSize: 12,
-            foregroundColor: { red: 1.0, green: 1.0, blue: 1.0 }, // White text
+            foregroundColor: headerTextColor,
           },
           horizontalAlignment: 'CENTER',
           textDirection: 'RIGHT_TO_LEFT',
@@ -145,6 +150,27 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads, tabName
       fields: 'userEnteredFormat.backgroundColor,userEnteredFormat.textFormat,userEnteredFormat.horizontalAlignment,userEnteredFormat.textDirection',
     },
   });
+
+  // Claude Code tab: add light gray background to data rows
+  if (isClaude) {
+    requests.push({
+      repeatCell: {
+        range: {
+          sheetId: sheetGid,
+          startRowIndex: 1,
+          endRowIndex: leads.length + 1,
+          startColumnIndex: 0,
+          endColumnIndex: 9,
+        },
+        cell: {
+          userEnteredFormat: {
+            backgroundColor: { red: 0.96, green: 0.96, blue: 0.96 }, // Lighter gray for rows
+          },
+        },
+        fields: 'userEnteredFormat.backgroundColor',
+      },
+    });
+  }
 
   // Right-align + RTL text direction for ALL data cells (rows 1..N+1, all columns)
   requests.push({
