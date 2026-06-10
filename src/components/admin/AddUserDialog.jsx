@@ -13,14 +13,15 @@ export default function AddUserDialog({ open, onOpenChange, onCreated }) {
 
   const handleSubmit = async () => {
     if (!form.full_name || !form.email || !form.role) {
-      toast.error('נא למלא את כל השדות');
+      toast.error('נא למלא את כל השדות החובה');
       return;
     }
     setLoading(true);
     try {
+      // Try to invite the user
       const res = await base44.functions.invoke('invitePhotographer', form);
-      if (res.data?.error) {
-        toast.error(res.data.error);
+      if (res.data?.success === false || res.data?.error) {
+        toast.error(res.data?.error || 'שגיאה בהזמנת המשתמש');
         setLoading(false);
         return;
       }
@@ -29,6 +30,7 @@ export default function AddUserDialog({ open, onOpenChange, onCreated }) {
       onCreated?.();
       onOpenChange(false);
     } catch (e) {
+      console.error('Error:', e);
       toast.error(e?.response?.data?.error || e.message || 'שגיאה ביצירת המשתמש');
     } finally {
       setLoading(false);
