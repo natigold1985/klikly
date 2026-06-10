@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MessageCircle } from 'lucide-react';
@@ -15,8 +15,6 @@ const buildWhatsAppLink = (lead) => {
 
 export default function WhatsAppDesktopFollowUp({ lead, onDone }) {
   const queryClient = useQueryClient();
-  const linkRef = useRef(null);
-
   const sendMutation = useMutation({
     mutationFn: async () => {
       const now = new Date().toISOString();
@@ -57,16 +55,16 @@ export default function WhatsAppDesktopFollowUp({ lead, onDone }) {
           </h3>
           <p className="text-sm text-slate-600 mt-1">פותח הודעה מוכנה ומעדכן את סטטוס הליד.</p>
         </div>
-        {/* hidden anchor — clicked programmatically to bypass popup blockers */}
-        <a ref={linkRef} href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="hidden">open</a>
-        <button
-          onClick={() => { linkRef.current?.click(); sendMutation.mutate(); }}
-          disabled={sendMutation.isPending}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white font-bold text-sm transition-colors disabled:opacity-60"
+        <a
+          href={whatsappUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => sendMutation.mutate()}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white font-bold text-sm transition-colors"
         >
           <MessageCircle className="w-4 h-4" />
           שלח פולו-אפ
-        </button>
+        </a>
       </div>
     </div>
   );
