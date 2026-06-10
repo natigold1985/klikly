@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import CreateClientDialog from './CreateClientDialog';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Briefcase, Loader2, Upload, X } from 'lucide-react';
+import { Briefcase, Loader2, Upload, X, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function CreateProjectDialog({ open, onOpenChange, onCreated }) {
+  const queryClient = useQueryClient();
   const [projectName, setProjectName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showCreateClient, setShowCreateClient] = useState(false);
 
   const { data: clients = [] } = useQuery({
     queryKey: ['projectClients'],
@@ -103,18 +106,29 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }) {
 
           <div>
             <label className="text-sm font-medium text-slate-700 mb-1 block">בחירת לקוח *</label>
-            <Select value={clientEmail} onValueChange={setClientEmail}>
-              <SelectTrigger>
-                <SelectValue placeholder="בחר לקוח קיים" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map((client) => (
-                  <SelectItem key={client.id} value={client.email}>
-                    {client.full_name || client.email} · {client.email}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select value={clientEmail} onValueChange={setClientEmail} className="flex-1">
+                <SelectTrigger>
+                  <SelectValue placeholder="בחר לקוח קיים" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.email}>
+                      {client.full_name || client.email} · {client.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setShowCreateClient(true)}
+                title="הוסף לקוח חדש"
+              >
+                <UserPlus className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
           <div>
@@ -155,6 +169,15 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }) {
             {loading ? 'יוצר ומסנכרן...' : 'צור פרויקט וסנכרן ל-Drive'}
           </Button>
         </div>
+
+        <CreateClientDialog
+          open={showCreateClient}
+          onOpenChange={setShowCreateClient}
+          onCreated={() => {
+            queryClient.invalidateQueries({ queryKey: ['projectClients'] });
+            setShowCreateClient(false);
+          }}
+        />
       </DialogContent>
     </Dialog>
   );
