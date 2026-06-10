@@ -316,10 +316,14 @@ export default function Leads() {
     'לא רלוונטי': 5,
   };
 
-  // A lead is truly "filtered" only if marked is_filtered AND not in an active workflow status.
-  // Active workflow statuses (in_progress, follow_up, quote_sent, closed_won) override the junk filter.
+  // A lead is truly "filtered" if:
+  // 1. marked is_filtered AND not in an active workflow status, OR
+  // 2. status is "לא רלוונטי"
   const ACTIVE_OVERRIDE_STATUSES = ['נוצר קשר', 'נשלח פולו-אפ', 'נענה', 'נסגר בהצלחה', 'in_progress', 'follow_up', 'quote_sent', 'closed_won'];
-  const isTrulyFiltered = (lead) => lead.is_filtered && !ACTIVE_OVERRIDE_STATUSES.includes(lead.status);
+  const isTrulyFiltered = (lead) => {
+    if (lead.status === 'לא רלוונטי') return true;
+    return lead.is_filtered && !ACTIVE_OVERRIDE_STATUSES.includes(lead.status);
+  };
 
   // Counts for tab badges
   const activeCount = leads.filter(l => !isTrulyFiltered(l)).length;
