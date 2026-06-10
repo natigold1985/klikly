@@ -9,7 +9,7 @@ import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
 const DEFAULT_MSG = (name) =>
-  `היי ${name || ''}, רציתי לבדוק אם קיבלת את הפרטים ששלחתי. אשמח לענות על כל שאלה ולתאם איתך את הצילום. מחכה לשמוע ממך! 📸`;
+  `היי, רציתי לבדוק אם קיבלת את הפרטים ששלחתי. אשמח לדעת אם יש עוד שאלות ונוכל להתקדם, מחכה לשמוע ממך! 📸`;
 
 export default function AutoFollowUpDialog({ open, onOpenChange, lead, onSaved }) {
   const [enabled, setEnabled] = useState(false);
@@ -200,7 +200,7 @@ export default function AutoFollowUpDialog({ open, onOpenChange, lead, onSaved }
               onChange={(e) => setMessage(e.target.value)}
               disabled={!enabled}
               rows="4"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFD700] disabled:bg-slate-50 disabled:text-slate-400 text-sm"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFD700] disabled:bg-slate-50 disabled:text-slate-400 text-sm resize-none"
             />
           </div>
 
@@ -211,13 +211,22 @@ export default function AutoFollowUpDialog({ open, onOpenChange, lead, onSaved }
             </div>
           )}
 
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            className="w-full bg-[#FFD700] hover:bg-[#E5B800] text-black font-bold"
-          >
-            {saving ? 'שומר...' : 'שמור הגדרות'}
-          </Button>
+          <div className="flex gap-3 pt-2">
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex-1 bg-[#FFD700] hover:bg-[#E5B800] text-black font-bold"
+            >
+              {saving ? 'שומר...' : 'שמור הגדרות'}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="flex-1 border-slate-300"
+            >
+              ביטול
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
