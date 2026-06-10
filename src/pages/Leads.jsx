@@ -623,6 +623,13 @@ export default function Leads() {
         {activeTab === 'active' && (
           <div className="flex flex-wrap gap-2 px-2 pb-2" dir="rtl">
             {Object.entries(countByStatus)
+              .sort(([a], [b]) => {
+                // Sort: "ליד חדש" first, then others alphabetically, excluding "לא רלוונטי"
+                if (a === 'ליד חדש') return -1;
+                if (b === 'ליד חדש') return 1;
+                if (a === 'לא רלוונטי' || b === 'לא רלוונטי') return a === 'לא רלוונטי' ? 1 : -1;
+                return a.localeCompare(b);
+              })
               .filter(([status]) => status !== 'לא רלוונטי')
               .map(([status, count]) => (
                 <div key={status} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-medium text-slate-700 shadow-sm">
