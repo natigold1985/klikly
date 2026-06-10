@@ -38,15 +38,15 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
 
       {/* Desktop: table */}
       <div className="hidden md:block bg-white rounded-[2rem] border border-slate-200 shadow-xl shadow-slate-200/60 overflow-x-auto overflow-y-hidden">
-      <table className="min-w-[980px] w-full text-sm table-fixed" dir="rtl">
+      <table className="min-w-[1100px] w-full text-sm table-fixed" dir="rtl">
         <colgroup>
-          <col className="w-[18%]" />
+          <col className="w-[17%]" />
+          <col className="w-[11%]" />
           <col className="w-[13%]" />
           <col className="w-[14%]" />
-          <col className="w-[12%]" />
-          <col className="w-[12%]" />
-          <col className="w-[18%]" />
           <col className="w-[13%]" />
+          <col className="w-[17%]" />
+          <col className="w-[15%]" />
         </colgroup>
         <thead>
           <tr className="bg-gradient-to-l from-[#FFD700] via-[#F6C400] to-[#E5B800] text-black shadow-sm sticky top-0 z-10">
@@ -104,13 +104,13 @@ export default function LeadTableView({ leads, onStatusChange, onDelete, onAutoF
                 )}
               </td>
 
-              <td className="py-3 px-4">
+              <td className="py-3 px-4 min-w-[130px]">
                 <div className="rounded-2xl bg-white p-1 ring-1 ring-slate-200 shadow-sm w-fit">
                   <StatusSelect value={lead.status} onChange={(val) => onStatusChange(lead.id, val)} />
                 </div>
               </td>
 
-              <td className="py-3 px-4">
+              <td className="py-3 px-4 min-w-[110px]">
                 <span className="inline-flex items-center rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 ring-1 ring-slate-200 whitespace-nowrap">
                   {lead.created_date ? new Date(lead.created_date).toLocaleDateString('he-IL') : '—'}
                 </span>
