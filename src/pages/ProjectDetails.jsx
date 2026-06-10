@@ -7,7 +7,7 @@ import {
   ArrowRight, Phone, Mail, Calendar, MapPin, 
   DollarSign, CheckCircle2, ListTodo, Download, Eye, Upload,
   Link as LinkIcon, Copy, Lock, RefreshCw, FolderPlus, ExternalLink, Loader2,
-  Pencil, Plus, Save, X
+  Pencil, Plus, Save, X, MessageCircle, Send, Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -160,8 +160,59 @@ export default function ProjectDetails() {
     return <span className={`px-3 py-1.5 rounded-full text-sm font-semibold ${badge.color}`}>{badge.label}</span>;
   };
 
+  const getDriveFolderIdFromUrl = (url = '') => {
+    const match = String(url).match(/drive\.google\.com\/drive\/(?:u\/\d+\/)?folders\/([a-zA-Z0-9_-]+)/);
+    return match?.[1] || '';
+  };
+
+  const handleSendGalleryWhatsApp = () => {
+    const folderId = getDriveFolderIdFromUrl(project.drive_folder_url);
+    if (!folderId) { toast.error('אין תיקיית Drive — צור תיקייה קודם'); return; }
+    const url = `${window.location.origin}/gallery/${folderId}`;
+    const msg = encodeURIComponent(`היי ${project.client_name || ''} 😊\nהגלריה שלך מוכנה!\nלצפייה והורדה:\n${url}`);
+    const phone = (project.client_phone || '').replace(/\D/g, '');
+    window.open(phone ? `https://wa.me/${phone}?text=${msg}` : `https://wa.me/?text=${msg}`, '_blank');
+  };
+
+  const handleSendGalleryEmail = () => {
+    const folderId = getDriveFolderIdFromUrl(project.drive_folder_url);
+    const url = folderId ? `${window.location.origin}/gallery/${folderId}` : '';
+    const subject = encodeURIComponent(`הגלריה שלך מוכנה - ${project.client_name || ''}`);
+    const body = encodeURIComponent(`היי ${project.client_name || ''},\n\nהגלריה שלך מוכנה לצפייה והורדה:\n${url}\n\nבברכה`);
+    window.open(`mailto:${project.client_email || ''}?subject=${subject}&body=${body}`, '_blank');
+  };
+
   return (
     <div className="space-y-6 pb-20" dir="rtl">
+
+      {/* Quick Actions Bar */}
+      {!isClient && (
+        <div className="bg-gradient-to-l from-[#FFD700]/10 to-transparent border border-[#FFD700]/20 rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Zap className="w-4 h-4 text-[#FFD700]" />
+            <span className="text-sm font-bold text-slate-700">גישה מהירה</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <Link to={createPageUrl(`FileStorage?projectId=${project.id}`)} className="flex items-center justify-center gap-2 bg-black text-white rounded-xl px-3 py-3 text-sm font-semibold hover:bg-slate-800 transition-colors">
+              <Upload className="w-4 h-4 text-[#FFD700]" />
+              העלאת קבצים
+            </Link>
+            <button onClick={handleCopyGalleryLink} className="flex items-center justify-center gap-2 bg-[#FFD700] text-black rounded-xl px-3 py-3 text-sm font-semibold hover:bg-[#e6c200] transition-colors">
+              <LinkIcon className="w-4 h-4" />
+              שלח גלריה
+            </button>
+            <button onClick={handleSendGalleryWhatsApp} className="flex items-center justify-center gap-2 bg-green-500 text-white rounded-xl px-3 py-3 text-sm font-semibold hover:bg-green-600 transition-colors">
+              <MessageCircle className="w-4 h-4" />
+              וואטסאפ
+            </button>
+            <button onClick={handleSendGalleryEmail} className="flex items-center justify-center gap-2 bg-blue-500 text-white rounded-xl px-3 py-3 text-sm font-semibold hover:bg-blue-600 transition-colors">
+              <Send className="w-4 h-4" />
+              שלח מייל
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center gap-4 mb-2">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full shrink-0">
           <ArrowRight className="w-5 h-5" />
