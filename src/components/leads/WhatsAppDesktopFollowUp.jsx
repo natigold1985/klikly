@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { MessageCircle, CheckCircle2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
-const buildWhatsAppDesktopLink = (lead) => {
+const buildWhatsAppLink = (lead) => {
   const cleanPhone = String(lead?.phone || '').replace(/[^0-9]/g, '');
+  if (!cleanPhone) return null;
   const phone = cleanPhone.startsWith('0') ? `972${cleanPhone.slice(1)}` : cleanPhone;
   const name = lead?.name && !['לא ידוע', 'unknown'].includes(String(lead.name).toLowerCase()) ? ` ${lead.name}` : '';
   const text = lead?.auto_followup_message || `היי${name}, רציתי לבדוק אם קיבלת את הפרטים ששלחתי. אשמח לענות על כל שאלה, מחכה לשמוע ממך! 📸`;
@@ -15,6 +15,7 @@ const buildWhatsAppDesktopLink = (lead) => {
 
 export default function WhatsAppDesktopFollowUp({ lead, onDone }) {
   const queryClient = useQueryClient();
+  const linkRef = useRef(null);
 
   const sendMutation = useMutation({
     mutationFn: async () => {
@@ -30,7 +31,7 @@ export default function WhatsAppDesktopFollowUp({ lead, onDone }) {
         related_to_id: lead.id,
         activity_type: 'call_made',
         title: 'נשלח פולו-אפ ב-WhatsApp',
-        description: 'הודעת פולו-אפ נפתחה לשליחה ב-WhatsApp Desktop',
+        description: 'הודעת פולו-אפ נפתחה לשליחה ב-WhatsApp Web',
       });
     },
     onSuccess: () => {
@@ -42,14 +43,9 @@ export default function WhatsAppDesktopFollowUp({ lead, onDone }) {
     },
   });
 
-  const handleSend = () => {
-    if (!lead?.phone) {
-      toast.error('אין מספר טלפון לליד הזה');
-      return;
-    }
-    sendMutation.mutate();
-    window.open(buildWhatsAppDesktopLink(lead), '_blank');
-  };
+  const whatsappUrl = buildWhatsAppLink(lead);
+
+  if (!whatsappUrl) return null;
 
   return (
     <div className="rounded-3xl border border-emerald-100 bg-emerald-50/60 p-4">
@@ -61,10 +57,16 @@ export default function WhatsAppDesktopFollowUp({ lead, onDone }) {
           </h3>
           <p className="text-sm text-slate-600 mt-1">פותח הודעה מוכנה ומעדכן את סטטוס הליד.</p>
         </div>
-        <Button onClick={handleSend} disabled={sendMutation.isPending} className="bg-[#25D366] hover:bg-[#128C7E] text-white">
-          <CheckCircle2 className="w-4 h-4" />
+        {/* hidden anchor — clicked programmatically to bypass popup blockers */}
+        <a ref={linkRef} href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="hidden">open</a>
+        <button
+          onClick={() => { linkRef.current?.click(); sendMutation.mutate(); }}
+          disabled={sendMutation.isPending}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white font-bold text-sm transition-colors disabled:opacity-60"
+        >
+          <MessageCircle className="w-4 h-4" />
           שלח פולו-אפ
-        </Button>
+        </button>
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowRight, Phone, Mail, Calendar,
-  Briefcase, CheckCircle2, DollarSign, FileText, ExternalLink, UserRound, Tag, Zap
+  Briefcase, CheckCircle2, DollarSign, FileText, ExternalLink, UserRound, Tag, Zap, Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -63,6 +63,20 @@ export default function LeadDetails() {
     queryClient.invalidateQueries({ queryKey: ['activities', leadId] });
   };
 
+  const deleteLeadMutation = useMutation({
+    mutationFn: () => base44.entities.Lead.delete(leadId),
+    onSuccess: () => {
+      toast.success('הליד נמחק');
+      navigate(-1);
+    },
+  });
+
+  const handleDelete = () => {
+    if (window.confirm('האם אתה בטוח שברצונך למחוק את הליד הזה? לא ניתן לשחזר.')) {
+      deleteLeadMutation.mutate();
+    }
+  };
+
   const createProjectMutation = useMutation({
     mutationFn: (data) => base44.entities.Project.create(data),
     onSuccess: (newProject) => {
@@ -94,13 +108,23 @@ export default function LeadDetails() {
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-20" dir="rtl">
       {/* Back button - prominent on both mobile and desktop */}
-      <button
-        onClick={() => navigate(-1)}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all text-sm font-medium text-slate-700 mb-4"
-      >
-        <ArrowRight className="w-4 h-4" />
-        <span>חזרה</span>
-      </button>
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-sm transition-all text-sm font-medium text-slate-700"
+        >
+          <ArrowRight className="w-4 h-4" />
+          <span>חזרה</span>
+        </button>
+        <button
+          onClick={handleDelete}
+          disabled={deleteLeadMutation.isPending}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-50 border border-red-200 hover:bg-red-100 shadow-sm transition-all text-sm font-bold text-red-600 disabled:opacity-60"
+        >
+          <Trash2 className="w-4 h-4" />
+          <span>מחק ליד</span>
+        </button>
+      </div>
 
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-black text-white border border-slate-800 shadow-2xl shadow-slate-900/20 p-6 md:p-8">
         <div className="absolute inset-y-0 left-0 w-72 bg-[#FFD700]/10 blur-3xl" />
