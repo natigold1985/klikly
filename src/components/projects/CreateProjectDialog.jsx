@@ -179,6 +179,7 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }) {
           onOpenChange={setShowCreateClient}
           onCreated={() => {
             queryClient.invalidateQueries({ queryKey: ['projectClients'] });
+            setClientEmail('');
             setShowCreateClient(false);
           }}
         />
