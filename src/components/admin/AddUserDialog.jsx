@@ -18,14 +18,20 @@ export default function AddUserDialog({ open, onOpenChange, onCreated }) {
     }
     setLoading(true);
     try {
-      // Try to invite the user
-      const res = await base44.functions.invoke('invitePhotographer', form);
+      // For clients — use inviteClient which sends gallery invitation email
+      // For photographers/admins — use invitePhotographer
+      const fnName = form.role === 'client' ? 'inviteClient' : 'invitePhotographer';
+      const res = await base44.functions.invoke(fnName, form);
       if (res.data?.success === false || res.data?.error) {
         toast.error(res.data?.error || 'שגיאה בהזמנת המשתמש');
         setLoading(false);
         return;
       }
-      toast.success('המשתמש הוזמן בהצלחה — מייל הזמנה נשלח');
+      toast.success(
+        form.role === 'client'
+          ? 'הלקוח נוסף ומייל הזמנה לגלריה נשלח אליו'
+          : 'המשתמש הוזמן בהצלחה — מייל הזמנה נשלח'
+      );
       setForm({ full_name: '', email: '', phone: '', role: 'user' });
       onCreated?.();
       onOpenChange(false);
