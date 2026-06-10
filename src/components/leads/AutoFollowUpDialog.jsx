@@ -82,7 +82,7 @@ export default function AutoFollowUpDialog({ open, onOpenChange, lead, onSaved }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto rounded-3xl px-4 sm:px-6" dir="rtl">
+      <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[80vh] md:max-h-[90vh] overflow-y-auto rounded-3xl px-4 sm:px-6" dir="rtl">
         <DialogHeader className="text-right border-b border-slate-100 pb-4">
           <DialogTitle className="flex items-center justify-between gap-3 text-slate-950">
             <span className="flex items-center gap-3 text-xl font-black">

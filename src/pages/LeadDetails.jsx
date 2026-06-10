@@ -55,6 +55,12 @@ export default function LeadDetails() {
 
   const updateStatus = async (newStatus) => {
     await updateLeadMutation.mutateAsync({ status: newStatus });
+    // Sync to Google Sheets automatically
+    try {
+      await base44.functions.invoke('pushLeadToSheet', { data: { ...lead, status: newStatus } });
+    } catch (err) {
+      console.error('Failed to sync to Google Sheets:', err);
+    }
   };
 
   const refreshLead = () => {
