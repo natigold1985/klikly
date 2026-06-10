@@ -211,18 +211,18 @@ export default function AutoFollowUpDialog({ open, onOpenChange, lead, onSaved }
             </div>
           )}
 
-          <div className="flex gap-2 pt-3 w-full">
+          <div className="space-y-2 pt-3">
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 bg-[#FFD700] hover:bg-[#E5B800] text-black font-bold text-sm"
+              className="w-full bg-[#FFD700] hover:bg-[#E5B800] text-black font-bold py-2.5"
             >
-              {saving ? 'שומר...' : 'שמור'}
+              {saving ? 'שומר...' : 'שמור הגדרות'}
             </Button>
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="flex-1 border-slate-300 text-sm"
+              className="w-full border-slate-300 py-2.5"
             >
               ביטול
             </Button>
