@@ -27,6 +27,18 @@ function rowMatchesLead(row, lead) {
   return false;
 }
 
+// Fetch with exponential backoff for 429 rate-limit errors
+async function fetchWithRetry(url, options = {}, maxRetries = 3) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const resp = await fetch(url, options);
+    if (resp.status !== 429) return resp;
+    if (attempt === maxRetries) return resp;
+    const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500; // 1s, 2s, 4s + jitter
+    console.log(`deleteLeadFromGoogleSheets: 429 received, retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${maxRetries})`);
+    await new Promise(r => setTimeout(r, delay));
+  }
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -41,7 +53,7 @@ Deno.serve(async (req) => {
     const authHeader = { Authorization: `Bearer ${accessToken}` };
 
     // Step 1: Get all tab names (1 read request)
-    const metaResp = await fetch(
+    const metaResp = await fetchWithRetry(
       `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?fields=sheets.properties`,
       { headers: authHeader }
     );
@@ -55,7 +67,7 @@ Deno.serve(async (req) => {
     // Step 2: Fetch ALL tabs in ONE batchGet request (1 read request instead of N)
     const ranges = sheets.map(s => `'${s.properties.title.replace(/'/g, "''")}'!A1:Z2000`);
     const rangesQuery = ranges.map(r => `ranges=${encodeURIComponent(r)}`).join('&');
-    const batchGetResp = await fetch(
+    const batchGetResp = await fetchWithRetry(
       `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values:batchGet?${rangesQuery}`,
       { headers: authHeader }
     );
