@@ -8,7 +8,7 @@ const buildWhatsAppLink = (lead) => {
   const cleanPhone = String(lead?.phone || '').replace(/[^0-9]/g, '');
   if (!cleanPhone) return null;
   const phone = cleanPhone.startsWith('0') ? `972${cleanPhone.slice(1)}` : cleanPhone;
-  const text = lead?.auto_followup_message || `היי, רציתי לבדוק אם קיבלת את הפרטים ששלחתי. אשמח לענות על כל שאלה, מחכה לשמוע ממך! 📸`;
+  const text = lead?.auto_followup_message || `הי מה קורה, תרצה שנתקדם? 😊`;
   return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
 };
 
