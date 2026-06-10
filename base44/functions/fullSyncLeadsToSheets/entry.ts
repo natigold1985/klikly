@@ -20,7 +20,7 @@ const SOURCE_TO_TAB = {
 };
 
 const ALL_LEADS_TAB = '🎯 כל הלידים';
-const HEADERS = ['שם מלא', 'טלפון', 'מייל', 'מקור', 'שירות / עניין', 'סטטוס', 'התקדמות', 'הערות', 'תאריך יצירה'];
+const HEADERS = ['שם מלא', 'טלפון', 'מייל', 'מקור', 'שירות / עניין', 'סטטוס', 'התקדמות', 'הערות'];
 
 const PIPELINE_STAGE_LABELS = {
   lead_found: 'ליד נמצא',
@@ -50,9 +50,6 @@ const STATUS_ROW_COLORS = {
 const APP_BASE_URL = 'https://klikly.base44.app';
 
 function leadToRow(lead) {
-  const date = lead.created_date
-    ? new Date(lead.created_date).toLocaleDateString('he-IL')
-    : '';
   const nameLink = lead.id
     ? `=HYPERLINK("${APP_BASE_URL}/LeadDetails?id=${lead.id}","${(lead.name || '').replace(/"/g, '""')}")`
     : (lead.name || '');
@@ -68,7 +65,6 @@ function leadToRow(lead) {
     lead.status || 'ליד חדש',
     stage,
     lead.notes || '',
-    date,
   ];
 }
 
@@ -133,7 +129,7 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads, tabName
         startRowIndex: 0,
         endRowIndex: 1,
         startColumnIndex: 0,
-        endColumnIndex: 9,
+        endColumnIndex: 8,
       },
       cell: {
         userEnteredFormat: {
@@ -180,7 +176,7 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads, tabName
         startRowIndex: 0,
         endRowIndex: leads.length + 1,
         startColumnIndex: 0,
-        endColumnIndex: 9,
+        endColumnIndex: 8,
       },
       cell: {
         userEnteredFormat: {
