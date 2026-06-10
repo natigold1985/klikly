@@ -264,6 +264,12 @@ export default function Projects() {
                           משימות
                         </Button>
                       </Link>
+                      <Link to={createPageUrl(`FileStorage?project_id=${project.id}`)} onClick={(e) => e.stopPropagation()}>
+                        <Button variant="secondary" size="sm" className="text-xs gap-1 bg-[#FFD700]/10 text-[#C5A028] hover:bg-[#FFD700]/20 border border-[#FFD700]/30">
+                          <FolderOpen className="w-3 h-3" />
+                          קבצים
+                        </Button>
+                      </Link>
                       <Button 
                         variant="outline" 
                         size="sm"
