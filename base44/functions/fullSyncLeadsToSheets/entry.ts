@@ -18,7 +18,21 @@ const SOURCE_TO_TAB = {
 };
 
 const ALL_LEADS_TAB = '🎯 כל הלידים';
-const HEADERS = ['שם מלא', 'טלפון', 'מייל', 'מקור', 'שירות / עניין', 'סטטוס', 'הערות', 'תאריך יצירה'];
+const HEADERS = ['שם מלא', 'טלפון', 'מייל', 'מקור', 'שירות / עניין', 'סטטוס', 'התקדמות', 'הערות', 'תאריך יצירה'];
+
+const PIPELINE_STAGE_LABELS = {
+  lead_found: 'ליד נמצא',
+  outreach: 'פנייה ראשונית',
+  procurement_check: 'בדיקת רכש',
+  contract_closed: 'חוזה נסגר',
+  quote_sent: 'הצעת מחיר נשלחה',
+  follow_up: 'פולו-אפ',
+  logistics_coordination: 'תיאום לוגיסטי',
+  completed: 'הושלם',
+  registered_webinar: 'נרשם לוובינר',
+  watched_webinar: 'צפה בוובינר',
+  consultation_meeting: 'פגישת ייעוץ',
+};
 const STATUS_VALUES = ['ליד חדש', 'נוצר קשר', 'נשלח פולו-אפ', 'נענה', 'נסגר בהצלחה', 'לא רלוונטי'];
 
 // RGB background colors per status (for Google Sheets)
@@ -40,6 +54,9 @@ function leadToRow(lead) {
   const nameLink = lead.id
     ? `=HYPERLINK("${APP_BASE_URL}/LeadDetails?id=${lead.id}","${(lead.name || '').replace(/"/g, '""')}")`
     : (lead.name || '');
+  const stage = lead.pipeline_stage
+    ? (PIPELINE_STAGE_LABELS[lead.pipeline_stage] || lead.pipeline_stage)
+    : '';
   return [
     nameLink,
     lead.phone || '',
@@ -47,6 +64,7 @@ function leadToRow(lead) {
     lead.source || '',
     lead.shooting_type || lead.lead_type || '',
     lead.status || 'ליד חדש',
+    stage,
     lead.notes || '',
     date,
   ];
@@ -104,7 +122,7 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads) {
         startRowIndex: 0,
         endRowIndex: leads.length + 1,
         startColumnIndex: 0,
-        endColumnIndex: 8,
+        endColumnIndex: 9,
       },
       cell: {
         userEnteredFormat: {
@@ -125,6 +143,7 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads) {
         endRowIndex: leads.length + 1,
         startColumnIndex: 5,
         endColumnIndex: 6,
+
       },
       rule: {
         condition: {
@@ -150,7 +169,7 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads) {
           startRowIndex: i + 1, // +1 to skip header
           endRowIndex: i + 2,
           startColumnIndex: 0,
-          endColumnIndex: 8,
+          endColumnIndex: 9,
         },
         cell: {
           userEnteredFormat: {
