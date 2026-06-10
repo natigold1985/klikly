@@ -1,16 +1,16 @@
 export const STATUS_STYLES = {
-  'ליד חדש': { label: 'ליד חדש', pill: 'bg-blue-100 text-blue-800 border-blue-200', dot: 'bg-blue-500' },
-  'נוצר קשר': { label: 'נוצר קשר', pill: 'bg-amber-100 text-amber-800 border-amber-200', dot: 'bg-amber-500' },
-  'נשלח פולו-אפ': { label: 'נשלח פולו-אפ', pill: 'bg-purple-100 text-purple-800 border-purple-200', dot: 'bg-purple-500' },
-  'נענה': { label: 'נענה', pill: 'bg-orange-100 text-orange-800 border-orange-200', dot: 'bg-orange-500' },
-  'נסגר בהצלחה': { label: 'נסגר בהצלחה', pill: 'bg-emerald-100 text-emerald-800 border-emerald-200', dot: 'bg-emerald-500' },
-  'לא רלוונטי': { label: 'לא רלוונטי', pill: 'bg-red-100 text-red-800 border-red-200', dot: 'bg-red-500' },
-  new: { label: 'ליד חדש', pill: 'bg-blue-100 text-blue-800 border-blue-200', dot: 'bg-blue-500' },
-  in_progress: { label: 'נוצר קשר', pill: 'bg-amber-100 text-amber-800 border-amber-200', dot: 'bg-amber-500' },
-  follow_up: { label: 'נשלח פולו-אפ', pill: 'bg-purple-100 text-purple-800 border-purple-200', dot: 'bg-purple-500' },
-  quote_sent: { label: 'נענה', pill: 'bg-orange-100 text-orange-800 border-orange-200', dot: 'bg-orange-500' },
-  closed_won: { label: 'נסגר בהצלחה', pill: 'bg-emerald-100 text-emerald-800 border-emerald-200', dot: 'bg-emerald-500' },
-  closed_lost: { label: 'לא רלוונטי', pill: 'bg-red-100 text-red-800 border-red-200', dot: 'bg-red-500' },
+  'ליד חדש':      { label: 'ליד חדש',      pill: 'bg-blue-100 text-blue-800 border-blue-300 font-bold',       dot: 'bg-blue-500' },
+  'נוצר קשר':    { label: 'נוצר קשר',    pill: 'bg-yellow-200 text-yellow-900 border-yellow-400 font-bold',  dot: 'bg-yellow-400' },
+  'נשלח פולו-אפ':{ label: 'נשלח פולו-אפ',pill: 'bg-purple-200 text-purple-900 border-purple-400 font-bold', dot: 'bg-purple-500' },
+  'נענה':         { label: 'נענה',         pill: 'bg-yellow-100 text-yellow-800 border-yellow-300 font-bold', dot: 'bg-yellow-500' },
+  'נסגר בהצלחה': { label: 'נסגר בהצלחה', pill: 'bg-green-200 text-green-900 border-green-500 font-black',   dot: 'bg-green-500' },
+  'לא רלוונטי':  { label: 'לא רלוונטי',  pill: 'bg-red-200 text-red-900 border-red-400 font-bold',          dot: 'bg-red-500' },
+  new:         { label: 'ליד חדש',      pill: 'bg-blue-100 text-blue-800 border-blue-300 font-bold',       dot: 'bg-blue-500' },
+  in_progress: { label: 'נוצר קשר',    pill: 'bg-yellow-200 text-yellow-900 border-yellow-400 font-bold',  dot: 'bg-yellow-400' },
+  follow_up:   { label: 'נשלח פולו-אפ',pill: 'bg-purple-200 text-purple-900 border-purple-400 font-bold', dot: 'bg-purple-500' },
+  quote_sent:  { label: 'נענה',         pill: 'bg-yellow-100 text-yellow-800 border-yellow-300 font-bold', dot: 'bg-yellow-500' },
+  closed_won:  { label: 'נסגר בהצלחה', pill: 'bg-green-200 text-green-900 border-green-500 font-black',   dot: 'bg-green-500' },
+  closed_lost: { label: 'לא רלוונטי',  pill: 'bg-red-200 text-red-900 border-red-400 font-bold',          dot: 'bg-red-500' },
 };
 
 export const STATUS_VALUE_MAP = {
