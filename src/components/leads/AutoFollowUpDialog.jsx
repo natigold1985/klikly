@@ -82,7 +82,7 @@ export default function AutoFollowUpDialog({ open, onOpenChange, lead, onSaved }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[540px] max-h-[92vh] overflow-y-auto rounded-3xl" dir="rtl">
+      <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto rounded-3xl px-4 sm:px-6" dir="rtl">
         <DialogHeader className="text-right border-b border-slate-100 pb-4">
           <DialogTitle className="flex items-center justify-between gap-3 text-slate-950">
             <span className="flex items-center gap-3 text-xl font-black">
@@ -211,18 +211,18 @@ export default function AutoFollowUpDialog({ open, onOpenChange, lead, onSaved }
             </div>
           )}
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-2 pt-3 w-full">
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 bg-[#FFD700] hover:bg-[#E5B800] text-black font-bold"
+              className="flex-1 bg-[#FFD700] hover:bg-[#E5B800] text-black font-bold text-sm"
             >
-              {saving ? 'שומר...' : 'שמור הגדרות'}
+              {saving ? 'שומר...' : 'שמור'}
             </Button>
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="flex-1 border-slate-300"
+              className="flex-1 border-slate-300 text-sm"
             >
               ביטול
             </Button>
