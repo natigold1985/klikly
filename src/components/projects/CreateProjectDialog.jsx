@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import CreateClientDialog from './CreateClientDialog';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -11,6 +12,7 @@ import { toast } from 'sonner';
 
 export default function CreateProjectDialog({ open, onOpenChange, onCreated }) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [projectName, setProjectName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
   const [files, setFiles] = useState([]);
@@ -74,6 +76,8 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }) {
       onCreated?.(project);
       resetForm();
       onOpenChange(false);
+      // Navigate directly to project details
+      navigate(`/ProjectDetails?id=${project.id}`);
     } catch (error) {
       toast.error(error.message || 'שגיאה ביצירת הפרויקט');
     } finally {
