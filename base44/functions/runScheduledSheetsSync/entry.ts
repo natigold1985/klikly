@@ -299,15 +299,14 @@ Deno.serve(async (req) => {
       perTab.push({ tab: tabName, added: tabAdded, updated: tabUpdated, skipped: tabSkipped });
     }
 
-    const cleanup = await cleanupInvalidLeads(base44);
     await base44.asServiceRole.entities.SystemLog.create({
       action: 'scheduled_sheets_sync',
-      details: `Sync complete. Added: ${added}, Updated: ${updated}, Skipped: ${skipped}, Deleted invalid: ${cleanup.deleted}`,
+      details: `Sync complete. Added: ${added}, Updated: ${updated}, Skipped: ${skipped}`,
       status: 'success',
     });
 
     isRunning = false;
-    return Response.json({ success: true, added, updated, skipped, per_tab: perTab, cleanup });
+    return Response.json({ success: true, added, updated, skipped, per_tab: perTab });
   } catch (error) {
     isRunning = false;
     return Response.json({ error: error.message, stack: error.stack }, { status: 500 });
