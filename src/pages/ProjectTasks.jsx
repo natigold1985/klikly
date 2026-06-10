@@ -35,11 +35,8 @@ export default function ProjectTasks() {
 
   const [activeStage, setActiveStage] = useState('before_shooting');
   const [showNewTaskDialog, setShowNewTaskDialog] = useState(false);
-  const [newTask, setNewTask] = useState({
-    title: '',
-    due_date: '',
-    withReminder: false
-  });
+  const [newTask, setNewTask] = useState({ title: '', due_date: '' });
+  const [editingDueDate, setEditingDueDate] = useState(null); // task id being edited
 
   // Fetch project details
   const { data: project, isLoading: projectLoading } = useQuery({
@@ -60,7 +57,7 @@ export default function ProjectTasks() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectTasks', projectId] });
       setShowNewTaskDialog(false);
-      setNewTask({ title: '', due_date: '', withReminder: false });
+      setNewTask({ title: '', due_date: '' });
       toast.success('משימה נוספה בהצלחה');
     },
   });
@@ -69,6 +66,7 @@ export default function ProjectTasks() {
     mutationFn: ({ id, data }) => base44.entities.Task.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectTasks', projectId] });
+      setEditingDueDate(null);
     },
   });
 
@@ -82,7 +80,6 @@ export default function ProjectTasks() {
 
   const handleCreateTask = () => {
     if (!newTask.title) return;
-    
     const taskData = {
       related_to_type: 'project',
       related_to_id: projectId,
@@ -90,15 +87,20 @@ export default function ProjectTasks() {
       stage: activeStage,
       status: 'pending',
       priority: 'medium',
+      due_date: newTask.due_date ? new Date(newTask.due_date).toISOString() : null,
     };
-
-    if (newTask.withReminder && newTask.due_date) {
-      taskData.due_date = new Date(newTask.due_date).toISOString();
-    } else {
-      taskData.due_date = new Date(new Date().setHours(23, 59, 59, 999)).toISOString(); // Default end of day
-    }
-
     createTaskMutation.mutate(taskData);
+  };
+
+  const getDueDateStatus = (due_date) => {
+    if (!due_date) return null;
+    const now = new Date();
+    const due = new Date(due_date);
+    const diffDays = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return { label: 'פג תוקף', color: 'bg-red-50 text-red-600 border-red-200' };
+    if (diffDays === 0) return { label: 'היום!', color: 'bg-red-50 text-red-600 border-red-200' };
+    if (diffDays <= 3) return { label: `${diffDays} ימים`, color: 'bg-orange-50 text-orange-600 border-orange-200' };
+    return { label: due.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' }), color: 'bg-green-50 text-green-700 border-green-200' };
   };
 
   const toggleTaskStatus = (task) => {
@@ -208,33 +210,60 @@ export default function ProjectTasks() {
                 אין משימות לשלב זה.<br/>לחץ על "משימה חדשה" כדי להתחיל.
               </div>
             ) : (
-              currentTasks.map(task => (
-                <div key={task.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl border transition-all gap-3 ${task.status === 'completed' ? 'bg-slate-50 border-[#FFD700] opacity-75' : 'bg-white border-[#FFD700] shadow-sm hover:shadow-md'}`}>
-                  <div className="flex items-start gap-3 flex-1 cursor-pointer" onClick={() => toggleTaskStatus(task)}>
-                    <button className="mt-0.5 shrink-0 focus:outline-none">
-                      {task.status === 'completed' ? (
-                        <CheckCircle2 className="w-5 h-5 text-green-500" />
-                      ) : (
-                        <Circle className="w-5 h-5 text-slate-300 hover:text-indigo-400 transition-colors" />
-                      )}
-                    </button>
-                    <div className={task.status === 'completed' ? 'line-through text-slate-500' : 'text-slate-800 font-medium'}>
-                      {task.title}
+              currentTasks.map(task => {
+                const dueDateStatus = getDueDateStatus(task.due_date);
+                return (
+                  <div key={task.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl border transition-all gap-3 ${task.status === 'completed' ? 'bg-slate-50 border-slate-200 opacity-60' : 'bg-white border-[#FFD700] shadow-sm hover:shadow-md'}`}>
+                    <div className="flex items-start gap-3 flex-1 cursor-pointer" onClick={() => toggleTaskStatus(task)}>
+                      <button className="mt-0.5 shrink-0 focus:outline-none">
+                        {task.status === 'completed' ? (
+                          <CheckCircle2 className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <Circle className="w-5 h-5 text-slate-300 hover:text-indigo-400 transition-colors" />
+                        )}
+                      </button>
+                      <div>
+                        <div className={task.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-800 font-medium'}>
+                          {task.title}
+                        </div>
+                        {task.status !== 'completed' && (
+                          <div className="mt-1">
+                            {editingDueDate === task.id ? (
+                              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                <Input
+                                  type="datetime-local"
+                                  defaultValue={task.due_date ? new Date(task.due_date).toISOString().slice(0,16) : ''}
+                                  className="h-7 text-xs w-44"
+                                  autoFocus
+                                  onBlur={(e) => {
+                                    if (e.target.value) {
+                                      updateTaskMutation.mutate({ id: task.id, data: { due_date: new Date(e.target.value).toISOString() } });
+                                    } else {
+                                      updateTaskMutation.mutate({ id: task.id, data: { due_date: null } });
+                                    }
+                                  }}
+                                />
+                                <button onClick={() => setEditingDueDate(null)} className="text-slate-400 hover:text-slate-600 text-xs">✕</button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setEditingDueDate(task.id); }}
+                                className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border transition-all ${dueDateStatus ? dueDateStatus.color : 'text-slate-400 border-dashed border-slate-300 hover:border-slate-400'}`}
+                              >
+                                <Clock className="w-3 h-3" />
+                                {dueDateStatus ? dueDateStatus.label : '+ הגדר תאריך יעד'}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto pl-8 sm:pl-0">
-                    {task.due_date && task.status !== 'completed' && (
-                      <Badge variant="outline" className="text-xs bg-orange-50 text-orange-600 border-orange-200 px-2 py-0.5">
-                        <Clock className="w-3 h-3 ml-1.5" />
-                        {new Date(task.due_date).toLocaleDateString('he-IL', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                      </Badge>
-                    )}
-                    <button onClick={(e) => { e.stopPropagation(); deleteTaskMutation.mutate(task.id); }} className="text-slate-300 hover:text-red-500 transition-colors p-1 rounded-md hover:bg-red-50">
+                    <button onClick={(e) => { e.stopPropagation(); deleteTaskMutation.mutate(task.id); }} className="text-slate-300 hover:text-red-500 transition-colors p-1 rounded-md hover:bg-red-50 self-start sm:self-center">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </CardContent>
@@ -245,46 +274,31 @@ export default function ProjectTasks() {
           <DialogHeader>
             <DialogTitle>הוספת משימה ל{STAGES.find(s=>s.id === activeStage)?.label}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-5 pt-4">
+          <div className="space-y-4 pt-4">
             <div>
-              <label className="text-sm font-medium mb-1.5 block text-slate-700">מטלה</label>
+              <label className="text-sm font-medium mb-1.5 block text-slate-700">מטלה *</label>
               <Input 
                 value={newTask.title} 
                 onChange={(e) => setNewTask({...newTask, title: e.target.value})} 
                 placeholder="למשל: תיאום ציפיות עם הלקוח"
                 autoFocus
+                onKeyDown={(e) => e.key === 'Enter' && handleCreateTask()}
               />
             </div>
-            
-            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3">
-              <div className="flex items-center gap-3">
-                <input 
-                  type="checkbox" 
-                  id="reminder" 
-                  className="w-4 h-4 text-[#FFD700] rounded border-slate-300 focus:ring-[#FFD700]"
-                  checked={newTask.withReminder}
-                  onChange={(e) => setNewTask({...newTask, withReminder: e.target.checked})}
-                />
-                <label htmlFor="reminder" className="text-sm font-semibold flex items-center gap-1.5 cursor-pointer text-slate-700">
-                  <Bell className="w-4 h-4 text-slate-500" />
-                  הגדר תזכורת עתידית
-                </label>
-              </div>
-
-              {newTask.withReminder && (
-                <div className="animate-in fade-in slide-in-from-top-2 duration-200 pl-7">
-                  <label className="text-xs font-medium mb-1.5 block text-slate-500">מועד התזכורת</label>
-                  <Input 
-                    type="datetime-local" 
-                    value={newTask.due_date} 
-                    onChange={(e) => setNewTask({...newTask, due_date: e.target.value})} 
-                    className="text-sm"
-                  />
-                </div>
-              )}
+            <div>
+              <label className="text-sm font-medium mb-1.5 block text-slate-700 flex items-center gap-1.5">
+                <Bell className="w-4 h-4 text-slate-400" />
+                תאריך יעד (אופציונלי)
+              </label>
+              <Input 
+                type="datetime-local" 
+                value={newTask.due_date} 
+                onChange={(e) => setNewTask({...newTask, due_date: e.target.value})} 
+                className="text-sm"
+              />
+              <p className="text-xs text-slate-400 mt-1">תקבל תזכורת כשהדדליין מתקרב</p>
             </div>
-
-            <Button onClick={handleCreateTask} className="w-full mt-2 h-11 text-base bg-[#FFD700] hover:bg-[#e6c200] text-black font-bold gap-3" disabled={!newTask.title}>
+            <Button onClick={handleCreateTask} className="w-full h-11 text-base bg-[#FFD700] hover:bg-[#e6c200] text-black font-bold gap-3" disabled={!newTask.title}>
               שמור משימה
             </Button>
           </div>

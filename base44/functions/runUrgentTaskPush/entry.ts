@@ -19,23 +19,25 @@ Deno.serve(async (req) => {
       const photographerEmail = settings.created_by;
       if (!photographerEmail) continue;
 
-      // Urgent: high priority OR overdue, and still pending, due by end of today
+      const in3Days = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString();
+
       const allTasks = await base44.asServiceRole.entities.Task.filter(
         { created_by: photographerEmail, status: 'pending' },
         '-due_date',
         500
       );
 
+      // Urgent: overdue OR due today OR due within 3 days (approaching deadline)
       const urgentToday = allTasks.filter((t) => {
         if (!t.due_date) return false;
-        if (t.due_date > endOfTodayIso) return false;
-        const isOverdue = t.due_date < now.toISOString();
-        return t.priority === 'high' || isOverdue;
+        return t.due_date <= in3Days; // includes overdue + today + next 3 days
       });
 
       if (urgentToday.length === 0) continue;
 
-      const title = `🔥 ${urgentToday.length} משימות דחופות`;
+      const overdue = urgentToday.filter(t => new Date(t.due_date) < now);
+      const upcoming = urgentToday.filter(t => new Date(t.due_date) >= now);
+      const title = overdue.length > 0 ? `🔥 ${overdue.length} משימות באיחור` : `⏰ ${upcoming.length} משימות מתקרבות לדדליין`;
       const body = urgentToday.length === 1
         ? urgentToday[0].title
         : `${urgentToday[0].title} ועוד ${urgentToday.length - 1} משימות`;
