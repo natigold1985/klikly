@@ -8,7 +8,7 @@ const buildWhatsAppLink = (lead) => {
   const cleanPhone = String(lead?.phone || '').replace(/[^0-9]/g, '');
   if (!cleanPhone) return null;
   const phone = cleanPhone.startsWith('0') ? `972${cleanPhone.slice(1)}` : cleanPhone;
-  const text = lead?.auto_followup_message || `הי מה קורה, תרצה שנתקדם? 😊`;
+  const text = lead?.auto_followup_message || `היי מה נשמע`;
   
   // Use whatsapp:// protocol to open app (works on mobile and desktop)
   // Fallback to wa.me for web
