@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ExternalLink, FolderOpen, RefreshCw, Cloud, Loader2, Link2, Upload, Trash2 } from 'lucide-react';
+import { ExternalLink, FolderOpen, RefreshCw, Cloud, Loader2, Link2, Upload, Trash2, UserPlus } from 'lucide-react';
 import DriveFilesGrid from './DriveFilesGrid';
 import MagicLinkButton from './MagicLinkButton';
 import DriveUploader from './DriveUploader';
@@ -21,6 +21,7 @@ import GoogleDriveIcon from './GoogleDriveIcon';
 import LinkDriveFolderDialog from './LinkDriveFolderDialog';
 import DriveFolderUrlEditor from './DriveFolderUrlEditor';
 import DriveCreateFolderDialog from './DriveCreateFolderDialog';
+import AddProjectClientDialog from './AddProjectClientDialog';
 import { toast } from 'sonner';
 
 // Photographer view: pulls files directly from a project's Google Drive folder.
@@ -30,6 +31,7 @@ export default function DriveProjectView({ project, onProjectDeleted }) {
   const [creating, setCreating] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showAddClient, setShowAddClient] = useState(false);
   // Optimistic files appear immediately on upload (before refetch finishes)
   const [optimistic, setOptimistic] = useState([]);
 
@@ -161,6 +163,29 @@ export default function DriveProjectView({ project, onProjectDeleted }) {
 
   return (
     <div className="space-y-5">
+      {/* === Quick action bar: refresh + add client === */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="gap-2"
+        >
+          <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+          {isFetching ? 'מתעדכן...' : 'רענן'}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowAddClient(true)}
+          className="gap-2"
+        >
+          <UserPlus className="w-4 h-4" />
+          הוסף לקוח
+        </Button>
+      </div>
+
       {/* === GIANT "Open in Drive" button — foolproof for non-technical users === */}
       <a
         href={project.drive_folder_url}
@@ -279,6 +304,16 @@ export default function DriveProjectView({ project, onProjectDeleted }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AddProjectClientDialog
+        open={showAddClient}
+        onOpenChange={setShowAddClient}
+        project={project}
+        onClientAdded={() => {
+          queryClient.invalidateQueries({ queryKey: ['driveProjects'] });
+          setShowAddClient(false);
+        }}
+      />
     </div>
   );
 }
