@@ -6,30 +6,21 @@ import { Button } from '@/components/ui/button';
 import { 
   Linkedin, Plus, RefreshCw, 
   Calendar, MessageCircle, CheckCircle2, Clock, 
-  UserPlus, Send, ExternalLink
+  UserPlus, Send, ExternalLink, Star
 } from 'lucide-react';
 import { toast } from 'sonner';
 import LinkedInAddLeadDialog from '@/components/linkedin/LinkedInAddLeadDialog';
 import LinkedInFollowUpDialog from '@/components/linkedin/LinkedInFollowUpDialog';
 
+// Outreach-specific statuses — NOT the same as Lead statuses
 const STATUS_CONFIG = {
-  'new':       { label: 'ליד חדש',            color: 'bg-blue-100 text-blue-800 border-blue-200',    dot: 'bg-blue-500' },
-  'contacted': { label: 'נשלחה בקשת חברות',   color: 'bg-yellow-100 text-yellow-800 border-yellow-200', dot: 'bg-yellow-500' },
-  'connected': { label: 'מחובר',               color: 'bg-green-100 text-green-800 border-green-200',  dot: 'bg-green-500' },
-  'messaged':  { label: 'נשלחה הודעה',         color: 'bg-purple-100 text-purple-800 border-purple-200', dot: 'bg-purple-500' },
-  'reviewed':  { label: 'נענה',                color: 'bg-emerald-100 text-emerald-800 border-emerald-200', dot: 'bg-emerald-500' },
-  'dismissed': { label: 'לא רלוונטי',          color: 'bg-red-100 text-red-800 border-red-200',       dot: 'bg-red-500' },
+  'new':          { label: 'טרם פנייה',         color: 'bg-slate-100 text-slate-600 border-slate-200',     dot: 'bg-slate-400' },
+  'contacted':    { label: 'נשלחה פנייה',        color: 'bg-blue-100 text-blue-800 border-blue-200',        dot: 'bg-blue-500' },
+  'follow_up':    { label: 'מעקב',               color: 'bg-yellow-100 text-yellow-800 border-yellow-200',  dot: 'bg-yellow-500' },
+  'messaged':     { label: 'נשלחה הודעה ראשונה', color: 'bg-purple-100 text-purple-800 border-purple-200',  dot: 'bg-purple-500' },
+  'converted':    { label: 'נסגר — הפך לליד ✅', color: 'bg-green-100 text-green-800 border-green-200',    dot: 'bg-green-500' },
+  'dismissed':    { label: 'לא רלוונטי',         color: 'bg-red-100 text-red-800 border-red-200',          dot: 'bg-red-500' },
 };
-
-function StatusBadge({ status }) {
-  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG['new'];
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${cfg.color}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-      {cfg.label}
-    </span>
-  );
-}
 
 function daysSince(dateStr) {
   if (!dateStr) return null;
@@ -43,6 +34,7 @@ export default function LinkedInOutreach() {
   const [followUpLead, setFollowUpLead] = useState(null);
   const [filterStatus, setFilterStatus] = useState('הכל');
   const [isSyncing, setIsSyncing] = useState(false);
+  const [convertingId, setConvertingId] = useState(null);
 
   const { data: leads = [], isLoading } = useQuery({
     queryKey: ['linkedinOutreach'],
@@ -55,16 +47,42 @@ export default function LinkedInOutreach() {
   });
 
   const handleStatusChange = async (lead, newStatus) => {
+    // If converting to a real lead — create a Lead entity
+    if (newStatus === 'converted') {
+      setConvertingId(lead.id);
+      try {
+        const titleParts = (lead.title || '').split(' - ');
+        const name = titleParts[0] || lead.title || '';
+        const jobTitle = titleParts[1] || '';
+        const email = (lead.contact_info || '').split('/')[0].trim().replace('לא זמין', '').trim();
+
+        await base44.entities.Lead.create({
+          name,
+          phone: (lead.contact_info || '').split('/')[1]?.trim().replace('לא זמין', '').trim() || '',
+          email: email || '',
+          source: 'LinkedIn Outreach',
+          role_title: jobTitle,
+          notes: `מקור: LinkedIn Outreach\n${lead.source_url ? 'פרופיל: ' + lead.source_url : ''}\n${lead.notes || ''}`.trim(),
+          status: 'ליד חדש',
+          pipeline: 'defense_industry',
+        });
+
+        await updateLeadMutation.mutateAsync({ id: lead.id, data: { status: 'converted' } });
+        toast.success(`✅ ${name} נוסף לרשימת הלידים!`);
+      } catch (e) {
+        toast.error('שגיאה ביצירת ליד: ' + e.message);
+      } finally {
+        setConvertingId(null);
+      }
+      return;
+    }
+
     const updateData = { status: newStatus };
-    // When marking as "contacted" for first time, record today
     if (newStatus === 'contacted' && !lead.contact_date) {
       updateData.contact_date = new Date().toISOString().split('T')[0];
     }
     await updateLeadMutation.mutateAsync({ id: lead.id, data: updateData });
     toast.success(`סטטוס עודכן: ${STATUS_CONFIG[newStatus]?.label || newStatus}`);
-    try {
-      await base44.functions.invoke('syncLinkedInOutreachToSheet', { syncAll: true });
-    } catch (e) { /* non-fatal */ }
   };
 
   const handleSyncAll = async () => {
@@ -79,34 +97,36 @@ export default function LinkedInOutreach() {
     }
   };
 
-  const filtered = filterStatus === 'הכל'
-    ? leads
-    : leads.filter(l => {
-        if (filterStatus === 'נשלחה בקשת חברות') return l.status === 'contacted';
-        if (filterStatus === 'מחובר') return l.status === 'connected';
-        if (filterStatus === 'נענה') return l.status === 'reviewed';
-        if (filterStatus === 'ליד חדש') return l.status === 'new';
-        return true;
-      });
+  // Active outreach = exclude converted & dismissed from default view
+  const FILTER_TABS = ['הכל', 'טרם פנייה', 'נשלחה פנייה', 'מעקב', 'נשלחה הודעה ראשונה', 'נסגר כליד', 'לא רלוונטי'];
 
-  const stats = {
-    total: leads.length,
-    contacted: leads.filter(l => l.status === 'contacted').length,
-    connected: leads.filter(l => l.status === 'connected').length,
-    replied: leads.filter(l => l.status === 'reviewed').length,
-  };
-
-  const FILTER_TABS = ['הכל', 'ליד חדש', 'נשלחה בקשת חברות', 'מחובר', 'נשלחה הודעה', 'נענה', 'לא רלוונטי'];
-
-  const statusForFilter = (label) => {
-    const map = { 'ליד חדש': 'new', 'נשלחה בקשת חברות': 'contacted', 'מחובר': 'connected', 'נשלחה הודעה': 'messaged', 'נענה': 'reviewed', 'לא רלוונטי': 'dismissed' };
+  const statusKeyForLabel = (label) => {
+    const map = {
+      'טרם פנייה': 'new',
+      'נשלחה פנייה': 'contacted',
+      'מעקב': 'follow_up',
+      'נשלחה הודעה ראשונה': 'messaged',
+      'נסגר כליד': 'converted',
+      'לא רלוונטי': 'dismissed',
+    };
     return map[label];
   };
 
+  const filtered = filterStatus === 'הכל'
+    ? leads
+    : leads.filter(l => l.status === statusKeyForLabel(filterStatus));
+
   const countForFilter = (label) => {
     if (label === 'הכל') return leads.length;
-    const s = statusForFilter(label);
+    const s = statusKeyForLabel(label);
     return leads.filter(l => l.status === s).length;
+  };
+
+  const stats = {
+    total: leads.filter(l => l.status !== 'dismissed').length,
+    contacted: leads.filter(l => l.status === 'contacted').length,
+    followUp: leads.filter(l => l.status === 'follow_up' || l.status === 'messaged').length,
+    converted: leads.filter(l => l.status === 'converted').length,
   };
 
   return (
@@ -118,9 +138,9 @@ export default function LinkedInOutreach() {
             <Linkedin className="w-7 h-7 text-blue-600" />
             LinkedIn Outreach
           </h1>
-          <p className="text-sm text-slate-500 mt-1">ניהול קמפיין פנייה אקטיבי — נפרד מהלידים הרגילים</p>
+          <p className="text-sm text-slate-500 mt-1">ניהול פניות אקטיביות — כשנסגר הופך לליד אמיתי</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button
             variant="outline"
             size="sm"
@@ -146,7 +166,7 @@ export default function LinkedInOutreach() {
             className="bg-blue-600 hover:bg-blue-700 text-white gap-2"
           >
             <Plus className="w-4 h-4" />
-            הוסף ליד
+            הוסף איש קשר
           </Button>
         </div>
       </div>
@@ -154,10 +174,10 @@ export default function LinkedInOutreach() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'סה"כ לידים', value: stats.total, IconComp: UserPlus, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'בקשות שנשלחו', value: stats.contacted, IconComp: Send, color: 'text-yellow-600', bg: 'bg-yellow-50' },
-          { label: 'מחוברים', value: stats.connected, IconComp: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
-          { label: 'נענו', value: stats.replied, IconComp: MessageCircle, color: 'text-purple-600', bg: 'bg-purple-50' },
+          { label: 'בתהליך', value: stats.total, IconComp: UserPlus, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'נשלחה פנייה', value: stats.contacted, IconComp: Send, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'במעקב / הודעה', value: stats.followUp, IconComp: Clock, color: 'text-yellow-600', bg: 'bg-yellow-50' },
+          { label: 'נסגרו כלידים', value: stats.converted, IconComp: Star, color: 'text-green-600', bg: 'bg-green-50' },
         ].map(({ label, value, IconComp, color, bg }) => (
           <Card key={label} className="border-slate-200">
             <CardContent className="p-4">
@@ -201,9 +221,9 @@ export default function LinkedInOutreach() {
               <tr className="bg-slate-50 border-b border-slate-200">
                 <th className="text-right py-3 px-4 font-semibold text-slate-600">שם</th>
                 <th className="text-right py-3 px-4 font-semibold text-slate-600">חברה / תפקיד</th>
-                <th className="text-right py-3 px-4 font-semibold text-slate-600">סטטוס</th>
+                <th className="text-right py-3 px-4 font-semibold text-slate-600">סטטוס פנייה</th>
                 <th className="text-right py-3 px-4 font-semibold text-slate-600">
-                  <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> תאריך בקשה</span>
+                  <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> תאריך פנייה</span>
                 </th>
                 <th className="text-right py-3 px-4 font-semibold text-slate-600">ימים</th>
                 <th className="text-right py-3 px-4 font-semibold text-slate-600">הערות</th>
@@ -218,7 +238,7 @@ export default function LinkedInOutreach() {
                   <td colSpan={7} className="text-center py-12">
                     <div className="flex flex-col items-center gap-3 text-slate-400">
                       <Linkedin className="w-10 h-10 opacity-30" />
-                      <p>אין לידים LinkedIn עדיין</p>
+                      <p>אין אנשי קשר עדיין</p>
                       <Button size="sm" onClick={() => setShowAddDialog(true)} className="bg-blue-600 text-white">
                         <Plus className="w-4 h-4 ml-1" /> הוסף ראשון
                       </Button>
@@ -226,22 +246,20 @@ export default function LinkedInOutreach() {
                   </td>
                 </tr>
               ) : filtered.map((lead) => {
-                // Extract name from title (e.g. "רונן אופק - מנהל פרויקטים")
                 const titleParts = (lead.title || '').split(' - ');
                 const name = titleParts[0] || lead.title || '—';
                 const jobTitle = titleParts[1] || '';
                 const company = (lead.snippet || '').split(' - ')[0] || '';
-
-                // contact_date is stored in notes as "[DD/MM/YYYY] contacted" or in created_date
                 const contactDate = lead.contact_date || (lead.status === 'contacted' ? lead.updated_date : null);
                 const days = daysSince(contactDate);
-                const isOverdue = days !== null && days > 5 && lead.status === 'contacted';
+                const isOverdue = days !== null && days > 5 && ['contacted', 'follow_up', 'messaged'].includes(lead.status);
+                const isConverted = lead.status === 'converted';
 
                 return (
-                  <tr key={lead.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                  <tr key={lead.id} className={`border-b border-slate-100 transition-colors ${isConverted ? 'bg-green-50/50' : 'hover:bg-slate-50'}`}>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs shrink-0">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${isConverted ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
                           {(name || '?')[0]}
                         </div>
                         <div>
@@ -257,15 +275,25 @@ export default function LinkedInOutreach() {
                       <p className="text-xs text-slate-400">{company}</p>
                     </td>
                     <td className="py-3 px-4">
-                      <select
-                        value={lead.status || 'new'}
-                        onChange={(e) => handleStatusChange(lead, e.target.value)}
-                        className="text-xs border border-slate-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
-                      >
-                        {Object.entries(STATUS_CONFIG).map(([val, cfg]) => (
-                          <option key={val} value={val}>{cfg.label}</option>
-                        ))}
-                      </select>
+                      {isConverted ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border bg-green-100 text-green-800 border-green-200">
+                          <Star className="w-3 h-3" /> נסגר — הפך לליד
+                        </span>
+                      ) : (
+                        <select
+                          value={lead.status || 'new'}
+                          onChange={(e) => handleStatusChange(lead, e.target.value)}
+                          disabled={convertingId === lead.id}
+                          className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300 min-w-[160px]"
+                        >
+                          <option value="new">טרם פנייה</option>
+                          <option value="contacted">נשלחה פנייה</option>
+                          <option value="follow_up">מעקב</option>
+                          <option value="messaged">נשלחה הודעה ראשונה</option>
+                          <option value="converted">נסגר — הפך לליד ✅</option>
+                          <option value="dismissed">לא רלוונטי</option>
+                        </select>
+                      )}
                     </td>
                     <td className="py-3 px-4 text-slate-600 text-xs">
                       {contactDate
@@ -277,8 +305,7 @@ export default function LinkedInOutreach() {
                         <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
                           isOverdue ? 'bg-red-100 text-red-700' : days > 2 ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'
                         }`}>
-                          <Clock className="w-3 h-3" />
-                          {days}י
+                          <Clock className="w-3 h-3" />{days}י
                         </span>
                       ) : <span className="text-slate-300 text-xs">—</span>}
                     </td>
@@ -298,13 +325,15 @@ export default function LinkedInOutreach() {
                             <Linkedin className="w-4 h-4" />
                           </a>
                         )}
-                        <button
-                          onClick={() => setFollowUpLead(lead)}
-                          className="p-1.5 rounded-lg hover:bg-purple-50 text-purple-600 transition-colors"
-                          title="הוסף פולו-אפ"
-                        >
-                          <MessageCircle className="w-4 h-4" />
-                        </button>
+                        {!isConverted && (
+                          <button
+                            onClick={() => setFollowUpLead(lead)}
+                            className="p-1.5 rounded-lg hover:bg-purple-50 text-purple-600 transition-colors"
+                            title="הוסף הערה / פולו-אפ"
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -315,13 +344,12 @@ export default function LinkedInOutreach() {
         </div>
       </Card>
 
-      {/* Dialogs */}
       <LinkedInAddLeadDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
         onSaved={() => {
           queryClient.invalidateQueries({ queryKey: ['linkedinOutreach'] });
-          toast.success('ליד LinkedIn נוסף ✓');
+          toast.success('איש קשר נוסף ✓');
         }}
       />
 
