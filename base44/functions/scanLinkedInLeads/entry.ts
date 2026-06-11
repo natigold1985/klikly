@@ -158,16 +158,13 @@ Deno.serve(async (req) => {
 
     const allLeads = llmResult?.leads || [];
 
-    // For each lead: use profileUrl only if valid, otherwise build a search URL
+    // ALWAYS use search URL — LLM-generated /in/ slugs are hallucinated and return 404
     const processedLeads = allLeads.map(lead => {
-      const hasValidUrl = isValidLinkedInUrl(lead.profileUrl);
-      const finalUrl = hasValidUrl
-        ? lead.profileUrl
-        : buildLinkedInSearchUrl(lead.name, lead.company);
-      return { ...lead, profileUrl: finalUrl, urlIsSearch: !hasValidUrl };
+      const searchUrl = buildLinkedInSearchUrl(lead.name, lead.company);
+      return { ...lead, profileUrl: searchUrl, urlIsSearch: true };
     });
 
-    const invalidCount = allLeads.filter(l => !isValidLinkedInUrl(l.profileUrl)).length;
+    const invalidCount = allLeads.length; // all treated as search
     if (invalidCount > 0) {
       console.log(`${invalidCount} leads had no valid URL — replaced with LinkedIn search links`);
     }
