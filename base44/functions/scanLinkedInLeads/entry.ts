@@ -74,56 +74,40 @@ Deno.serve(async (req) => {
     }
 
     const llmResult = await base44.integrations.Core.InvokeLLM({
-      prompt: `סרוק את LinkedIn וחפש אנשי שיווק, HR ומרקטינג בלבד — שקשורים ישירות לעולם הביטחון, הצבא ותעשיות הביטחון בישראל.
+      prompt: `חפש באינטרנט אנשים אמיתיים בעלי פרופיל LinkedIn פעיל בתחום הביטחון בישראל.
 
-🎯 הקהל היעד המדויק — רק התפקידים הבאים:
+🎯 הקהל היעד — תפקידי שיווק, HR ואירועים בלבד:
 
-**1. תעשיות ביטחון (חיבורים עסקיים)** — חברות כמו: רפאל, אלביט, IAI, ELTA, Soltam, NICE Systems, Elbit Systems, Cyberspark, Orbit, Tadiran, Aeronautics, ScanSource, Silicom, Radiflow, TETRA Tech ישראל:
-- Head of Marketing / VP Marketing / מנהל/ת שיווק / Marketing Manager
-- Marketing Communications / MarCom Manager
-- Employer Branding Manager
-- Events Manager / מנהל/ת אירועים
-- Internal Communications / תקשורת פנים ארגונית
-- People & Culture / HR Business Partner
-- HR Manager / Talent Acquisition — **בלבד בחברות ביטחון**
+**1. תעשיות ביטחון** — רפאל, אלביט, IAI, ELTA, Soltam, NICE Systems, Cyberspark, Orbit, Tadiran, Aeronautics, Silicom, Radiflow, Epsilot Electric Fuel, SCD, Opgal, Camero, BIRD Aerosystems:
+- VP Marketing / Head of Marketing / Marketing Manager / MarCom Manager
+- Events Manager / Employer Branding / Internal Communications
+- HR Business Partner / People & Culture / Talent Acquisition
 
-**2. משרד הביטחון / שב"כ / מוסד / מינהל רכש ביטחוני (מרב"ת)**:
-- אנשי שיווק, תקשורת, HR, ויחסי ציבור בלבד
-- **לא** קציני מודיעין, לא מפקדים, לא ראשי יחידות
+**2. צה"ל — יחידות / מחנות**:
+- קצינת חינוך / משקית חינוך / קצינת חוויה / משקית תש"ן / קצינת רווחה
 
-**3. צה"ל — יחידות / מחנות / פיקודים**:
-- משקית חינוך / קצינת חינוך (Education Officer)
-- משקית תש"ן / קצינת תש"ן (רווחה, תרבות, נופש)
-- משקית חוויה / קצינת חוויה / ריכוז חוויות
-- ממונה על אירועים ביחידה
-- קצין/ת רווחה (Welfare Officer)
+**3. משרד הביטחון / גופים ביטחוניים**:
+- תקשורת / שיווק / HR בלבד
 
-**4. גופים נלווים** — חברות מאבטחה, חברות לוגיסטיקה ביטחונית, קבלני ביטחון:
-- מנהל/ת שיווק, HR, Events בלבד
+🚫 לא לכלול: CEO, מהנדסים, R&D, מפקדים, לוחמים, מכירות טכניות
 
-🚫 לא לכלול:
-- מנכ"לים, CEO, מנהלים בכירים שאינם שיווק/HR
-- אנשי טכנולוגיה, מהנדסים, ראשי R&D
-- אנשי מכירות שאינם קשורים לשיווק/אירועים
-- קציני מודיעין, מפקדים, לוחמים
-
-✅ חשוב מאוד:
-- החזר רק אנשים עם פרופיל LinkedIn אמיתי ו-URL תקין: https://www.linkedin.com/in/PROFILE-SLUG
-- ה-URL חייב להכיל linkedin.com/in/ ואחריו slug אמיתי (לא /search, לא /company)
-- העדף נשים בתפקידי HR/חינוך/חוויה/משקיות — כי רוב המשקיות הן נשים
+✅ חובה — כלל ברזל:
+- חפש כל אדם ב-Google עם המחרוזת: site:linkedin.com/in "שם האדם" "שם החברה"
+- ה-URL חייב להיות URL שמצאת בפועל בחיפוש אינטרנט — לא URL שהמצאת!
+- אם לא מצאת URL ישיר — השאר את profileUrl ריק ("") ואל תמציא
+- אסור להמציא slugs! רק URLs שאתה בטוח שקיימים
 - התמקד בישראל בלבד
-- ציון רלוונטיות: 9-10 = משקית/קצינת חינוך/חוויה בצבא או מנהלת שיווק בתעשיית ביטחון. 7-8 = HR בחברת ביטחון. מתחת ל-7 — לא לכלול.
 
-החזר JSON:
+החזר JSON עם לפחות 10 אנשים:
 {
   "leads": [
     {
       "name": "שם מלא",
       "title": "כותרת משרה",
       "company": "שם החברה/יחידה",
-      "email": "אימייל אם זמין",
-      "phone": "טלפון אם זמין",
-      "profileUrl": "https://www.linkedin.com/in/profile-slug",
+      "email": "אימייל אם זמין (או רק '')",
+      "phone": "טלפון אם זמין (או רק '')",
+      "profileUrl": "https://www.linkedin.com/in/SLUG-שמצאת-בחיפוש או '' אם לא מצאת",
       "relevanceScore": 1-10
     }
   ],
@@ -158,13 +142,16 @@ Deno.serve(async (req) => {
 
     const allLeads = llmResult?.leads || [];
 
-    // ALWAYS use search URL — LLM-generated /in/ slugs are hallucinated and return 404
+    // Use real /in/ URL if LLM provided one, otherwise build a search URL
     const processedLeads = allLeads.map(lead => {
-      const searchUrl = buildLinkedInSearchUrl(lead.name, lead.company);
-      return { ...lead, profileUrl: searchUrl, urlIsSearch: true };
+      const hasValidUrl = isValidLinkedInUrl(lead.profileUrl);
+      const finalUrl = hasValidUrl
+        ? lead.profileUrl
+        : buildLinkedInSearchUrl(lead.name, lead.company);
+      return { ...lead, profileUrl: finalUrl, urlIsSearch: !hasValidUrl };
     });
 
-    const invalidCount = allLeads.length; // all treated as search
+    const invalidCount = allLeads.filter(l => !isValidLinkedInUrl(l.profileUrl)).length;
     if (invalidCount > 0) {
       console.log(`${invalidCount} leads had no valid URL — replaced with LinkedIn search links`);
     }
