@@ -68,33 +68,45 @@ Deno.serve(async (req) => {
     }
 
     const llmResult = await base44.integrations.Core.InvokeLLM({
-      prompt: `סרוק את LinkedIn וחפש אנשי קשר רלוונטיים לצילום אירועים מקצועיים בחברות ביטחון ובצבא בישראל.
+      prompt: `סרוק את LinkedIn וחפש אנשי שיווק, HR ומרקטינג בלבד — שקשורים ישירות לעולם הביטחון, הצבא ותעשיות הביטחון בישראל.
 
-הקהל היעד המדויק שלי הוא:
+🎯 הקהל היעד המדויק — רק התפקידים הבאים:
 
-**בחברות תעשיית הביטחון** (רפאל, אלביט, IAI, ELTA, Soltam, NICE, Cyberspark וכד'):
-- Head of Marketing / Marketing Manager / מנהל/ת שיווק
-- HR Manager / Head of HR / מנהל/ת משאבי אנוש / Talent Acquisition
+**1. תעשיות ביטחון (חיבורים עסקיים)** — חברות כמו: רפאל, אלביט, IAI, ELTA, Soltam, NICE Systems, Elbit Systems, Cyberspark, Orbit, Tadiran, Aeronautics, ScanSource, Silicom, Radiflow, TETRA Tech ישראל:
+- Head of Marketing / VP Marketing / מנהל/ת שיווק / Marketing Manager
+- Marketing Communications / MarCom Manager
 - Employer Branding Manager
 - Events Manager / מנהל/ת אירועים
 - Internal Communications / תקשורת פנים ארגונית
-- People & Culture
+- People & Culture / HR Business Partner
+- HR Manager / Talent Acquisition — **בלבד בחברות ביטחון**
 
-**בצבא / יחידות צבאיות (IDF)**:
+**2. משרד הביטחון / שב"כ / מוסד / מינהל רכש ביטחוני (מרב"ת)**:
+- אנשי שיווק, תקשורת, HR, ויחסי ציבור בלבד
+- **לא** קציני מודיעין, לא מפקדים, לא ראשי יחידות
+
+**3. צה"ל — יחידות / מחנות / פיקודים**:
 - משקית חינוך / קצינת חינוך (Education Officer)
-- משקית תש"ן / קצינת תש"ן (תרבות, שכר, נופש - Welfare Officer)
-- משקית חוויה / קצינת חוויה / ריכוז חוויות (Experience Officer)
+- משקית תש"ן / קצינת תש"ן (רווחה, תרבות, נופש)
+- משקית חוויה / קצינת חוויה / ריכוז חוויות
 - ממונה על אירועים ביחידה
-- קצין/ת רווחה (Welfare)
+- קצין/ת רווחה (Welfare Officer)
 
-**למה אלו?** אלו האנשים שמזמינים צלמים לאירועי חברה, ימי גיבוש, טקסים, חגיגות, דיוקנאות צוות וצילומי תדמית. לא מנכ"לים — אלו אנשי השטח שמחליטים.
+**4. גופים נלווים** — חברות מאבטחה, חברות לוגיסטיקה ביטחונית, קבלני ביטחון:
+- מנהל/ת שיווק, HR, Events בלבד
 
-חשוב מאוד:
+🚫 לא לכלול:
+- מנכ"לים, CEO, מנהלים בכירים שאינם שיווק/HR
+- אנשי טכנולוגיה, מהנדסים, ראשי R&D
+- אנשי מכירות שאינם קשורים לשיווק/אירועים
+- קציני מודיעין, מפקדים, לוחמים
+
+✅ חשוב מאוד:
 - החזר רק אנשים עם פרופיל LinkedIn אמיתי ו-URL תקין: https://www.linkedin.com/in/PROFILE-SLUG
-- ה-URL חייב להכיל linkedin.com/in/ ואחריו שם פרופיל אמיתי
-- לא /search, לא /company
-- העדף נשים בתפקידי HR/חינוך/חוויה — כי רוב המשקיות הן נשים
-- התמקד בישראל
+- ה-URL חייב להכיל linkedin.com/in/ ואחריו slug אמיתי (לא /search, לא /company)
+- העדף נשים בתפקידי HR/חינוך/חוויה/משקיות — כי רוב המשקיות הן נשים
+- התמקד בישראל בלבד
+- ציון רלוונטיות: 9-10 = משקית/קצינת חינוך/חוויה בצבא או מנהלת שיווק בתעשיית ביטחון. 7-8 = HR בחברת ביטחון. מתחת ל-7 — לא לכלול.
 
 החזר JSON:
 {
@@ -102,7 +114,7 @@ Deno.serve(async (req) => {
     {
       "name": "שם מלא",
       "title": "כותרת משרה",
-      "company": "שם החברה",
+      "company": "שם החברה/יחידה",
       "email": "אימייל אם זמין",
       "phone": "טלפון אם זמין",
       "profileUrl": "https://www.linkedin.com/in/profile-slug",
@@ -152,7 +164,7 @@ Deno.serve(async (req) => {
           source_url: lead.profileUrl,
           platform: 'linkedin',
           snippet: `${lead.company} - ${lead.title}`,
-          keywords_matched: 'שיווק, HR, משקיות, חינוך, חוויה',
+          keywords_matched: 'שיווק, HR, מרקטינג, משקיות, חינוך, חוויה, תש"ן, ביטחון, תעשיות ביטחון, צה"ל, שב"כ',
           relevance_score: lead.relevanceScore || 8,
           contact_info: `${lead.email || 'לא זמין'} / ${lead.phone || 'לא זמין'}`,
         });
