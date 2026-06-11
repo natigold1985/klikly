@@ -10,10 +10,12 @@ function isValidLinkedInUrl(url) {
   return /linkedin\.com\/in\/[a-z0-9\-_%]{3,}/.test(clean);
 }
 
-// Generate a real LinkedIn search URL by name + company (always works)
+// Generate a focused LinkedIn search URL — first name + last name + company
 function buildLinkedInSearchUrl(name, company) {
-  const q = [name, company].filter(Boolean).join(' ');
-  return `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(q)}`;
+  // Use only name for keywords so the person appears as first result
+  const q = name || '';
+  const companyParam = company ? `&company=${encodeURIComponent(company)}` : '';
+  return `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(q)}${companyParam}`;
 }
 
 async function syncToSheet(authHeader, leads) {
