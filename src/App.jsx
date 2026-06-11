@@ -32,6 +32,7 @@ import FolderGallery from './pages/FolderGallery';
 import GalleryDemo from './pages/demo';
 import SystemUpdates from './pages/SystemUpdates';
 import LeadsDashboard from './pages/LeadsDashboard';
+import LinkedInOutreach from './pages/LinkedInOutreach';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -182,6 +183,11 @@ const AuthenticatedApp = () => {
       <Route path="/LeadsDashboard" element={
         <LayoutWrapper currentPageName="Leads">
           <LeadsDashboard />
+        </LayoutWrapper>
+      } />
+      <Route path="/LinkedInOutreach" element={
+        <LayoutWrapper currentPageName="LinkedInOutreach">
+          <LinkedInOutreach />
         </LayoutWrapper>
       } />
       {Object.entries(Pages).map(([path, Page]) => (

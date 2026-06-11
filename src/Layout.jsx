@@ -24,7 +24,8 @@ import {
   LogOut,
   Mail,
   Megaphone,
-  MessageCircle
+  MessageCircle,
+  Linkedin
 } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
@@ -66,6 +67,7 @@ export default function Layout({ children, currentPageName }) {
         { name: 'אחסון קבצים', icon: Folder, page: 'FileStorage' },
         { name: 'משימות', icon: CheckCircle2, page: 'Tasks' },
         { name: 'אנליטיקס', icon: BarChart3, page: 'Analytics' },
+        { name: 'LinkedIn Outreach', icon: Linkedin, page: 'LinkedInOutreach' },
         ...(isAdmin ? [{ name: 'ניוזלטר וברכות', icon: Mail, page: 'Newsletter' }] : []),
         ...(isAdmin ? [
           { name: 'משתמשים', icon: Shield, page: 'AdminUsers' },
