@@ -2,7 +2,17 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const SHEET_ID = '1Acz_kFz4d2oGyJflAWyrY4yiAAlbvWVqR7UNgKHCdD4';
 const DEFENSE_TAB = 'לידים ביטחון 🎯';
-const HEADERS = ['שם מלא', 'תפקיד', 'חברה', 'טלפון', 'מייל', 'קישור LinkedIn', 'סטטוס', 'תאריך'];
+const HEADERS = ['שם מלא', 'תפקיד', 'חברה', 'טלפון', 'מייל', 'קישור LinkedIn', 'סטטוס', 'סטטוס פנייה', 'תאריך'];
+
+const OUTREACH_STATUSES = [
+  'לא פנינו עדיין',
+  'נשלחה בקשת חברות',
+  'נשלחה הודעה ראשונה',
+  'נשלחה הודעת פולו-אפ',
+  'נענה - מעוניין',
+  'נענה - לא מעוניין',
+  'נסגרה עסקה',
+];
 
 function isValidLinkedInUrl(url) {
   if (!url || typeof url !== 'string') return false;
@@ -11,9 +21,57 @@ function isValidLinkedInUrl(url) {
   return /linkedin\.com\/in\/[a-z0-9\-_%]{3,}/.test(clean);
 }
 
+async function getSheetGid(authHeader) {
+  const metaRes = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties`,
+    { headers: authHeader }
+  );
+  const meta = await metaRes.json();
+  const sheet = (meta.sheets || []).find(s => s.properties?.title === DEFENSE_TAB);
+  return sheet?.properties?.sheetId ?? 0;
+}
+
+async function applyOutreachDropdown(authHeader, sheetGid, startRowIndex, rowCount) {
+  const requests = [];
+
+  // Add dropdown validation for "סטטוס פנייה" column (index 7 = column H)
+  for (let i = 0; i < rowCount; i++) {
+    requests.push({
+      setDataValidation: {
+        range: {
+          sheetId: sheetGid,
+          startRowIndex: startRowIndex + i,
+          endRowIndex: startRowIndex + i + 1,
+          startColumnIndex: 7,
+          endColumnIndex: 8,
+        },
+        rule: {
+          condition: {
+            type: 'ONE_OF_LIST',
+            values: OUTREACH_STATUSES.map(v => ({ userEnteredValue: v })),
+          },
+          showCustomUi: true,
+          strict: false,
+        },
+      },
+    });
+  }
+
+  if (requests.length === 0) return;
+
+  await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`,
+    {
+      method: 'POST',
+      headers: { ...authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests }),
+    }
+  );
+}
+
 async function syncToSheet(authHeader, leads) {
   // Check if headers exist
-  const encTab = encodeURIComponent(`'${DEFENSE_TAB}'!A1:H2`);
+  const encTab = encodeURIComponent(`'${DEFENSE_TAB}'!A1:I2`);
   const checkRes = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encTab}`,
     { headers: authHeader }
@@ -22,7 +80,7 @@ async function syncToSheet(authHeader, leads) {
   const hasHeaders = (checkData.values || []).length > 0;
 
   if (!hasHeaders) {
-    const headerRange = encodeURIComponent(`'${DEFENSE_TAB}'!A1:H1`);
+    const headerRange = encodeURIComponent(`'${DEFENSE_TAB}'!A1:I1`);
     await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${headerRange}?valueInputOption=USER_ENTERED`,
       {
@@ -42,10 +100,11 @@ async function syncToSheet(authHeader, leads) {
     lead.email || '',
     lead.profileUrl || '',
     'ליד חדש',
+    'לא פנינו עדיין',
     today,
   ]);
 
-  const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(`'${DEFENSE_TAB}'!A:H`)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+  const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(`'${DEFENSE_TAB}'!A:I`)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS&includeValuesInResponse=true`;
   const appendRes = await fetch(appendUrl, {
     method: 'POST',
     headers: { ...authHeader, 'Content-Type': 'application/json' },
@@ -57,6 +116,17 @@ async function syncToSheet(authHeader, leads) {
     console.error('syncToSheet failed:', err);
     throw new Error(`Sheet sync failed: ${err}`);
   }
+
+  // Get the updated range to know which rows were added
+  const appendData = await appendRes.json();
+  const updatedRange = appendData.updates?.updatedRange || '';
+  // Parse start row from range like 'לידים ביטחון 🎯'!A5:I9
+  const rowMatch = updatedRange.match(/[A-Z](\d+):/);
+  const startRowIndex = rowMatch ? parseInt(rowMatch[1]) - 1 : 1; // 0-indexed
+
+  // Apply dropdown validation to newly added rows
+  const sheetGid = await getSheetGid(authHeader);
+  await applyOutreachDropdown(authHeader, sheetGid, startRowIndex, rows.length);
 
   return rows.length;
 }
