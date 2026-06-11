@@ -29,7 +29,9 @@ export default function LeadRadarWidget() {
     try {
       const res = await base44.functions.invoke('scanLinkedInLeads', {});
       if (res.data?.success) {
-        toast.success(`✅ ${res.data.summary || 'סקן הושלם'} - ${res.data.found || 0} לידים חדשים`);
+        const msg = res.data.summary || `${res.data.found || 0} לידים תקינים`;
+        const sheetMsg = res.data.synced_to_sheet > 0 ? ` · ${res.data.synced_to_sheet} סונכרנו לגוגל שיטס ✓` : '';
+        toast.success(`✅ ${msg}${sheetMsg}`);
         refetch();
       } else {
         toast.error('❌ שגיאה בסקן');
@@ -85,7 +87,7 @@ export default function LeadRadarWidget() {
                     {lead.phone && <p className="text-xs text-slate-500">📱 {lead.phone}</p>}
                     {lead.email && <p className="text-xs text-slate-500">✉️ {lead.email}</p>}
                   </div>
-                  {lead.profileUrl && (
+                  {lead.profileUrl && /linkedin\.com\/in\/[a-z0-9\-_%]{3,}/i.test(lead.profileUrl) && (
                     <a
                       href={lead.profileUrl}
                       target="_blank"
