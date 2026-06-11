@@ -5,8 +5,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
   Linkedin, Plus, RefreshCw, 
-  Calendar, MessageCircle, CheckCircle2, Clock, 
-  UserPlus, Send, ExternalLink, Star
+  Calendar, MessageCircle, Clock, 
+  UserPlus, Send, ExternalLink, Star, Trash2, Link
 } from 'lucide-react';
 import { toast } from 'sonner';
 import LinkedInAddLeadDialog from '@/components/linkedin/LinkedInAddLeadDialog';
@@ -46,6 +46,21 @@ export default function LinkedInOutreach() {
     mutationFn: ({ id, data }) => base44.entities.PotentialLead.update(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['linkedinOutreach'] }),
   });
+
+  const deleteLeadMutation = useMutation({
+    mutationFn: (id) => base44.entities.PotentialLead.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['linkedinOutreach'] });
+      toast.success('נמחק');
+    },
+  });
+
+  const handleDelete = (lead) => {
+    const name = (lead.title || '').split(' - ')[0];
+    if (confirm(`למחוק את ${name}?`)) {
+      deleteLeadMutation.mutate(lead.id);
+    }
+  };
 
   const handleStatusChange = async (lead, newStatus) => {
     // If converting to a real lead — create a Lead entity
@@ -229,15 +244,16 @@ export default function LinkedInOutreach() {
                 </th>
                 <th className="text-right py-3 px-4 font-semibold text-slate-600">ימים</th>
                 <th className="text-right py-3 px-4 font-semibold text-slate-600">הערות</th>
+                <th className="text-right py-3 px-4 font-semibold text-slate-600">URL שליחה</th>
                 <th className="text-right py-3 px-4 font-semibold text-slate-600">פעולות</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={7} className="text-center py-12 text-slate-400">טוען...</td></tr>
+                <tr><td colSpan={8} className="text-center py-12 text-slate-400">טוען...</td></tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12">
+                  <td colSpan={8} className="text-center py-12">
                     <div className="flex flex-col items-center gap-3 text-slate-400">
                       <Linkedin className="w-10 h-10 opacity-30" />
                       <p>אין אנשי קשר עדיין</p>
@@ -253,6 +269,9 @@ export default function LinkedInOutreach() {
                 const jobTitle = titleParts[1] || '';
                 const company = (lead.snippet || '').split(' - ')[0] || '';
                 const contactDate = lead.contact_date || (lead.status === 'contacted' ? lead.updated_date : null);
+                // Extract outreach URL from notes if stored there
+                const outreachUrlMatch = (lead.notes || '').match(/🔗 קישור לשליחה: (\S+)/);
+                const outreachUrl = outreachUrlMatch ? outreachUrlMatch[1] : null;
                 const days = daysSince(contactDate);
                 const isOverdue = days !== null && days > 5 && ['contacted', 'follow_up', 'messaged'].includes(lead.status);
                 const isConverted = lead.status === 'converted';
@@ -312,8 +331,26 @@ export default function LinkedInOutreach() {
                         </span>
                       ) : <span className="text-slate-300 text-xs">—</span>}
                     </td>
-                    <td className="py-3 px-4 max-w-[160px]">
-                      <p className="text-xs text-slate-500 truncate" title={lead.notes}>{lead.notes || '—'}</p>
+                    <td className="py-3 px-4 max-w-[140px]">
+                      <p className="text-xs text-slate-500 truncate" title={lead.notes}>
+                        {(lead.notes || '').replace(/🔗 קישור לשליחה: \S+/, '').trim() || '—'}
+                      </p>
+                    </td>
+                    <td className="py-3 px-4">
+                      {outreachUrl ? (
+                        <a
+                          href={outreachUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-cyan-600 hover:underline"
+                          title="פתח קישור לשליחת בקשת חברות"
+                        >
+                          <Link className="w-3.5 h-3.5" />
+                          שלח בקשה
+                        </a>
+                      ) : (
+                        <span className="text-slate-300 text-xs">—</span>
+                      )}
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1">
@@ -337,6 +374,13 @@ export default function LinkedInOutreach() {
                             <MessageCircle className="w-4 h-4" />
                           </button>
                         )}
+                        <button
+                          onClick={() => handleDelete(lead)}
+                          className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors"
+                          title="מחק"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
