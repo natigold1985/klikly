@@ -228,11 +228,10 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads, tabName
     },
   });
 
-  // Row background colors per lead status
+  // Row background colors + black text per lead status
   leads.forEach((lead, i) => {
     const status = lead.status || 'ליד חדש';
-    const color = STATUS_ROW_COLORS[status];
-    if (!color) return; // leave "ליד חדש" white
+    const color = STATUS_ROW_COLORS[status] || { red: 1.0, green: 1.0, blue: 1.0 };
 
     requests.push({
       repeatCell: {
@@ -246,9 +245,13 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads, tabName
         cell: {
           userEnteredFormat: {
             backgroundColor: color,
+            textFormat: {
+              foregroundColor: { red: 0, green: 0, blue: 0 }, // always black text
+              bold: false,
+            },
           },
         },
-        fields: 'userEnteredFormat.backgroundColor',
+        fields: 'userEnteredFormat.backgroundColor,userEnteredFormat.textFormat.foregroundColor,userEnteredFormat.textFormat.bold',
       },
     });
   });
