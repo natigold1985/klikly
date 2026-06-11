@@ -10,6 +10,12 @@ function isValidLinkedInUrl(url) {
   return /linkedin\.com\/in\/[a-z0-9\-_%]{3,}/.test(clean);
 }
 
+// Generate a real LinkedIn search URL by name + company (always works)
+function buildLinkedInSearchUrl(name, company) {
+  const q = [name, company].filter(Boolean).join(' ');
+  return `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(q)}`;
+}
+
 async function syncToSheet(authHeader, leads) {
   const encTab = encodeURIComponent(`'${DEFENSE_TAB}'!A1:H2`);
   const checkRes = await fetch(
@@ -151,14 +157,22 @@ Deno.serve(async (req) => {
     });
 
     const allLeads = llmResult?.leads || [];
-    const validLeads = allLeads.filter(lead => isValidLinkedInUrl(lead.profileUrl));
-    const invalidCount = allLeads.length - validLeads.length;
 
+    // For each lead: use profileUrl only if valid, otherwise build a search URL
+    const processedLeads = allLeads.map(lead => {
+      const hasValidUrl = isValidLinkedInUrl(lead.profileUrl);
+      const finalUrl = hasValidUrl
+        ? lead.profileUrl
+        : buildLinkedInSearchUrl(lead.name, lead.company);
+      return { ...lead, profileUrl: finalUrl, urlIsSearch: !hasValidUrl };
+    });
+
+    const invalidCount = allLeads.filter(l => !isValidLinkedInUrl(l.profileUrl)).length;
     if (invalidCount > 0) {
-      console.log(`Filtered out ${invalidCount} leads with invalid/missing LinkedIn URLs`);
+      console.log(`${invalidCount} leads had no valid URL — replaced with LinkedIn search links`);
     }
 
-    for (const lead of validLeads.slice(0, 5)) {
+    for (const lead of processedLeads.slice(0, 10)) {
       try {
         await base44.asServiceRole.entities.PotentialLead.create({
           title: `${lead.name} - ${lead.title}`,
@@ -168,11 +182,14 @@ Deno.serve(async (req) => {
           keywords_matched: 'שיווק, HR, מרקטינג, משקיות, חינוך, חוויה, תש"ן, ביטחון, תעשיות ביטחון, צה"ל, שב"כ',
           relevance_score: lead.relevanceScore || 8,
           contact_info: `${lead.email || 'לא זמין'} / ${lead.phone || 'לא זמין'}`,
+          notes: lead.urlIsSearch ? `🔍 חיפוש LinkedIn: ${lead.profileUrl}` : null,
         });
       } catch (e) {
         console.log('Lead save error:', e.message);
       }
     }
+
+    const validLeads = processedLeads;
 
     let syncedCount = 0;
     if (validLeads.length > 0) {

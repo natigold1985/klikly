@@ -244,16 +244,15 @@ export default function LinkedInOutreach() {
                 </th>
                 <th className="text-right py-3 px-4 font-semibold text-slate-600">ימים</th>
                 <th className="text-right py-3 px-4 font-semibold text-slate-600">הערות</th>
-                <th className="text-right py-3 px-4 font-semibold text-slate-600">URL שליחה</th>
                 <th className="text-right py-3 px-4 font-semibold text-slate-600">פעולות</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={8} className="text-center py-12 text-slate-400">טוען...</td></tr>
+                <tr><td colSpan={7} className="text-center py-12 text-slate-400">טוען...</td></tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-12">
+                  <td colSpan={7} className="text-center py-12">
                     <div className="flex flex-col items-center gap-3 text-slate-400">
                       <Linkedin className="w-10 h-10 opacity-30" />
                       <p>אין אנשי קשר עדיין</p>
@@ -337,32 +336,27 @@ export default function LinkedInOutreach() {
                       </p>
                     </td>
                     <td className="py-3 px-4">
-                      {outreachUrl ? (
-                        <a
-                          href={outreachUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-cyan-600 hover:underline"
-                          title="פתח קישור לשליחת בקשת חברות"
-                        >
-                          <Link className="w-3.5 h-3.5" />
-                          שלח בקשה
-                        </a>
-                      ) : (
-                        <span className="text-slate-300 text-xs">—</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
                       <div className="flex items-center gap-1">
-                        {lead.source_url && (
+                        {/* LinkedIn: show profile link if valid /in/ URL, else show search link */}
+                        {lead.source_url ? (
                           <a
                             href={lead.source_url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors"
-                            title="פתח פרופיל LinkedIn"
+                            title={lead.source_url.includes('/search/') ? 'חפש באינדקס LinkedIn' : 'פתח פרופיל LinkedIn'}
                           >
-                            <Linkedin className="w-4 h-4" />
+                            <Linkedin className={`w-4 h-4 ${lead.source_url.includes('/search/') ? 'opacity-50' : ''}`} />
+                          </a>
+                        ) : (
+                          <a
+                            href={`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent((lead.title || '').split(' - ')[0] + ' ' + ((lead.snippet || '').split(' - ')[0]))}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-400 transition-colors"
+                            title="חפש ב-LinkedIn"
+                          >
+                            <Linkedin className="w-4 h-4 opacity-50" />
                           </a>
                         )}
                         {!isConverted && (
