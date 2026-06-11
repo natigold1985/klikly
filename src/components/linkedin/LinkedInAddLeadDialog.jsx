@@ -11,14 +11,16 @@ const DEFAULT_FORM = {
   company: '',
   email: '',
   profileUrl: '',
+  outreachUrl: '',
   notes: '',
-  status: 'contacted',
+  status: 'new',
+  contactDate: new Date().toISOString().split('T')[0],
+  requestSentDate: '',
 };
 
 export default function LinkedInAddLeadDialog({ open, onOpenChange, onSaved }) {
   const [form, setForm] = useState(DEFAULT_FORM);
   const [saving, setSaving] = useState(false);
-  const [markToday, setMarkToday] = useState(true);
 
   const handleSave = async () => {
     if (!form.name) return;
@@ -26,15 +28,19 @@ export default function LinkedInAddLeadDialog({ open, onOpenChange, onSaved }) {
     try {
       await base44.entities.PotentialLead.create({
         title: form.jobTitle ? `${form.name} - ${form.jobTitle}` : form.name,
-        source_url: form.profileUrl,
+        source_url: form.profileUrl || form.outreachUrl,
         platform: 'linkedin',
         snippet: form.company ? `${form.company} - ${form.jobTitle || ''}` : '',
-        keywords_matched: 'תעשיית ביטחון',
+        keywords_matched: 'שיווק, HR, משקיות, חינוך, חוויה',
         relevance_score: 7,
         contact_info: form.email || '',
         status: form.status,
-        notes: form.notes,
-        contact_date: markToday ? new Date().toISOString().split('T')[0] : undefined,
+        notes: [
+          form.notes,
+          form.outreachUrl ? `🔗 קישור לשליחה: ${form.outreachUrl}` : '',
+        ].filter(Boolean).join('\n'),
+        contact_date: form.contactDate || new Date().toISOString().split('T')[0],
+        request_sent_date: form.requestSentDate || null,
       });
       try {
         await base44.functions.invoke('syncLinkedInOutreachToSheet', { syncAll: true });
@@ -42,7 +48,6 @@ export default function LinkedInAddLeadDialog({ open, onOpenChange, onSaved }) {
       onSaved();
       onOpenChange(false);
       setForm(DEFAULT_FORM);
-      setMarkToday(true);
     } finally {
       setSaving(false);
     }
@@ -52,11 +57,11 @@ export default function LinkedInAddLeadDialog({ open, onOpenChange, onSaved }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md" dir="rtl">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" dir="rtl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Linkedin className="w-5 h-5 text-blue-600" />
-            הוסף ליד LinkedIn חדש
+            הוסף איש קשר LinkedIn
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3 mt-2">
@@ -67,7 +72,7 @@ export default function LinkedInAddLeadDialog({ open, onOpenChange, onSaved }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-slate-500 font-medium block mb-1">תפקיד</label>
-              <Input value={form.jobTitle} onChange={set('jobTitle')} placeholder="מנהל רכש" />
+              <Input value={form.jobTitle} onChange={set('jobTitle')} placeholder="מנהל שיווק" />
             </div>
             <div>
               <label className="text-xs text-slate-500 font-medium block mb-1">חברה</label>
@@ -83,8 +88,9 @@ export default function LinkedInAddLeadDialog({ open, onOpenChange, onSaved }) {
             <Input value={form.profileUrl} onChange={set('profileUrl')} placeholder="https://linkedin.com/in/..." />
           </div>
           <div>
-            <label className="text-xs text-slate-500 font-medium block mb-1">הערות</label>
-            <Input value={form.notes} onChange={set('notes')} placeholder="הערה חופשית..." />
+            <label className="text-xs text-slate-500 font-medium block mb-1">🔗 URL לשליחת בקשת חברות</label>
+            <Input value={form.outreachUrl} onChange={set('outreachUrl')} placeholder="https://linkedin.com/in/.../connect" />
+            <p className="text-xs text-slate-400 mt-0.5">הקישור הישיר לשליחת הבקשה</p>
           </div>
           <div>
             <label className="text-xs text-slate-500 font-medium block mb-1">סטטוס</label>
@@ -93,29 +99,32 @@ export default function LinkedInAddLeadDialog({ open, onOpenChange, onSaved }) {
               onChange={set('status')}
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
             >
-              <option value="new">ליד חדש</option>
-              <option value="contacted">נשלחה בקשת חברות</option>
-              <option value="connected">מחובר</option>
-              <option value="messaged">נשלחה הודעה</option>
-              <option value="reviewed">נענה</option>
+              <option value="new">טרם פנייה</option>
+              <option value="request_sent">נשלחה בקשת חברות</option>
+              <option value="contacted">נשלחה פנייה</option>
+              <option value="follow_up">מעקב</option>
+              <option value="messaged">נשלחה הודעה ראשונה</option>
               <option value="dismissed">לא רלוונטי</option>
             </select>
           </div>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={markToday}
-              onChange={e => setMarkToday(e.target.checked)}
-              className="rounded border-slate-300"
-            />
-            <span className="text-sm text-slate-700">
-              סמן תאריך בקשת חברות כהיום ({new Date().toLocaleDateString('he-IL')})
-            </span>
-          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-slate-500 font-medium block mb-1">תאריך הוספה</label>
+              <Input type="date" value={form.contactDate} onChange={set('contactDate')} />
+            </div>
+            <div>
+              <label className="text-xs text-slate-500 font-medium block mb-1">תאריך בקשת חברות</label>
+              <Input type="date" value={form.requestSentDate} onChange={set('requestSentDate')} />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 font-medium block mb-1">הערות</label>
+            <Input value={form.notes} onChange={set('notes')} placeholder="הערה חופשית..." />
+          </div>
         </div>
         <div className="flex gap-2 mt-4">
           <Button onClick={handleSave} disabled={saving || !form.name} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white">
-            {saving ? 'שומר...' : 'הוסף ליד'}
+            {saving ? 'שומר...' : 'הוסף איש קשר'}
           </Button>
           <Button variant="outline" onClick={() => onOpenChange(false)} className="border-slate-200 text-slate-700">
             ביטול

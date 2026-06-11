@@ -14,12 +14,13 @@ import LinkedInFollowUpDialog from '@/components/linkedin/LinkedInFollowUpDialog
 
 // Outreach-specific statuses — NOT the same as Lead statuses
 const STATUS_CONFIG = {
-  'new':          { label: 'טרם פנייה',         color: 'bg-slate-100 text-slate-600 border-slate-200',     dot: 'bg-slate-400' },
-  'contacted':    { label: 'נשלחה פנייה',        color: 'bg-blue-100 text-blue-800 border-blue-200',        dot: 'bg-blue-500' },
-  'follow_up':    { label: 'מעקב',               color: 'bg-yellow-100 text-yellow-800 border-yellow-200',  dot: 'bg-yellow-500' },
-  'messaged':     { label: 'נשלחה הודעה ראשונה', color: 'bg-purple-100 text-purple-800 border-purple-200',  dot: 'bg-purple-500' },
-  'converted':    { label: 'נסגר — הפך לליד ✅', color: 'bg-green-100 text-green-800 border-green-200',    dot: 'bg-green-500' },
-  'dismissed':    { label: 'לא רלוונטי',         color: 'bg-red-100 text-red-800 border-red-200',          dot: 'bg-red-500' },
+  'new':          { label: 'טרם פנייה',              color: 'bg-slate-100 text-slate-600 border-slate-200',     dot: 'bg-slate-400' },
+  'request_sent': { label: 'נשלחה בקשת חברות',       color: 'bg-cyan-100 text-cyan-800 border-cyan-200',        dot: 'bg-cyan-500' },
+  'contacted':    { label: 'נשלחה פנייה',             color: 'bg-blue-100 text-blue-800 border-blue-200',        dot: 'bg-blue-500' },
+  'follow_up':    { label: 'מעקב',                   color: 'bg-yellow-100 text-yellow-800 border-yellow-200',  dot: 'bg-yellow-500' },
+  'messaged':     { label: 'נשלחה הודעה ראשונה',      color: 'bg-purple-100 text-purple-800 border-purple-200',  dot: 'bg-purple-500' },
+  'converted':    { label: 'נסגר — הפך לליד ✅',     color: 'bg-green-100 text-green-800 border-green-200',    dot: 'bg-green-500' },
+  'dismissed':    { label: 'לא רלוונטי',              color: 'bg-red-100 text-red-800 border-red-200',          dot: 'bg-red-500' },
 };
 
 function daysSince(dateStr) {
@@ -98,11 +99,12 @@ export default function LinkedInOutreach() {
   };
 
   // Active outreach = exclude converted & dismissed from default view
-  const FILTER_TABS = ['הכל', 'טרם פנייה', 'נשלחה פנייה', 'מעקב', 'נשלחה הודעה ראשונה', 'נסגר כליד', 'לא רלוונטי'];
+  const FILTER_TABS = ['הכל', 'טרם פנייה', 'נשלחה בקשת חברות', 'נשלחה פנייה', 'מעקב', 'נשלחה הודעה ראשונה', 'נסגר כליד', 'לא רלוונטי'];
 
   const statusKeyForLabel = (label) => {
     const map = {
       'טרם פנייה': 'new',
+      'נשלחה בקשת חברות': 'request_sent',
       'נשלחה פנייה': 'contacted',
       'מעקב': 'follow_up',
       'נשלחה הודעה ראשונה': 'messaged',
@@ -284,9 +286,10 @@ export default function LinkedInOutreach() {
                           value={lead.status || 'new'}
                           onChange={(e) => handleStatusChange(lead, e.target.value)}
                           disabled={convertingId === lead.id}
-                          className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300 min-w-[160px]"
+                          className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300 min-w-[180px]"
                         >
                           <option value="new">טרם פנייה</option>
+                          <option value="request_sent">נשלחה בקשת חברות</option>
                           <option value="contacted">נשלחה פנייה</option>
                           <option value="follow_up">מעקב</option>
                           <option value="messaged">נשלחה הודעה ראשונה</option>
