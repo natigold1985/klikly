@@ -7,21 +7,23 @@ const TAB_GID = 1694943082;
 const HEADERS = ['שם מלא', 'תפקיד', 'חברה', 'מייל', 'קישור LinkedIn', 'סטטוס פנייה', 'תאריך בקשת חברות', 'ימים ממתין', 'הערות'];
 
 const STATUS_LABELS = {
-  new: 'ליד חדש',
-  contacted: 'נשלחה בקשת חברות',
-  connected: 'מחובר',
-  messaged: 'נשלחה הודעה',
-  reviewed: 'נענה',
-  dismissed: 'לא רלוונטי',
+  new:          'טרם פנייה',
+  request_sent: 'נשלחה בקשת חברות',
+  contacted:    'נשלחה פנייה',
+  follow_up:    'מעקב',
+  messaged:     'נשלחה הודעה ראשונה',
+  converted:    'נסגר — הפך לליד',
+  dismissed:    'לא רלוונטי',
 };
 
 const STATUS_COLOR = {
-  new:       { red: 0.85, green: 0.92, blue: 1.0 },
-  contacted: { red: 1.0,  green: 0.96, blue: 0.72 },
-  connected: { red: 0.78, green: 0.96, blue: 0.80 },
-  messaged:  { red: 0.92, green: 0.82, blue: 1.0 },
-  reviewed:  { red: 0.70, green: 0.95, blue: 0.75 },
-  dismissed: { red: 1.0,  green: 0.83, blue: 0.82 },
+  new:          { red: 0.95, green: 0.95, blue: 0.95 },
+  request_sent: { red: 0.80, green: 0.96, blue: 1.0  },
+  contacted:    { red: 0.85, green: 0.92, blue: 1.0  },
+  follow_up:    { red: 1.0,  green: 0.96, blue: 0.72 },
+  messaged:     { red: 0.92, green: 0.82, blue: 1.0  },
+  converted:    { red: 0.78, green: 0.96, blue: 0.80 },
+  dismissed:    { red: 1.0,  green: 0.83, blue: 0.82 },
 };
 
 function daysSince(dateStr) {
