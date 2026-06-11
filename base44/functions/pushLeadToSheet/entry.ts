@@ -14,7 +14,7 @@ const SOURCE_TO_TAB = {
   instagram: 'אינסטגרם — מענה ופולו-אפ',
   facebook: 'לידים ביטחון 🎯',
   'defense industry': 'לידים ביטחון 🎯',
-  linkedin: 'לידים ביטחון 🎯',
+  // linkedin outreach leads go ONLY to the outreach sheet, NOT here
   'course lead': 'מתעניינים בקורס',
   'קורס': 'מתעניינים בקורס',
 };
