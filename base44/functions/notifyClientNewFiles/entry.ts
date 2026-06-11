@@ -28,9 +28,10 @@ Deno.serve(async (req) => {
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#111111;border-radius:20px;overflow:hidden;border:1px solid #2a2a2a;">
 
-        <!-- Header -->
+        <!-- Header with Logo -->
         <tr><td style="background:linear-gradient(135deg,#0a0a0a 0%,#1a1a1a 100%);padding:32px 40px;text-align:center;border-bottom:2px solid #FFD700;">
-          <div style="color:#FFD700;font-size:32px;font-weight:900;letter-spacing:4px;text-shadow:0 0 20px rgba(255,215,0,0.3);">KLIKLY</div>
+          <img src="https://media.base44.com/images/public/699330cced2139a6e7aa06a9/1e11bfcc1_generated_image.png" alt="KLIKLY" style="height:80px;width:auto;object-fit:contain;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;" />
+          <div style="color:#FFD700;font-size:28px;font-weight:900;letter-spacing:4px;text-shadow:0 0 20px rgba(255,215,0,0.3);">KLIKLY</div>
           <div style="color:#888;font-size:12px;letter-spacing:2px;margin-top:4px;text-transform:uppercase;">מערכת ניהול גלריות מקצועית</div>
         </td></tr>
 
@@ -44,8 +45,11 @@ Deno.serve(async (req) => {
         <!-- Body -->
         <tr><td style="padding:36px 40px 28px;">
           <p style="color:#cccccc;font-size:18px;line-height:1.7;margin:0 0 12px;">שלום 👋</p>
+          <p style="color:#aaaaaa;font-size:16px;line-height:1.7;margin:0 0 16px;">
+            <strong style="color:#FFD700;">Studio Gold</strong> שמחים לבשר לך שהכנסנו אותך למערכת שלנו!
+          </p>
           <p style="color:#aaaaaa;font-size:16px;line-height:1.7;margin:0 0 24px;">
-            <strong style="color:#FFD700;">${photographerName}</strong> העלה עבורך <strong style="color:#fff;">${fileCountText}</strong> במערכת KLIKLY.
+            אנחנו שמחים וגאים שאתה חלק ממערכת <strong style="color:#FFD700;">Studio Gold</strong> — ועכשיו <strong style="color:#fff;">${fileCountText}</strong> חדשים מחכים לך בגלריה.
           </p>
 
           <!-- Warning Box -->
