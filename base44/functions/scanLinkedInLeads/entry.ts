@@ -147,6 +147,7 @@ Deno.serve(async (req) => {
         },
       },
       add_context_from_internet: true,
+      model: 'gemini_3_1_pro',
     });
 
     const allLeads = llmResult?.leads || [];
