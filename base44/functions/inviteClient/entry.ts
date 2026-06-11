@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    const appBaseUrl = 'https://app.klikly.com'; // Base URL for the app
+    const appBaseUrl = 'https://klikly.base44.app'; // Base URL for the app
     const galleryUrl = `${appBaseUrl}/FileStorage`;
     const photographerName = photographer.full_name || photographer.email;
 

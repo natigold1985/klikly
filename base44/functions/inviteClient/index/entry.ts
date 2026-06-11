@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    const appUrl = 'https://app.klikly.com';
+    const appUrl = 'https://klikly.base44.app';
     const galleryUrl = `${appUrl}/FileStorage`;
 
     // Check if already exists in TeamMember
