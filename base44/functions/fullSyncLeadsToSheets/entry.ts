@@ -37,6 +37,24 @@ const PIPELINE_STAGE_LABELS = {
 };
 const STATUS_VALUES = ['ליד חדש', 'נוצר קשר', 'נשלח פולו-אפ', 'נענה', 'נסגר בהצלחה', 'לא רלוונטי'];
 
+// Sort order: active statuses first, then new leads, then closed, then irrelevant at bottom
+const STATUS_SORT_ORDER = {
+  'נוצר קשר':      1,
+  'נשלח פולו-אפ':  2,
+  'נענה':          3,
+  'ליד חדש':       4,
+  'נסגר בהצלחה':   5,
+  'לא רלוונטי':    6,
+};
+
+function sortLeadsByStatus(leads) {
+  return [...leads].sort((a, b) => {
+    const aOrder = STATUS_SORT_ORDER[a.status] ?? 4;
+    const bOrder = STATUS_SORT_ORDER[b.status] ?? 4;
+    return aOrder - bOrder;
+  });
+}
+
 // RGB background colors per status (for Google Sheets) — matches KLIKLY UI colors exactly
 const STATUS_ROW_COLORS = {
   'ליד חדש':     { red: 0.820, green: 0.906, blue: 0.980 },  // blue-100  (matches KLIKLY כחול)
@@ -302,11 +320,8 @@ Deno.serve(async (req) => {
 
     // Group leads by tab
     const tabLeads = {};
-    const allRows = [];
 
     for (const lead of allLeads) {
-      const row = leadToRow(lead);
-      allRows.push(row);
       const tab = detectTab(lead);
       if (tab) {
         if (!tabLeads[tab]) tabLeads[tab] = [];
@@ -314,24 +329,29 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Sort all leads by status before writing to "כל הלידים"
+    const sortedAllLeads = sortLeadsByStatus(allLeads);
+    const allRows = sortedAllLeads.map(leadToRow);
+
     // Write + format "כל הלידים"
     await clearAndWriteTab(sheetsAuth, ALL_LEADS_TAB, allRows);
     if (tabGids[ALL_LEADS_TAB]) {
-      await applyFormattingAndValidation(sheetsAuth, tabGids[ALL_LEADS_TAB], allLeads, ALL_LEADS_TAB);
+      await applyFormattingAndValidation(sheetsAuth, tabGids[ALL_LEADS_TAB], sortedAllLeads, ALL_LEADS_TAB);
     }
 
-    // Write + format each source tab
+    // Write + format each source tab (sorted by status)
     const tabSummary = {};
     for (const [tabName, leads] of Object.entries(tabLeads)) {
       if (!tabGids[tabName]) {
         console.log(`fullSyncLeadsToSheets: tab "${tabName}" not found, skipping`);
         continue;
       }
-      const rows = leads.map(leadToRow);
+      const sortedLeads = sortLeadsByStatus(leads);
+      const rows = sortedLeads.map(leadToRow);
       await clearAndWriteTab(sheetsAuth, tabName, rows);
-      await applyFormattingAndValidation(sheetsAuth, tabGids[tabName], leads, tabName);
-      tabSummary[tabName] = leads.length;
-      console.log(`fullSyncLeadsToSheets: wrote ${leads.length} rows to "${tabName}"`);
+      await applyFormattingAndValidation(sheetsAuth, tabGids[tabName], sortedLeads, tabName);
+      tabSummary[tabName] = sortedLeads.length;
+      console.log(`fullSyncLeadsToSheets: wrote ${sortedLeads.length} rows to "${tabName}"`);
     }
 
     await base44.asServiceRole.entities.SystemLog.create({
