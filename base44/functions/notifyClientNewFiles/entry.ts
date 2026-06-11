@@ -3,11 +3,12 @@ import webpush from 'npm:web-push@3.6.7';
 
 Deno.serve(async (req) => {
   try {
+    const body = await req.json();
     const base44 = createClientFromRequest(req);
     const me = await base44.auth.me();
     if (!me) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { client_email, file_count } = await req.json();
+    const { client_email, file_count } = body;
     if (!client_email) return Response.json({ error: 'Missing client_email' }, { status: 400 });
 
     const photographer = me;
@@ -89,14 +90,16 @@ Deno.serve(async (req) => {
 </body>
 </html>`;
 
-      await base44.asServiceRole.integrations.Core.SendEmail({
+      console.log(`Sending email to: ${client_email}`);
+      const emailResult = await base44.asServiceRole.integrations.Core.SendEmail({
         to: client_email,
         from_name: photographerName,
         subject: `📸 ${fileCountText} זמינים לפרויקט שלך`,
         body: emailHtml,
       });
+      console.log('Email sent successfully:', JSON.stringify(emailResult));
     } catch (e) {
-      console.error('Email send failed:', e.message);
+      console.error('Email send failed:', e.message, e.stack);
     }
 
     // Send Push
