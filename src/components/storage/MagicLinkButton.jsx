@@ -115,11 +115,57 @@ export default function MagicLinkButton({ project }) {
                   if (!email) { toast.error('לא הוגדר מייל ללקוח'); return; }
                   setSendingEmail(true);
                   try {
+                    const galleryEmailHtml = `<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#1a1a1a;font-family:Arial,Helvetica,sans-serif;direction:rtl;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#1a1a1a;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#111111;border-radius:20px;overflow:hidden;border:1px solid #2a2a2a;">
+        <tr><td style="background:linear-gradient(135deg,#0a0a0a 0%,#1a1a1a 100%);padding:32px 40px;text-align:center;border-bottom:2px solid #FFD700;">
+          <div style="color:#FFD700;font-size:32px;font-weight:900;letter-spacing:4px;text-shadow:0 0 20px rgba(255,215,0,0.3);">KLIKLY</div>
+          <div style="color:#888;font-size:12px;letter-spacing:2px;margin-top:4px;text-transform:uppercase;">מערכת ניהול גלריות מקצועית</div>
+        </td></tr>
+        <tr><td style="background:linear-gradient(135deg,#FFD700 0%,#D4AF37 100%);padding:28px 40px;text-align:center;">
+          <div style="font-size:36px;margin-bottom:8px;">🎉</div>
+          <h1 style="color:#000;font-size:24px;font-weight:900;margin:0;letter-spacing:1px;">הגלריה שלך מוכנה!</h1>
+          <p style="color:#1a1a1a;font-size:14px;margin:8px 0 0;font-weight:600;">הצילומים שלך מחכים לך</p>
+        </td></tr>
+        <tr><td style="padding:36px 40px 28px;">
+          <p style="color:#cccccc;font-size:18px;line-height:1.7;margin:0 0 12px;">היי ${project.client_name || ''} 👋</p>
+          <p style="color:#aaaaaa;font-size:16px;line-height:1.7;margin:0 0 28px;">
+            הגלריה שלך מוכנה לצפייה ולהורדה! לחץ על הכפתור למטה כדי לצפות בכל התמונות ולהוריד אותן.
+          </p>
+          <div style="text-align:center;margin:0 0 32px;">
+            <a href="${link}" style="display:inline-block;background:linear-gradient(135deg,#FFD700,#D4AF37);color:#000;font-size:17px;font-weight:900;padding:18px 52px;border-radius:14px;text-decoration:none;letter-spacing:0.5px;box-shadow:0 8px 24px rgba(255,215,0,0.3);">
+              📸 לצפייה בגלריה שלי
+            </a>
+          </div>
+          <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:20px 24px;margin-bottom:24px;">
+            <p style="color:#FFD700;font-size:14px;font-weight:700;margin:0 0 10px;">🔗 קישור ישיר לגלריה:</p>
+            <p style="color:#888;font-size:12px;word-break:break-all;margin:0;direction:ltr;text-align:left;">${link}</p>
+          </div>
+          <hr style="border:none;border-top:1px solid #2a2a2a;margin:24px 0 20px;">
+          <p style="color:#555;font-size:11px;margin:0;text-align:center;line-height:1.8;">
+            הודעה אוטומטית מ-KLIKLY · לא להשיב למייל זה<br>
+            קיבלת מייל זה מכיוון שהצלם שלך שיתף איתך גלריה. לביטול קבלת הודעות עתידיות,
+            <a href="https://app.klikly.com/unsubscribe" style="color:#888;text-decoration:underline;">לחץ כאן להסרה מרשימת התפוצה</a>.
+          </p>
+        </td></tr>
+        <tr><td style="background:#0a0a0a;padding:20px 40px;text-align:center;border-top:1px solid #2a2a2a;">
+          <div style="color:#FFD700;font-size:16px;font-weight:900;letter-spacing:3px;">KLIKLY</div>
+          <div style="color:#444;font-size:11px;margin-top:4px;">© 2024 Klikly. כל הזכויות שמורות.</div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
                     await base44.integrations.Core.SendEmail({
                       to: email,
                       from_name: 'KLIKLY',
                       subject: `📸 הגלריה שלך מוכנה - ${project.client_name || ''}`,
-                      body: `<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,Helvetica,sans-serif;direction:rtl;"><table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;"><tr><td align="center"><table width="580" cellpadding="0" cellspacing="0" style="max-width:580px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);"><tr><td style="background:#0a0a0a;padding:24px 40px;text-align:center;"><span style="color:#FFD700;font-size:26px;font-weight:900;letter-spacing:3px;">KLIKLY</span></td></tr><tr><td style="padding:36px 40px 28px;"><h2 style="color:#0a0a0a;font-size:22px;margin:0 0 12px;">היי ${project.client_name || ''} 🎉</h2><p style="color:#444;font-size:16px;line-height:1.7;margin:0 0 24px;">הגלריה שלך מוכנה לצפייה והורדה!</p><div style="text-align:center;margin:24px 0;"><a href="${link}" style="display:inline-block;background:#FFD700;color:#000;font-size:16px;font-weight:700;padding:16px 48px;border-radius:12px;text-decoration:none;">📁 לצפייה בגלריה</a></div><hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px;"><p style="color:#999;font-size:12px;margin:0;text-align:center;">KLIKLY · מערכת ניהול גלריות מקצועית</p></td></tr></table></td></tr></table></body></html>`,
+                      body: galleryEmailHtml,
                     });
                     toast.success(`מייל נשלח ל-${email}`);
                   } catch (e) {
