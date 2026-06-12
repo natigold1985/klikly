@@ -1,7 +1,7 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bell, MessageCircle, X, Clock, CheckCircle2 } from 'lucide-react';
+import { Bell, MessageCircle, X, Clock, CheckCircle2, Check, Trash2 } from 'lucide-react';
 import { normalizeLeadStatus } from '@/utils/leadDisplay';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -84,9 +84,32 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
     },
   });
 
+  const dismissMutation = useMutation({
+    mutationFn: (lead) => {
+      const now = new Date();
+      // Push next follow-up 3 days ahead without changing status
+      const nextDate = new Date(now.getTime() + 3 * MS_PER_DAY);
+      return base44.entities.Lead.update(lead.id, {
+        auto_followup_next_send: nextDate.toISOString(),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['followUpNotifications'] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+    },
+  });
+
   const handleSend = (lead) => {
     markDoneMutation.mutate(lead);
     window.location.href = getWhatsAppLink(lead);
+  };
+
+  const handleMarkSent = (lead) => {
+    markDoneMutation.mutate(lead);
+  };
+
+  const handleDismiss = (lead) => {
+    dismissMutation.mutate(lead);
   };
 
   if (!user) return null;
@@ -130,7 +153,7 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
               ) : dueLeads.map((lead) => (
                 <div key={lead.id} className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm w-full max-w-full overflow-hidden">
                   <div className="flex items-start justify-between gap-2 min-w-0">
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="font-black text-slate-900 truncate">{lead.name}</p>
                       <p className="text-xs text-slate-500 mt-0.5" dir="ltr">{lead.phone}</p>
                       <div className="inline-flex items-center gap-1.5 mt-2 px-2 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold border border-amber-100">
@@ -138,13 +161,29 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
                         {getLeadStage(lead)}
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleSend(lead)}
-                      className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white px-2.5 md:px-3 py-2 text-xs font-black shadow-sm active:scale-95 transition-all"
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                      WhatsApp
-                    </button>
+                    <div className="shrink-0 flex flex-col gap-1.5">
+                      <button
+                        onClick={() => handleSend(lead)}
+                        className="inline-flex items-center gap-1 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white px-2.5 py-1.5 text-xs font-black active:scale-95 transition-all"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        WhatsApp
+                      </button>
+                      <button
+                        onClick={() => handleMarkSent(lead)}
+                        className="inline-flex items-center gap-1 rounded-xl bg-blue-500 hover:bg-blue-600 text-white px-2.5 py-1.5 text-xs font-black active:scale-95 transition-all"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        נשלח ✓
+                      </button>
+                      <button
+                        onClick={() => handleDismiss(lead)}
+                        className="inline-flex items-center gap-1 rounded-xl bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-500 px-2.5 py-1.5 text-xs font-semibold active:scale-95 transition-all"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        דחה
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -168,14 +207,35 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
             </div>
             <div className="p-4 space-y-2 overflow-y-auto overflow-x-hidden overscroll-contain scroll-smooth [-webkit-overflow-scrolling:touch] flex-1 min-h-0">
               {dueLeads.slice(0, 5).map((lead) => (
-                <div key={lead.id} className="flex items-center justify-between gap-2 rounded-2xl border border-slate-200 p-3 w-full max-w-full overflow-hidden">
-                  <div className="min-w-0">
-                    <p className="font-black text-slate-900 truncate">{lead.name}</p>
-                    <p className="text-xs text-slate-500">{getLeadStage(lead)} · <span dir="ltr">{lead.phone}</span></p>
+                <div key={lead.id} className="rounded-2xl border border-slate-200 p-3 w-full max-w-full overflow-hidden">
+                  <div className="flex items-start justify-between gap-2 min-w-0">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-black text-slate-900 truncate">{lead.name}</p>
+                      <p className="text-xs text-slate-500">{getLeadStage(lead)} · <span dir="ltr">{lead.phone}</span></p>
+                    </div>
+                    <div className="shrink-0 flex gap-1.5">
+                      <button
+                        onClick={() => handleSend(lead)}
+                        className="inline-flex items-center gap-1 rounded-xl bg-[#25D366] text-white px-2.5 py-1.5 text-xs font-black active:scale-95"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        WA
+                      </button>
+                      <button
+                        onClick={() => handleMarkSent(lead)}
+                        className="inline-flex items-center gap-1 rounded-xl bg-blue-500 text-white px-2.5 py-1.5 text-xs font-black active:scale-95"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        נשלח
+                      </button>
+                      <button
+                        onClick={() => handleDismiss(lead)}
+                        className="inline-flex items-center gap-1 rounded-xl bg-slate-100 text-slate-500 px-2 py-1.5 text-xs active:scale-95"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <button onClick={() => handleSend(lead)} className="shrink-0 rounded-xl bg-[#25D366] text-white px-3 py-2 text-xs font-black">
-                    שלח WhatsApp
-                  </button>
                 </div>
               ))}
             </div>
