@@ -1,10 +1,18 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bell, MessageCircle, X, Clock, CheckCircle2, Check, Trash2 } from 'lucide-react';
+import { Bell, MessageCircle, X, Clock, CheckCircle2, Check, Trash2, ChevronRight } from 'lucide-react';
 import { normalizeLeadStatus } from '@/utils/leadDisplay';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+const STATUS_OPTIONS = [
+  { value: 'נוצר קשר', label: '📞 נוצר קשר', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+  { value: 'נשלח פולו-אפ', label: '📩 נשלח פולו-אפ', color: 'bg-amber-50 text-amber-700 border-amber-200' },
+  { value: 'נענה', label: '✅ נענה / מעוניין', color: 'bg-green-50 text-green-700 border-green-200' },
+  { value: 'נסגר בהצלחה', label: '🏆 נסגר בהצלחה', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  { value: 'לא רלוונטי', label: '❌ לא מעוניין', color: 'bg-red-50 text-red-700 border-red-200' },
+];
 
 function getLeadStage(lead) {
   const days = Number(lead.auto_followup_interval_days || 0);
@@ -34,18 +42,73 @@ function getWhatsAppLink(lead) {
 
 function isDueLead(lead) {
   const status = normalizeLeadStatus(lead.status);
+  // These statuses = done, remove from list
   if (['נסגר בהצלחה', 'לא רלוונטי', 'נענה'].includes(status)) return false;
   const cleanPhone = String(lead.phone || '').replace(/[^0-9]/g, '');
   if (cleanPhone.length < 7) return false;
+
+  const now = new Date();
   const dueDate = getDueDate(lead);
+
+  // If next_send is in the future, NOT due (already marked sent recently)
+  if (dueDate && dueDate > now) return false;
+
   const lastContact = lead.last_contact_date ? new Date(lead.last_contact_date) : new Date(lead.created_date || 0);
-  const threeDaysWithoutResponse = lastContact && Date.now() - lastContact.getTime() >= 3 * MS_PER_DAY;
-  return (dueDate && dueDate <= new Date()) || status === 'נשלח פולו-אפ' || threeDaysWithoutResponse;
+  const threeDaysWithoutResponse = lastContact && now - lastContact.getTime() >= 3 * MS_PER_DAY;
+
+  return (dueDate && dueDate <= now) || threeDaysWithoutResponse;
+}
+
+// Status update dialog
+function StatusUpdateDialog({ lead, onClose, onUpdate }) {
+  const [saving, setSaving] = React.useState(false);
+
+  const handleSelect = async (status) => {
+    setSaving(true);
+    await onUpdate(lead, status);
+    setSaving(false);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-[95] flex items-end md:items-center justify-center" dir="rtl" onClick={onClose}>
+      <div className="w-full max-w-sm bg-white rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <p className="font-black text-slate-900">{lead.name}</p>
+            <p className="text-xs text-slate-500 mt-0.5">מה הסטטוס עכשיו?</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="p-3 space-y-2">
+          {STATUS_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => handleSelect(opt.value)}
+              disabled={saving}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl border text-sm font-bold transition-all active:scale-95 ${opt.color}`}
+            >
+              <span>{opt.label}</span>
+              <ChevronRight className="w-4 h-4 opacity-50" />
+            </button>
+          ))}
+        </div>
+        <div className="p-3 pt-0">
+          <button onClick={onClose} className="w-full py-3 rounded-2xl bg-slate-100 text-slate-600 text-sm font-bold">
+            השאר כרגיל
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function FollowUpNotificationBell({ user, isAdmin = false }) {
   const [open, setOpen] = React.useState(false);
   const [showTodayAlert, setShowTodayAlert] = React.useState(false);
+  const [statusDialogLead, setStatusDialogLead] = React.useState(null);
   const queryClient = useQueryClient();
 
   const { data: leads = [] } = useQuery({
@@ -66,10 +129,11 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
     }
   }, [dueLeads.length]);
 
-  const markDoneMutation = useMutation({
+  const markSentMutation = useMutation({
     mutationFn: (lead) => {
       const now = new Date();
-      const nextDate = new Date(now.getTime() + Number(lead.auto_followup_interval_days || 1) * MS_PER_DAY);
+      // Push next_send far into the future so it leaves the due list immediately
+      const nextDate = new Date(now.getTime() + Number(lead.auto_followup_interval_days || 3) * MS_PER_DAY);
       return base44.entities.Lead.update(lead.id, {
         auto_followup_last_sent: now.toISOString(),
         auto_followup_next_send: nextDate.toISOString(),
@@ -84,12 +148,14 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
     },
   });
 
-  const dismissMutation = useMutation({
-    mutationFn: (lead) => {
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ lead, status }) => {
       const now = new Date();
-      // Push next follow-up 3 days ahead without changing status
-      const nextDate = new Date(now.getTime() + 3 * MS_PER_DAY);
+      const nextDate = new Date(now.getTime() + Number(lead.auto_followup_interval_days || 3) * MS_PER_DAY);
       return base44.entities.Lead.update(lead.id, {
+        status,
+        last_contact_date: now.toISOString(),
+        auto_followup_last_sent: now.toISOString(),
         auto_followup_next_send: nextDate.toISOString(),
       });
     },
@@ -99,20 +165,80 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
     },
   });
 
+  const dismissMutation = useMutation({
+    mutationFn: (lead) => {
+      const now = new Date();
+      const nextDate = new Date(now.getTime() + 3 * MS_PER_DAY);
+      return base44.entities.Lead.update(lead.id, {
+        auto_followup_next_send: nextDate.toISOString(),
+        last_contact_date: now.toISOString(),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['followUpNotifications'] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+    },
+  });
+
   const handleSend = (lead) => {
-    markDoneMutation.mutate(lead);
+    markSentMutation.mutate(lead);
     window.location.href = getWhatsAppLink(lead);
+    // Show status dialog after a short delay (after WhatsApp opens)
+    setTimeout(() => setStatusDialogLead(lead), 1500);
   };
 
   const handleMarkSent = (lead) => {
-    markDoneMutation.mutate(lead);
+    markSentMutation.mutate(lead);
+    setStatusDialogLead(lead);
   };
 
   const handleDismiss = (lead) => {
     dismissMutation.mutate(lead);
   };
 
+  const handleStatusUpdate = async (lead, status) => {
+    await updateStatusMutation.mutateAsync({ lead, status });
+  };
+
   if (!user) return null;
+
+  const LeadCard = ({ lead, compact = false }) => (
+    <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm w-full overflow-hidden">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="font-black text-slate-900 truncate">{lead.name}</p>
+          <p className="text-xs text-slate-500 mt-0.5" dir="ltr">{lead.phone}</p>
+          <div className="inline-flex items-center gap-1.5 mt-1.5 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-xs font-bold border border-amber-100">
+            <Clock className="w-3 h-3" />
+            {getLeadStage(lead)}
+          </div>
+        </div>
+        <div className="shrink-0 flex flex-col gap-1.5">
+          <button
+            onClick={() => handleSend(lead)}
+            className="inline-flex items-center gap-1 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white px-2.5 py-1.5 text-xs font-black active:scale-95 transition-all"
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            WhatsApp
+          </button>
+          <button
+            onClick={() => handleMarkSent(lead)}
+            className="inline-flex items-center gap-1 rounded-xl bg-blue-500 hover:bg-blue-600 text-white px-2.5 py-1.5 text-xs font-black active:scale-95 transition-all"
+          >
+            <Check className="w-3.5 h-3.5" />
+            נשלח ✓
+          </button>
+          <button
+            onClick={() => handleDismiss(lead)}
+            className="inline-flex items-center gap-1 rounded-xl bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-500 px-2.5 py-1.5 text-xs font-semibold active:scale-95 transition-all"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            דחה
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -134,60 +260,25 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
           <>
             <div className="fixed inset-0 bg-black/20 z-[70] md:hidden" onClick={() => setOpen(false)} />
             <div className="fixed left-3 right-3 top-20 bottom-[calc(88px+env(safe-area-inset-bottom))] md:bottom-auto md:absolute md:left-0 md:right-auto md:top-auto md:mt-3 md:w-[420px] md:max-h-[70vh] rounded-3xl bg-white border border-slate-200 shadow-2xl overflow-hidden z-[80] flex flex-col" dir="rtl">
-            <div className="p-4 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
-              <div>
-                <h3 className="font-black text-slate-900">משימות פולו-אפ להיום</h3>
-                <p className="text-xs text-slate-500 mt-0.5">לידים שממתינים לפעולה</p>
+              <div className="p-4 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
+                <div>
+                  <h3 className="font-black text-slate-900">משימות פולו-אפ להיום</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">לידים שממתינים לפעולה</p>
+                </div>
+                <button onClick={() => setOpen(false)} className="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center">
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <button onClick={() => setOpen(false)} className="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="overflow-y-auto overflow-x-hidden overscroll-contain scroll-smooth [-webkit-overflow-scrolling:touch] p-3 space-y-2 flex-1 min-h-0">
-              {dueLeads.length === 0 ? (
-                <div className="py-8 text-center text-slate-500">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-                  אין פולו-אפים פתוחים להיום
-                </div>
-              ) : dueLeads.map((lead) => (
-                <div key={lead.id} className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm w-full max-w-full overflow-hidden">
-                  <div className="flex items-start justify-between gap-2 min-w-0">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-black text-slate-900 truncate">{lead.name}</p>
-                      <p className="text-xs text-slate-500 mt-0.5" dir="ltr">{lead.phone}</p>
-                      <div className="inline-flex items-center gap-1.5 mt-2 px-2 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold border border-amber-100">
-                        <Clock className="w-3.5 h-3.5" />
-                        {getLeadStage(lead)}
-                      </div>
-                    </div>
-                    <div className="shrink-0 flex flex-col gap-1.5">
-                      <button
-                        onClick={() => handleSend(lead)}
-                        className="inline-flex items-center gap-1 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white px-2.5 py-1.5 text-xs font-black active:scale-95 transition-all"
-                      >
-                        <MessageCircle className="w-3.5 h-3.5" />
-                        WhatsApp
-                      </button>
-                      <button
-                        onClick={() => handleMarkSent(lead)}
-                        className="inline-flex items-center gap-1 rounded-xl bg-blue-500 hover:bg-blue-600 text-white px-2.5 py-1.5 text-xs font-black active:scale-95 transition-all"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        נשלח ✓
-                      </button>
-                      <button
-                        onClick={() => handleDismiss(lead)}
-                        className="inline-flex items-center gap-1 rounded-xl bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-500 px-2.5 py-1.5 text-xs font-semibold active:scale-95 transition-all"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        דחה
-                      </button>
-                    </div>
+              <div className="overflow-y-auto overflow-x-hidden overscroll-contain scroll-smooth [-webkit-overflow-scrolling:touch] p-3 space-y-2 flex-1 min-h-0">
+                {dueLeads.length === 0 ? (
+                  <div className="py-8 text-center text-slate-500">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+                    אין פולו-אפים פתוחים להיום
                   </div>
-                </div>
-              ))}
-            </div>
+                ) : dueLeads.map((lead) => (
+                  <LeadCard key={lead.id} lead={lead} />
+                ))}
+              </div>
             </div>
           </>
         )}
@@ -207,36 +298,7 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
             </div>
             <div className="p-4 space-y-2 overflow-y-auto overflow-x-hidden overscroll-contain scroll-smooth [-webkit-overflow-scrolling:touch] flex-1 min-h-0">
               {dueLeads.slice(0, 5).map((lead) => (
-                <div key={lead.id} className="rounded-2xl border border-slate-200 p-3 w-full max-w-full overflow-hidden">
-                  <div className="flex items-start justify-between gap-2 min-w-0">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-black text-slate-900 truncate">{lead.name}</p>
-                      <p className="text-xs text-slate-500">{getLeadStage(lead)} · <span dir="ltr">{lead.phone}</span></p>
-                    </div>
-                    <div className="shrink-0 flex gap-1.5">
-                      <button
-                        onClick={() => handleSend(lead)}
-                        className="inline-flex items-center gap-1 rounded-xl bg-[#25D366] text-white px-2.5 py-1.5 text-xs font-black active:scale-95"
-                      >
-                        <MessageCircle className="w-3.5 h-3.5" />
-                        WA
-                      </button>
-                      <button
-                        onClick={() => handleMarkSent(lead)}
-                        className="inline-flex items-center gap-1 rounded-xl bg-blue-500 text-white px-2.5 py-1.5 text-xs font-black active:scale-95"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        נשלח
-                      </button>
-                      <button
-                        onClick={() => handleDismiss(lead)}
-                        className="inline-flex items-center gap-1 rounded-xl bg-slate-100 text-slate-500 px-2 py-1.5 text-xs active:scale-95"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <LeadCard key={lead.id} lead={lead} />
               ))}
             </div>
             <div className="p-4 border-t border-slate-100 flex gap-2">
@@ -249,6 +311,14 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
             </div>
           </div>
         </div>
+      )}
+
+      {statusDialogLead && (
+        <StatusUpdateDialog
+          lead={statusDialogLead}
+          onClose={() => setStatusDialogLead(null)}
+          onUpdate={handleStatusUpdate}
+        />
       )}
     </>
   );
