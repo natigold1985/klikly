@@ -37,7 +37,7 @@ function getWhatsAppLink(lead) {
   const cleanPhone = String(lead.phone || '').replace(/[^0-9]/g, '');
   const phone = cleanPhone.startsWith('0') ? `972${cleanPhone.slice(1)}` : cleanPhone;
   const text = lead.auto_followup_message || (lead.name ? `היי ${lead.name}, רציתי לבדוק אם קיבלת את הפרטים ששלחתי. אשמח לענות על כל שאלה מחכה לשמוע ממך! 📸` : 'היי, רציתי לבדוק אם קיבלת את הפרטים ששלחתי. אשמח לענות על כל שאלה מחכה לשמוע ממך! 📸');
-  return `whatsapp://send?phone=${phone}&text=${encodeURIComponent(text)}`;
+  return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
 }
 
 function isDueLead(lead) {
