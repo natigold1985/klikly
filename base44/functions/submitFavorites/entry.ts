@@ -6,8 +6,15 @@ Deno.serve(async (req) => {
     const { projectId, pin, selectedPhotoIds, photoComments } = await req.json();
 
     const project = await base44.asServiceRole.entities.Project.get(projectId);
-    
-    if (!project || project.gallery_pin !== pin) {
+    const currentUser = await getCurrentUser(base44);
+
+    const clientEmails = [
+      project?.client_email,
+      ...(Array.isArray(project?.client_emails) ? project.client_emails : [])
+    ].filter(Boolean).map(e => e.toLowerCase());
+    const isProjectClient = !!currentUser?.email && clientEmails.includes(currentUser.email.toLowerCase());
+
+    if (!project || (!isProjectClient && project.gallery_pin !== pin)) {
       return Response.json({ error: 'קוד שגוי' }, { status: 403 });
     }
 
@@ -18,7 +25,7 @@ Deno.serve(async (req) => {
     for (const photo of photos) {
        const isSelected = selectedPhotoIds.includes(photo.id);
        const comment = photoComments?.[photo.id] || '';
-       
+
        let updateData = {};
        if (photo.is_selected !== isSelected) updateData.is_selected = isSelected;
        if (photo.client_comment !== comment) updateData.client_comment = comment;
@@ -38,13 +45,47 @@ Deno.serve(async (req) => {
         status: 'editing'
     });
 
+    // Notify photographer
+    const selectedCount = selectedPhotoIds.length;
+    const clientName = project.client_name || currentUser?.email || 'הלקוח';
+    const projectTitle = project.project_name || project.title || 'הפרויקט';
+    const photographerEmail = project.created_by;
+
+    if (photographerEmail && selectedCount > 0) {
+      // Email to photographer
+      try {
+        await base44.integrations.Core.SendEmail({
+          to: photographerEmail,
+          subject: `📸 ${clientName} בחר ${selectedCount} תמונות לעריכה`,
+          body: `הלקוח ${clientName} בחר ${selectedCount} תמונות בפרויקט "${projectTitle}" לעריכה.\n\nכנס למערכת לצפייה ולהורדה.`,
+        });
+      } catch (e) {
+        console.error('Email notification failed:', e);
+      }
+
+      // Create Task for photographer
+      try {
+        await base44.asServiceRole.entities.Task.create({
+          title: `עריכת ${selectedCount} תמונות — ${projectTitle}`,
+          description: `הלקוח ${clientName} בחר תמונות. יש לערוך ולהעלות חזרה לפרויקט.`,
+          status: 'pending',
+          priority: 'high',
+          stage: 'editing',
+          project_id: projectId,
+          created_by: photographerEmail,
+        });
+      } catch (e) {
+        console.error('Task creation failed:', e);
+      }
+    }
+
     // Try syncing to Airtable directly
     if (project.airtable_record_id) {
         try {
             const { accessToken } = await base44.asServiceRole.connectors.getConnection("airtable");
-            const baseId = "appnKzD3XQO9K"; 
-            const tableId = "tblProjects"; 
-            
+            const baseId = "appnKzD3XQO9K";
+            const tableId = "tblProjects";
+
             const url = `https://api.airtable.com/v0/${baseId}/${tableId}`;
             const headers = {
                 'Authorization': `Bearer ${accessToken}`,
@@ -64,7 +105,6 @@ Deno.serve(async (req) => {
             });
         } catch (e) {
             console.error('Airtable sync failed:', e);
-            // Non-blocking error
         }
     }
 
@@ -73,3 +113,11 @@ Deno.serve(async (req) => {
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
+
+async function getCurrentUser(base44) {
+  try {
+    return await base44.auth.me();
+  } catch (_) {
+    return null;
+  }
+}

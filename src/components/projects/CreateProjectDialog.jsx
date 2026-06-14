@@ -15,6 +15,8 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }) {
   const navigate = useNavigate();
   const [projectName, setProjectName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
+  const [shootingDate, setShootingDate] = useState('');
+  const [workflowType, setWorkflowType] = useState('gallery');
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreateClient, setShowCreateClient] = useState(false);
@@ -30,6 +32,8 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }) {
   const resetForm = () => {
     setProjectName('');
     setClientEmail('');
+    setShootingDate('');
+    setWorkflowType('gallery');
     setFiles([]);
   };
 
@@ -50,6 +54,8 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }) {
         status: 'shooting_scheduled',
         payment_status: 'pending',
         raw_photos_count: 0,
+        shooting_date: shootingDate || undefined,
+        workflow_type: workflowType,
       });
 
       const folderRes = await base44.functions.invoke('createDriveFolder', { project_id: project.id });
@@ -109,6 +115,15 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }) {
           </div>
 
           <div>
+            <label className="text-sm font-medium text-slate-700 mb-1 block">תאריך העבודה</label>
+            <Input
+              type="date"
+              value={shootingDate}
+              onChange={(e) => setShootingDate(e.target.value)}
+            />
+          </div>
+
+          <div>
             <label className="text-sm font-medium text-slate-700 mb-1 block">בחירת לקוח *</label>
             <div className="flex gap-2">
               <Select value={clientEmail} onValueChange={setClientEmail} className="flex-1">
@@ -132,6 +147,30 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }) {
               >
                 <UserPlus className="w-4 h-4" />
               </Button>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-slate-700 mb-1 block">סוג הפרויקט</label>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { value: 'gallery', label: 'גלריה סופית', desc: 'מעלה תמונות ערוכות ושולח ללקוח קישור לגלריה' },
+                { value: 'selection', label: 'בחירת תמונות', desc: 'הלקוח בוחר מחומרי גלם, עורך ואז שולח גלריה' },
+              ].map(({ value, label, desc }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setWorkflowType(value)}
+                  className={`text-right p-3 rounded-xl border-2 transition-all ${
+                    workflowType === value
+                      ? 'border-[#FFD700] bg-amber-50'
+                      : 'border-slate-200 bg-white hover:border-slate-300'
+                  }`}
+                >
+                  <p className="text-sm font-bold text-slate-800">{label}</p>
+                  <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{desc}</p>
+                </button>
+              ))}
             </div>
           </div>
 

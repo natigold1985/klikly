@@ -35,6 +35,9 @@ export default function ClientGallery() {
             const me = await base44.auth.me();
             if (me?.role === 'admin' || me?.email === 'natigold04@gmail.com') {
                 handleLogin('__admin__');
+            } else if (me?.role === 'client') {
+                // Logged-in client: bypass PIN — getPublicGallery validates by email match
+                handleLogin('__client__');
             }
         }).catch(() => {});
     }, [id]);

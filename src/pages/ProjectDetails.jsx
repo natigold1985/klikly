@@ -237,7 +237,7 @@ export default function ProjectDetails() {
             <span className="text-sm font-bold text-slate-700">גישה מהירה</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <Link to={createPageUrl(`FileStorage?projectId=${project.id}`)} className="flex items-center justify-center gap-2 bg-black text-white rounded-xl px-3 py-3 text-sm font-semibold hover:bg-slate-800 transition-colors">
+            <Link to={createPageUrl(`FileStorage?project_id=${project.id}`)} className="flex items-center justify-center gap-2 bg-black text-white rounded-xl px-3 py-3 text-sm font-semibold hover:bg-slate-800 transition-colors">
               <Upload className="w-4 h-4 text-[#FFD700]" />
               העלאת קבצים
             </Link>
@@ -433,7 +433,7 @@ export default function ProjectDetails() {
             </Card>
           </Link>
           
-          <Link to={createPageUrl(`FileStorage?projectId=${project.id}`)} className="block">
+          <Link to={createPageUrl(`FileStorage?project_id=${project.id}`)} className="block">
             <Card className="bg-[#0a0a0a] border-white/10 hover:border-[#FFD700]/30 hover:bg-white/5 transition-all shadow-xl cursor-pointer">
               <CardContent className="p-5 flex items-center gap-4 text-white">
                 <div className="p-2 bg-white/5 border border-white/10 rounded-lg text-[#FFD700]">
@@ -443,6 +443,20 @@ export default function ProjectDetails() {
               </CardContent>
             </Card>
           </Link>
+
+          {liveSelectedCount > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-3">
+              <CheckCircle2 className="w-5 h-5 text-amber-600 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-amber-800">
+                  הלקוח בחר {liveSelectedCount} תמונות לעריכה
+                </p>
+                <Link to={createPageUrl(`FileStorage?project_id=${project.id}`)} className="text-xs text-amber-600 underline">
+                  עבור לניהול קבצים ←
+                </Link>
+              </div>
+            </div>
+          )}
 
           {/* Google Drive Folder */}
           <Card className="bg-white border-slate-200 shadow-sm">

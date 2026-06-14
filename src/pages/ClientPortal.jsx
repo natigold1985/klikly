@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Folder, Mail, Cake, CheckCircle2, Bell, BellOff, ChevronLeft, Sparkles } from 'lucide-react';
+import { Folder, Mail, Cake, CheckCircle2, Bell, BellOff, ChevronLeft, Sparkles, Images } from 'lucide-react';
 
 export default function ClientPortal() {
   const queryClient = useQueryClient();
@@ -18,6 +18,14 @@ export default function ClientPortal() {
     queryFn: async () => {
       const res = await base44.functions.invoke('clientNewsletterPrefs', { action: 'get' });
       return res.data;
+    },
+  });
+
+  const { data: myProjects = [] } = useQuery({
+    queryKey: ['clientSelectionProjects'],
+    queryFn: async () => {
+      const me = await base44.auth.me();
+      return base44.entities.Project.filter({ client_email: me.email, workflow_type: 'selection' }, '-shooting_date', 50);
     },
   });
 
@@ -180,6 +188,35 @@ export default function ClientPortal() {
             </CardContent>
           </Card>
 
+        </div>
+      )}
+
+      {myProjects.length > 0 && (
+        <div className="mt-10">
+          <h2 className="text-lg font-bold text-slate-900 mb-4">הפרויקטים שלי — בחירת תמונות</h2>
+          <div className="space-y-3">
+            {myProjects.map(project => (
+              <Card key={project.id} className="border border-slate-200 rounded-2xl shadow-sm">
+                <CardContent className="p-5 flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="font-bold text-slate-900 truncate">{project.project_name}</p>
+                    <p className="text-sm text-slate-500">
+                      {project.shooting_date
+                        ? new Date(project.shooting_date).toLocaleDateString('he-IL')
+                        : ''}
+                      {project.raw_photos_count ? ` · ${project.raw_photos_count} תמונות` : ''}
+                    </p>
+                  </div>
+                  <Link to={`/gallery/${project.id}`} className="flex-shrink-0">
+                    <Button size="sm" className="bg-[#D4AF37] hover:bg-[#C5A028] text-black border-0 gap-1.5">
+                      <Images className="w-4 h-4" />
+                      בחירת תמונות
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       )}
     </div>

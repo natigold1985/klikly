@@ -8,8 +8,14 @@ Deno.serve(async (req) => {
     const project = await base44.asServiceRole.entities.Project.get(projectId);
     const currentUser = await getCurrentUser(base44);
     const isAdmin = currentUser?.role === 'admin' || currentUser?.email === 'natigold04@gmail.com';
-    
-    if (!project || (!isAdmin && project.gallery_pin !== pin)) {
+
+    const clientEmails = [
+      project?.client_email,
+      ...(Array.isArray(project?.client_emails) ? project.client_emails : [])
+    ].filter(Boolean).map(e => e.toLowerCase());
+    const isProjectClient = !!currentUser?.email && clientEmails.includes(currentUser.email.toLowerCase());
+
+    if (!project || (!isAdmin && !isProjectClient && project.gallery_pin !== pin)) {
       // BOLA Protection & Security Logging
       await base44.asServiceRole.entities.SystemLog.create({
         action: 'security_violation',
