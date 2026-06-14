@@ -134,15 +134,8 @@ export default function Layout({ children, currentPageName }) {
   // ── Client view: sidebar with options + main content
   if (isClient) {
     const clientNav = [
-      { name: 'לוח ניהול', icon: LayoutDashboard, page: 'Dashboard' },
-      { name: 'לידים', icon: Users, page: 'Leads' },
-      { name: 'אנשי קשר', icon: BookUser, page: 'Contacts' },
-      { name: 'הצעות מחיר', icon: FileText, page: 'Quotes' },
-      { name: 'פרויקטים', icon: Briefcase, page: 'Projects' },
-      { name: 'ספקי משנה', icon: UserCog, page: 'SubVendors' },
-      { name: 'הגלריה שלי', icon: Folder, page: 'FileStorage' },
-      { name: 'משימות', icon: CheckCircle2, page: 'Tasks' },
-      { name: 'אנליטיקס', icon: BarChart3, page: 'Analytics' },
+      { name: 'אחסון קבצים', icon: Folder, page: 'FileStorage' },
+      { name: 'ניוזלטר וברכות', icon: Mail, page: 'ClientNewsletter' },
     ];
 
     return (
@@ -285,7 +278,7 @@ export default function Layout({ children, currentPageName }) {
           className="md:hidden fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-2xl border-t border-white/10 z-50 flex items-stretch shadow-[0_-10px_30px_rgba(0,0,0,0.8)] px-2"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)', height: 'calc(72px + env(safe-area-inset-bottom))' }}
         >
-          {mobileNavItems.map((item) => {
+          {clientNav.map((item) => {
             const Icon = item.icon;
             const isActive = pageName === item.page;
             return (

@@ -33,6 +33,7 @@ import GalleryDemo from './pages/demo';
 import SystemUpdates from './pages/SystemUpdates';
 import LeadsDashboard from './pages/LeadsDashboard';
 import LinkedInOutreach from './pages/LinkedInOutreach';
+import ClientNewsletter from './pages/ClientNewsletter';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -188,6 +189,11 @@ const AuthenticatedApp = () => {
       <Route path="/LinkedInOutreach" element={
         <LayoutWrapper currentPageName="LinkedInOutreach">
           <LinkedInOutreach />
+        </LayoutWrapper>
+      } />
+      <Route path="/ClientNewsletter" element={
+        <LayoutWrapper currentPageName="ClientNewsletter">
+          <ClientNewsletter />
         </LayoutWrapper>
       } />
       {Object.entries(Pages).map(([path, Page]) => (
