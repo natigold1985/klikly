@@ -37,6 +37,8 @@ export default function Layout({ children, currentPageName }) {
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const { data: settings } = useQuery({

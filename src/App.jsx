@@ -77,6 +77,8 @@ const AuthenticatedApp = () => {
       return member;
     },
     enabled: !!user?.email,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const isAllowedUser = user && (
