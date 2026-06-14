@@ -24,8 +24,13 @@ export default function CreateClientDialog({ open, onOpenChange, onCreated }) {
             ? 'הלקוח כבר היה קיים — שויך אליך בהצלחה'
             : 'הלקוח הוזמן בהצלחה — מייל הזמנה נשלח'
         );
+        const created = {
+          full_name: form.full_name.trim(),
+          email: form.email.trim().toLowerCase(),
+          phone: form.phone || '',
+        };
         setForm({ full_name: '', email: '', phone: '' });
-        onCreated?.();
+        onCreated?.(created);
         onOpenChange(false);
       } else {
         toast.error(res.data?.error || 'שגיאה ביצירת הלקוח');

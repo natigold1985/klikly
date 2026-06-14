@@ -157,18 +157,18 @@ export default function Projects() {
       {/* Filters */}
       <Card className="bg-white border-[#FFD700] shadow-[0_4px_20px_rgba(0,0,0,0.05)] rounded-2xl">
         <CardContent className="p-4">
-          <div className="flex gap-4">
-            <div className="flex-1 relative">
+          <div className="flex flex-col md:flex-row gap-3">
+            <div className="flex-1 relative min-w-0">
               <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
               <Input
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="חיפוש לפי שם לקוח או אימייל..."
-                className="pr-10"
+                className="pr-10 w-full"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-56">
+              <SelectTrigger className="w-full md:w-56">
                 <SelectValue placeholder="כל הסטטוסים" />
               </SelectTrigger>
               <SelectContent>
@@ -202,22 +202,22 @@ export default function Projects() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProjects.map((project) => (
-            <Card key={project.id} className="bg-white border-slate-200 hover:border-[#FFD700] hover:shadow-[0_8px_30px_rgba(255,215,0,0.15)] transition-all duration-300 cursor-pointer group rounded-2xl">
-              <CardContent className="p-6">
+            <Card key={project.id} className="bg-white border-slate-200 hover:border-[#FFD700] hover:shadow-[0_8px_30px_rgba(255,215,0,0.15)] transition-all duration-300 cursor-pointer group rounded-2xl overflow-hidden">
+              <CardContent className="p-4 md:p-5">
                 <Link to={createPageUrl(`ProjectDetails?id=${project.id}`)} className="block hover:opacity-80">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-slate-50 border border-slate-200 text-[#FFD700] flex items-center justify-center group-hover:bg-[#FFD700]/10 group-hover:border-[#FFD700] transition-colors">
+                  <div className="flex items-start justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-10 h-10 rounded-lg bg-slate-50 border border-slate-200 text-[#FFD700] flex items-center justify-center group-hover:bg-[#FFD700]/10 group-hover:border-[#FFD700] transition-colors shrink-0">
                         {getStatusIcon(project.status)}
                       </div>
-                      <div>
-                        <h3 className="font-bold text-slate-800 group-hover:text-[#C5A028] transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-bold text-slate-800 group-hover:text-[#C5A028] transition-colors truncate">
                           {project.project_name || project.client_name}
                         </h3>
-                        <p className="text-sm text-slate-600">{project.client_name}</p>
+                        <p className="text-sm text-slate-600 truncate">{project.client_name}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       {getStatusBadge(project.status)}
                       {!isClient && (
                         <button
@@ -255,17 +255,19 @@ export default function Projects() {
                 </div>
 
                 {!isClient && (
-                  <div className="pt-4 mt-3 border-t border-slate-800 flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex gap-2">
-                      <DeliveryLinkButton project={project} />
-                      <Link to={createPageUrl(`ProjectTasks?projectId=${project.id}`)} onClick={(e) => e.stopPropagation()}>
-                        <Button variant="secondary" size="sm" className="text-xs gap-1 bg-slate-800 text-slate-300 hover:bg-slate-700 border-none">
+                  <div className="pt-4 mt-3 border-t border-slate-200 space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="min-w-0 [&_button]:w-full [&_button]:h-10 [&_button]:text-xs">
+                        <DeliveryLinkButton project={project} />
+                      </div>
+                      <Link className="min-w-0" to={createPageUrl(`ProjectTasks?projectId=${project.id}`)} onClick={(e) => e.stopPropagation()}>
+                        <Button variant="secondary" size="sm" className="w-full h-10 text-xs gap-1 bg-slate-900 text-white hover:bg-slate-800 border-none">
                           <ListTodo className="w-3 h-3" />
                           משימות
                         </Button>
                       </Link>
-                      <Link to={createPageUrl(`FileStorage?project_id=${project.id}`)} onClick={(e) => e.stopPropagation()}>
-                        <Button variant="secondary" size="sm" className="text-xs gap-1 bg-[#FFD700]/10 text-[#C5A028] hover:bg-[#FFD700]/20 border border-[#FFD700]/30">
+                      <Link className="min-w-0" to={createPageUrl(`FileStorage?project_id=${project.id}`)} onClick={(e) => e.stopPropagation()}>
+                        <Button variant="secondary" size="sm" className="w-full h-10 text-xs gap-1 bg-[#FFD700]/10 text-[#8a6a00] hover:bg-[#FFD700]/20 border border-[#FFD700]/30">
                           <FolderOpen className="w-3 h-3" />
                           קבצים
                         </Button>
@@ -273,7 +275,7 @@ export default function Projects() {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        className="text-xs gap-1 border-dashed border-slate-700 bg-transparent text-slate-400 hover:text-white"
+                        className="w-full h-10 text-xs gap-1 border-dashed border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
                         onClick={(e) => {
                           e.stopPropagation();
                           setUploadProject(project);
@@ -295,10 +297,10 @@ export default function Projects() {
                           window.open(res.data.waLink, '_blank');
                         }).catch((err) => toast.error("שגיאה: " + err.message, { id: `wa-${project.id}` }));
                       }}
-                      className="flex items-center gap-1.5 bg-[#25D366] hover:bg-[#128C7E] text-white shadow-lg shadow-[#25D366]/20 px-3 py-1.5 h-8 transition-all duration-300 font-medium rounded-full text-xs"
+                      className="w-full flex items-center gap-2 bg-[#25D366] hover:bg-[#128C7E] text-white shadow-lg shadow-[#25D366]/20 h-11 transition-all duration-300 font-bold rounded-xl text-sm"
                     >
-                      <MessageCircle className="w-3.5 h-3.5" />
-                      <span className="font-bold">{project.payment_status !== 'paid' ? 'תזכורת תשלום' : 'הודעת משלוח'}</span>
+                      <MessageCircle className="w-4 h-4" />
+                      <span>{project.payment_status !== 'paid' ? 'תזכורת תשלום' : 'הודעת משלוח'}</span>
                     </Button>
                   </div>
                 )}

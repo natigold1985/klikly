@@ -177,9 +177,20 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }) {
         <CreateClientDialog
           open={showCreateClient}
           onOpenChange={setShowCreateClient}
-          onCreated={() => {
+          onCreated={(created) => {
+            if (created?.email) {
+              queryClient.setQueryData(['projectClients'], (prev = []) => {
+                if (prev.some((client) => (client.email || '').toLowerCase() === created.email.toLowerCase())) return prev;
+                return [
+                  { id: `temp-${created.email}`, email: created.email, full_name: created.full_name || created.email, phone: created.phone || '', role: 'client', is_active: true },
+                  ...prev,
+                ];
+              });
+              setClientEmail(created.email);
+            } else {
+              setClientEmail('');
+            }
             queryClient.invalidateQueries({ queryKey: ['projectClients'] });
-            setClientEmail('');
             setShowCreateClient(false);
           }}
         />

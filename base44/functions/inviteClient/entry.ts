@@ -71,12 +71,37 @@ Deno.serve(async (req) => {
     const galleryUrl = `${appBaseUrl}/FileStorage`;
     const photographerName = photographer.full_name || photographer.email;
 
+    const existingTeamMembers = await base44.asServiceRole.entities.TeamMember.filter({ email: normalizedEmail });
+    if (existingTeamMembers.length > 0) {
+      await base44.asServiceRole.entities.TeamMember.update(existingTeamMembers[0].id, {
+        full_name,
+        phone: phone || existingTeamMembers[0].phone || '',
+        role: 'client',
+        assigned_photographer_email: photographer.email,
+        is_active: true,
+      });
+    } else {
+      await base44.asServiceRole.entities.TeamMember.create({
+        email: normalizedEmail,
+        emails: [normalizedEmail],
+        full_name,
+        phone: phone || '',
+        role: 'client',
+        assigned_photographer_email: photographer.email,
+        is_active: true,
+        allowed_pages: ['FileStorage', 'ClientNewsletter'],
+      });
+    }
+
     // Check if user already exists
     const existingUsers = await base44.asServiceRole.entities.User.filter({ email: normalizedEmail });
     if (existingUsers.length > 0) {
       const existing = existingUsers[0];
-      // SECURITY: never demote an admin or another photographer to client
-      if (existing.role && existing.role !== 'client') {
+      // SECURITY: never demote an admin or another photographer to client.
+      // If a matching TeamMember client record already exists, this is a previously invited client
+      // whose auth role may still be stale, so allow the sync below to correct it.
+      const hasClientTeamMember = existingTeamMembers.some((member) => member.role === 'client');
+      if (existing.role && existing.role !== 'client' && !hasClientTeamMember) {
         return Response.json(
           { error: 'משתמש זה רשום כבר כמשתמש פעיל במערכת' },
           { status: 409 }
