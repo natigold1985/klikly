@@ -45,10 +45,40 @@ export default function DriveProjectView({ project, onProjectDeleted }) {
     enabled: !!project.id && !!project.drive_folder_url,
   });
 
+  const { data: savedPhotos = [], isLoading: loadingSavedPhotos } = useQuery({
+    queryKey: ['projectSavedPhotos', project.id],
+    queryFn: () => base44.entities.Photo.filter({ project_id: project.id }, '-created_date', 1000),
+    enabled: !!project.id,
+  });
+
   const serverFiles = data?.files || [];
-  // Merge optimistic on top, dedupe by id
+  const savedFiles = savedPhotos.map((photo) => {
+    const name = photo.file_name || photo.file_url?.split('/').pop() || 'קובץ פרויקט';
+    const lower = String(name).toLowerCase();
+    const isVideo = ['.mp4', '.mov', '.webm', '.avi', '.mkv'].some((ext) => lower.endsWith(ext));
+    const isAudio = ['.mp3', '.wav', '.m4a', '.aac', '.ogg'].some((ext) => lower.endsWith(ext));
+    const isDocument = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv'].some((ext) => lower.endsWith(ext));
+    return {
+      id: `photo-${photo.id}`,
+      photo_id: photo.id,
+      source: 'photo_entity',
+      name,
+      mime_type: photo.mime_type || '',
+      size: photo.file_size,
+      thumbnail_url: photo.thumbnail_url || photo.file_url,
+      view_url: photo.file_url,
+      download_url: photo.file_url,
+      is_image: !isVideo && !isAudio && !isDocument,
+      is_video: isVideo,
+      is_audio: isAudio,
+      is_document: isDocument,
+    };
+  });
+
+  // Merge optimistic + saved project files + Drive files, dedupe by URL/ID
   const files = [
     ...optimistic.filter((o) => !serverFiles.some((s) => s.id === o.id)),
+    ...savedFiles.filter((saved) => !serverFiles.some((drive) => drive.download_url === saved.download_url || drive.view_url === saved.view_url)),
     ...serverFiles,
   ];
 
@@ -72,7 +102,7 @@ export default function DriveProjectView({ project, onProjectDeleted }) {
   };
 
   const handleDownload = (file) => {
-    window.open(file.download_url, '_blank');
+    window.open(file.download_url || file.view_url, '_blank');
   };
 
   const handleDownloadAll = (filesToDownload) => {
@@ -114,7 +144,13 @@ export default function DriveProjectView({ project, onProjectDeleted }) {
   };
 
   const handleDeleteFile = async (file) => {
-    if (!window.confirm(`למחוק את "${file.name}" מ-Google Drive?`)) return;
+    if (!window.confirm(`למחוק את "${file.name}" מהפרויקט?`)) return;
+    if (file.source === 'photo_entity' && file.photo_id) {
+      await base44.entities.Photo.delete(file.photo_id);
+      toast.success('הקובץ נמחק מהפרויקט');
+      queryClient.invalidateQueries({ queryKey: ['projectSavedPhotos', project.id] });
+      return;
+    }
     await base44.functions.invoke('deleteDriveItem', {
       project_id: project.id,
       file_id: file.id,
@@ -125,39 +161,54 @@ export default function DriveProjectView({ project, onProjectDeleted }) {
     refetch();
   };
 
-  // === No folder yet — show prominent Connect/Create button + Link existing ===
+  // === No Drive folder yet — still show files saved on the project ===
   if (!project.drive_folder_url) {
     return (
-      <Card className="border-2 border-dashed border-amber-300 bg-amber-50/30">
-        <CardContent className="p-12 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-white rounded-2xl shadow-sm">
-            <GoogleDriveIcon className="w-10 h-10" />
-          </div>
-          <h3 className="text-xl font-bold text-slate-900 mb-2">
-            חבר תיקייה ב-Google Drive
-          </h3>
-          <p className="text-sm text-slate-600 mb-6 max-w-md mx-auto leading-relaxed">
-            צור תיקייה אוטומטית עם תתי-תיקיות (גלמים, ערוכות, בחירת לקוח, מסמכים) או קשר תיקייה קיימת. הקבצים נשארים אצלך ב-Drive, מבודדים לפרויקט הזה בלבד.
-          </p>
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            <Button onClick={handleCreateFolder} disabled={creating} className="gap-2">
-              {creating ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <GoogleDriveIcon className="w-5 h-5" />
-              )}
-              {creating ? 'יוצר...' : 'צור תיקייה אוטומטית'}
-            </Button>
-            <LinkDriveFolderDialog
+      <div className="space-y-5">
+        <Card>
+          <CardContent className="p-6">
+            <DriveFilesGrid
+              files={files}
               project={project}
-              onLinked={() => {
-                queryClient.invalidateQueries({ queryKey: ['driveProjects'] });
-                queryClient.invalidateQueries({ queryKey: ['driveFiles', project.id] });
-              }}
+              loading={loadingSavedPhotos}
+              onDownload={handleDownload}
+              onDownloadAll={handleDownloadAll}
+              onDeleteFile={handleDeleteFile}
             />
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        <Card className="border-2 border-dashed border-amber-300 bg-amber-50/30">
+          <CardContent className="p-8 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-white rounded-2xl shadow-sm">
+              <GoogleDriveIcon className="w-10 h-10" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">
+              חבר תיקייה ב-Google Drive
+            </h3>
+            <p className="text-sm text-slate-600 mb-6 max-w-md mx-auto leading-relaxed">
+              אפשר ליצור או לקשר תיקיית Drive לפרויקט הזה. קבצים שכבר נשמרו בפרויקט מופיעים למעלה.
+            </p>
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              <Button onClick={handleCreateFolder} disabled={creating} className="gap-2">
+                {creating ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <GoogleDriveIcon className="w-5 h-5" />
+                )}
+                {creating ? 'יוצר...' : 'צור תיקייה אוטומטית'}
+              </Button>
+              <LinkDriveFolderDialog
+                project={project}
+                onLinked={() => {
+                  queryClient.invalidateQueries({ queryKey: ['driveProjects'] });
+                  queryClient.invalidateQueries({ queryKey: ['driveFiles', project.id] });
+                }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -273,7 +324,7 @@ export default function DriveProjectView({ project, onProjectDeleted }) {
           <DriveFilesGrid
             files={files}
             project={project}
-            loading={isLoading}
+            loading={isLoading || loadingSavedPhotos}
             onDownload={handleDownload}
             onDownloadAll={handleDownloadAll}
             onDeleteFile={handleDeleteFile}

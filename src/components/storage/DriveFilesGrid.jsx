@@ -171,6 +171,7 @@ function FileTile({ file, project, onDownload, onDeleteFile, onOpen }) {
   };
 
   const getShareLink = async () => {
+    if (file.source === 'photo_entity') return file.view_url || file.download_url;
     setSharing(true);
     const res = await base44.functions.invoke('getDriveShareLink', {
       project_id: project?.id,
