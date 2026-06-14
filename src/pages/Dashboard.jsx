@@ -73,7 +73,7 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    if (isClient) window.location.href = '/FileStorage';
+    if (isClient) window.location.href = '/ClientPortal';
   }, [isClient]);
 
   // KPIs

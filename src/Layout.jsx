@@ -52,11 +52,14 @@ export default function Layout({ children, currentPageName }) {
   const isClient = user?.role === 'client' && !isAdmin;
 
   // Desktop Sidebar Items
+  const clientNav = [
+    { name: 'לוח ניהול', icon: LayoutDashboard, page: 'ClientPortal' },
+    { name: 'הפרויקטים שלי', icon: Briefcase, page: 'Projects' },
+    { name: 'אחסון קבצים', icon: Folder, page: 'FileStorage' },
+  ];
+
   const sidebarNavigation = isClient
-    ? [
-        { name: 'האזור שלי', icon: Home, page: 'ClientPortal' },
-        { name: 'קבצים להורדה', icon: Folder, page: 'FileStorage' },
-      ]
+    ? clientNav
     : [
         { name: 'לוח ניהול', icon: LayoutDashboard, page: 'Dashboard' },
         { name: 'לידים', icon: Users, page: 'Leads' },
@@ -70,20 +73,21 @@ export default function Layout({ children, currentPageName }) {
         { name: 'משימות', icon: CheckCircle2, page: 'Tasks' },
         { name: 'אנליטיקס', icon: BarChart3, page: 'Analytics' },
         { name: 'LinkedIn Outreach', icon: Linkedin, page: 'LinkedInOutreach' },
-        ...(isAdmin ? [{ name: 'ניוזלטר וברכות', icon: Mail, page: 'Newsletter' }] : []),
+        { name: 'ניוזלטר וברכות', icon: Mail, page: 'Newsletter' },
         ...(isAdmin ? [
           { name: 'משתמשים', icon: Shield, page: 'AdminUsers' },
           { name: 'מטריצת הרשאות', icon: Shield, page: 'RBACMatrix' },
+          { name: 'הגדרות', icon: SettingsIcon, page: 'Settings' },
         ] : []),
         { name: 'עדכוני מערכת', icon: Megaphone, page: 'SystemUpdates' },
-        { name: 'הגדרות', icon: SettingsIcon, page: 'Settings' },
       ];
 
   // Mobile Bottom Navigation Items — order: Leads → Storage → Tasks → Projects
   const mobileNavItems = isClient
     ? [
-        { name: 'ראשי', icon: Home, page: 'ClientPortal' },
-        { name: 'קבצים', icon: Folder, page: 'FileStorage' },
+        { name: 'ראשי', icon: LayoutDashboard, page: 'ClientPortal' },
+        { name: 'פרויקטים', icon: Briefcase, page: 'Projects' },
+        { name: 'גלריות', icon: Folder, page: 'FileStorage' },
       ]
     : [
         { name: 'לידים', icon: Users, page: 'Leads' },
@@ -133,10 +137,6 @@ export default function Layout({ children, currentPageName }) {
 
   // ── Client view: sidebar with options + main content
   if (isClient) {
-    const clientNav = [
-      { name: 'האזור שלי', icon: Home, page: 'ClientPortal' },
-      { name: 'קבצים להורדה', icon: Folder, page: 'FileStorage' },
-    ];
 
     return (
       <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-900" dir="rtl">
@@ -381,7 +381,7 @@ export default function Layout({ children, currentPageName }) {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-white truncate">{user.full_name}</p>
-                    <p className="text-xs text-white/40 truncate">{isAdmin ? 'מנהל' : 'משתמש'}</p>
+                    <p className="text-xs text-white/40 truncate">{isAdmin ? 'מנהל' : 'צלם'}</p>
                   </div>
                 </div>
                 <button
@@ -439,7 +439,7 @@ export default function Layout({ children, currentPageName }) {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-white truncate">{user.full_name}</p>
-                <p className="text-xs text-white/40 truncate">{isAdmin ? 'מנהל מערכת' : 'לקוח'}</p>
+                <p className="text-xs text-white/40 truncate">{isAdmin ? 'מנהל מערכת' : 'צלם'}</p>
               </div>
             </div>
             <button

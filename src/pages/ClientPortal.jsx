@@ -25,7 +25,7 @@ export default function ClientPortal() {
     queryKey: ['clientSelectionProjects'],
     queryFn: async () => {
       const me = await base44.auth.me();
-      return base44.entities.Project.filter({ client_email: me.email, workflow_type: 'selection' }, '-shooting_date', 50);
+      return base44.entities.Project.filter({ client_email: me.email }, '-shooting_date', 50);
     },
   });
 
@@ -193,7 +193,7 @@ export default function ClientPortal() {
 
       {myProjects.length > 0 && (
         <div className="mt-10">
-          <h2 className="text-lg font-bold text-slate-900 mb-4">הפרויקטים שלי — בחירת תמונות</h2>
+          <h2 className="text-lg font-bold text-slate-900 mb-4">הפרויקטים שלי</h2>
           <div className="space-y-3">
             {myProjects.map(project => (
               <Card key={project.id} className="border border-slate-200 rounded-2xl shadow-sm">
@@ -210,7 +210,7 @@ export default function ClientPortal() {
                   <Link to={`/gallery/${project.id}`} className="flex-shrink-0">
                     <Button size="sm" className="bg-[#D4AF37] hover:bg-[#C5A028] text-black border-0 gap-1.5">
                       <Images className="w-4 h-4" />
-                      בחירת תמונות
+                      לצפייה בגלריה
                     </Button>
                   </Link>
                 </CardContent>
