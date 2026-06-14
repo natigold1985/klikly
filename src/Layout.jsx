@@ -25,7 +25,8 @@ import {
   Mail,
   Megaphone,
   MessageCircle,
-  Linkedin
+  Linkedin,
+  Home
 } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
@@ -53,6 +54,7 @@ export default function Layout({ children, currentPageName }) {
   // Desktop Sidebar Items
   const sidebarNavigation = isClient
     ? [
+        { name: 'האזור שלי', icon: Home, page: 'ClientPortal' },
         { name: 'קבצים להורדה', icon: Folder, page: 'FileStorage' },
       ]
     : [
@@ -80,10 +82,8 @@ export default function Layout({ children, currentPageName }) {
   // Mobile Bottom Navigation Items — order: Leads → Storage → Tasks → Projects
   const mobileNavItems = isClient
     ? [
-        { name: 'לידים', icon: Users, page: 'Leads' },
-        { name: 'גלריה', icon: Folder, page: 'FileStorage' },
-        { name: 'משימות', icon: CheckCircle2, page: 'Tasks' },
-        { name: 'פרויקטים', icon: Briefcase, page: 'Projects' },
+        { name: 'ראשי', icon: Home, page: 'ClientPortal' },
+        { name: 'קבצים', icon: Folder, page: 'FileStorage' },
       ]
     : [
         { name: 'לידים', icon: Users, page: 'Leads' },
@@ -134,8 +134,8 @@ export default function Layout({ children, currentPageName }) {
   // ── Client view: sidebar with options + main content
   if (isClient) {
     const clientNav = [
-      { name: 'אחסון קבצים', icon: Folder, page: 'FileStorage' },
-      { name: 'ניוזלטר וברכות', icon: Mail, page: 'ClientNewsletter' },
+      { name: 'האזור שלי', icon: Home, page: 'ClientPortal' },
+      { name: 'קבצים להורדה', icon: Folder, page: 'FileStorage' },
     ];
 
     return (
