@@ -37,7 +37,7 @@ function getWhatsAppLink(lead) {
   const cleanPhone = String(lead.phone || '').replace(/[^0-9]/g, '');
   const phone = cleanPhone.startsWith('0') ? `972${cleanPhone.slice(1)}` : cleanPhone;
   const text = lead.auto_followup_message || (lead.name ? `היי ${lead.name}, רציתי לבדוק אם קיבלת את הפרטים ששלחתי. אשמח לענות על כל שאלה מחכה לשמוע ממך! 📸` : 'היי, רציתי לבדוק אם קיבלת את הפרטים ששלחתי. אשמח לענות על כל שאלה מחכה לשמוע ממך! 📸');
-  return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+  return `whatsapp://send?phone=${phone}&text=${encodeURIComponent(text)}`;
 }
 
 function isDueLead(lead) {
@@ -182,7 +182,15 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
 
   const handleSend = (lead) => {
     markSentMutation.mutate(lead);
-    window.open(getWhatsAppLink(lead), '_blank');
+    // Launch WhatsApp via a hidden iframe so the desktop app opens WITHOUT
+    // navigating away from our system or leaving a broken tab behind.
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = getWhatsAppLink(lead);
+    document.body.appendChild(iframe);
+    setTimeout(() => {
+      try { document.body.removeChild(iframe); } catch (e) { /* already removed */ }
+    }, 2000);
     setStatusDialogLead(lead);
   };
 
