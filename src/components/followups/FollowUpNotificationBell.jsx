@@ -182,9 +182,8 @@ export default function FollowUpNotificationBell({ user, isAdmin = false }) {
 
   const handleSend = (lead) => {
     markSentMutation.mutate(lead);
-    window.location.href = getWhatsAppLink(lead);
-    // Show status dialog after a short delay (after WhatsApp opens)
-    setTimeout(() => setStatusDialogLead(lead), 1500);
+    window.open(getWhatsAppLink(lead), '_blank');
+    setStatusDialogLead(lead);
   };
 
   const handleMarkSent = (lead) => {
