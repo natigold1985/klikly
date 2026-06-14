@@ -8,7 +8,7 @@ const ACTIONS = [
   { label: 'ליד חדש', icon: UserPlus, link: 'Leads', color: 'from-blue-500 to-blue-600' },
   { label: 'הצעת מחיר', icon: FileText, link: 'Quotes', color: 'from-purple-500 to-purple-600' },
   { label: 'פרויקט חדש', icon: FolderPlus, link: 'Projects', color: 'from-emerald-500 to-emerald-600' },
-  { label: 'שלח קבצים', icon: Send, link: 'FileStorage', color: 'from-amber-500 to-amber-600' },
+  { label: 'שלח קבצים', icon: Send, link: 'FileStorage', color: 'from-[#FFD700] to-[#C5A028]' },
   { label: 'Import Hub', icon: Upload, link: 'LeadImport', color: 'from-slate-700 to-slate-900' },
 ];
 
