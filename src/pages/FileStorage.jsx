@@ -4,18 +4,20 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, ArrowRight, FolderOpen, Plus } from 'lucide-react';
+import { Search, ArrowRight, FolderOpen, Plus, UserPlus } from 'lucide-react';
 import PixiesetGallery from '../components/storage/PixiesetGallery';
 import PhotographerDisclaimer from '../components/storage/PhotographerDisclaimer';
 import DriveProjectView from '../components/storage/DriveProjectView';
 import GoogleDriveIcon from '../components/storage/GoogleDriveIcon';
 import CreateProjectDialog from '../components/projects/CreateProjectDialog';
 import ProjectStorageCard from '../components/storage/ProjectStorageCard';
+import AddUserDialog from '../components/admin/AddUserDialog';
 
 export default function FileStorage() {
   const [selectedProject, setSelectedProject] = useState(null);
   const [search, setSearch] = useState('');
   const [showCreateProject, setShowCreateProject] = useState(false);
+  const [showAddClient, setShowAddClient] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
@@ -153,10 +155,20 @@ export default function FileStorage() {
             מחובר ל-Google Drive · תיקייה ייחודית לכל פרויקט · גלריה ובחירת לקוח
           </p>
         </div>
-        <Button onClick={() => setShowCreateProject(true)} className="gap-2 bg-[#FFD700] text-black hover:bg-[#E5B800]">
-          <Plus className="w-5 h-5" />
-          פרויקט חדש
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            onClick={() => setShowAddClient(true)}
+            variant="outline"
+            className="gap-2 border-[#FFD700] text-[#b38f2d] bg-white hover:bg-amber-50 font-bold"
+          >
+            <UserPlus className="w-5 h-5" />
+            הוסף לקוח
+          </Button>
+          <Button onClick={() => setShowCreateProject(true)} className="gap-2 bg-[#FFD700] text-black hover:bg-[#E5B800]">
+            <Plus className="w-5 h-5" />
+            פרויקט חדש
+          </Button>
+        </div>
       </div>
 
       <PhotographerDisclaimer />
@@ -201,6 +213,17 @@ export default function FileStorage() {
         onCreated={() => {
           queryClient.invalidateQueries({ queryKey: ['driveProjects'] });
           queryClient.invalidateQueries({ queryKey: ['projects'] });
+        }}
+      />
+
+      <AddUserDialog
+        open={showAddClient}
+        onOpenChange={setShowAddClient}
+        defaultRole="client"
+        onCreated={() => {
+          // Refresh client lists so the new client is available everywhere immediately.
+          queryClient.invalidateQueries({ queryKey: ['projectClients'] });
+          queryClient.invalidateQueries({ queryKey: ['adminAllUsers'] });
         }}
       />
     </div>

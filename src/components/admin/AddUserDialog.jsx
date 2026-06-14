@@ -7,9 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { UserPlus, Loader2 } from 'lucide-react';
 
-export default function AddUserDialog({ open, onOpenChange, onCreated }) {
-  const [form, setForm] = useState({ full_name: '', email: '', phone: '', role: 'user' });
+export default function AddUserDialog({ open, onOpenChange, onCreated, defaultRole = 'user' }) {
+  const [form, setForm] = useState({ full_name: '', email: '', phone: '', role: defaultRole });
   const [loading, setLoading] = useState(false);
+
+  // Keep the role in sync whenever the dialog opens with a specific defaultRole.
+  React.useEffect(() => {
+    if (open) setForm((prev) => ({ ...prev, role: defaultRole }));
+  }, [open, defaultRole]);
 
   const handleSubmit = async () => {
     if (!form.full_name || !form.email || !form.role) {
@@ -32,8 +37,12 @@ export default function AddUserDialog({ open, onOpenChange, onCreated }) {
           ? 'הלקוח נוסף ומייל הזמנה לגלריה נשלח אליו'
           : 'המשתמש הוזמן בהצלחה — מייל הזמנה נשלח'
       );
-      setForm({ full_name: '', email: '', phone: '', role: 'user' });
-      onCreated?.();
+      const createdEmail = form.email.trim().toLowerCase();
+      const createdRole = form.role;
+      const createdName = form.full_name;
+      const createdPhone = form.phone;
+      setForm({ full_name: '', email: '', phone: '', role: defaultRole });
+      onCreated?.({ email: createdEmail, role: createdRole, full_name: createdName, phone: createdPhone });
       onOpenChange(false);
     } catch (e) {
       console.error('Error:', e);

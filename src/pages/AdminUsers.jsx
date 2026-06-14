@@ -76,7 +76,7 @@ export default function AdminUsers() {
 
   const isAdmin = user?.role === 'admin' || user?.email === 'natigold04@gmail.com';
 
-  const { data: allUsers = [], isLoading } = useQuery({
+  const { data: allUsers = [], isLoading, refetch: refetchUsers } = useQuery({
     queryKey: ['adminAllUsers'],
     queryFn: async () => {
       try {
@@ -173,7 +173,20 @@ export default function AdminUsers() {
       <AddUserDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
-        onCreated={() => queryClient.invalidateQueries({ queryKey: ['adminAllUsers'] })}
+        onCreated={async (created) => {
+          // Optimistically add the new member to the cards so it appears instantly,
+          // then refetch from the server to replace it with the real record.
+          if (created?.email) {
+            queryClient.setQueryData(['adminAllUsers'], (prev = []) => {
+              if (prev.some((u) => (u.email || '').toLowerCase() === created.email.toLowerCase())) return prev;
+              return [
+                { id: `temp-${created.email}`, email: created.email, full_name: created.full_name || created.email, phone: created.phone || '', role: created.role || 'user', is_active: true, created_date: new Date().toISOString() },
+                ...prev,
+              ];
+            });
+          }
+          await refetchUsers();
+        }}
       />
 
       <EditUserRoleDialog
