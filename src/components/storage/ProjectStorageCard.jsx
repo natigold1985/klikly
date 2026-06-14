@@ -59,37 +59,37 @@ export default function ProjectStorageCard({ project, onOpen }) {
         <ProductionStatusTracker status={project.status} />
 
         <div className="grid grid-cols-2 gap-2">
-          <Button onClick={onOpen} className="gap-1 bg-black text-white hover:bg-slate-800">
+          <Button onClick={onOpen} className="gap-1 bg-black text-white hover:bg-slate-800 text-sm h-10">
             <FolderOpen className="w-4 h-4" />
             ניהול קבצים
           </Button>
-          <Link to={createPageUrl(`ProjectDetails?id=${project.id}`)}>
-            <Button variant="outline" className="w-full gap-1 text-slate-900 border-slate-300 bg-white hover:bg-slate-50">
-              <Eye className="w-4 h-4" />
-              פרטי פרויקט
-            </Button>
-          </Link>
-          <Link to={createPageUrl(`ClientGallery?projectId=${project.id}`)}>
-            <Button variant="outline" className="w-full gap-1 text-slate-900 border-slate-300 bg-white hover:bg-slate-50">
-              <Eye className="w-4 h-4" />
-              בחירת לקוח
-            </Button>
-          </Link>
-          <Link to={createPageUrl(`ProjectTasks?projectId=${project.id}`)}>
-            <Button variant="outline" className="w-full gap-1 text-slate-900 border-slate-300 bg-white hover:bg-slate-50">
+          <Button onClick={onOpen} variant="outline" className="gap-2 text-slate-900 border-slate-300 bg-white hover:bg-slate-50 text-sm h-10">
+            <Upload className="w-4 h-4" />
+            העלאה
+          </Button>
+          <Link to={createPageUrl(`ProjectTasks?projectId=${project.id}`)} className="min-w-0">
+            <Button variant="outline" className="w-full gap-1 text-slate-900 border-slate-300 bg-white hover:bg-slate-50 text-sm h-10">
               <ListTodo className="w-4 h-4" />
               משימות
             </Button>
           </Link>
+          <Link to={createPageUrl(`ProjectDetails?id=${project.id}`)} className="min-w-0">
+            <Button variant="outline" className="w-full gap-1 text-slate-900 border-slate-300 bg-white hover:bg-slate-50 text-sm h-10">
+              <Eye className="w-4 h-4" />
+              פרטים
+            </Button>
+          </Link>
         </div>
 
-        <div className="grid grid-cols-1 gap-2 pt-2 border-t border-slate-100">
+        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100">
           <DeliveryLinkButton project={project} />
           <MagicLinkButton project={project} />
-          <Button onClick={onOpen} variant="outline" className="gap-2 text-slate-900 border-slate-300 bg-white hover:bg-slate-50">
-            <Upload className="w-4 h-4" />
-            העלאה ל-Google Drive
-          </Button>
+          <Link to={createPageUrl(`ClientGallery?projectId=${project.id}`)}>
+            <Button variant="outline" className="w-full gap-1 text-slate-900 border-slate-300 bg-white hover:bg-slate-50 text-xs h-10">
+              <Eye className="w-3 h-3" />
+              בחירה
+            </Button>
+          </Link>
         </div>
       </CardContent>
     </Card>
