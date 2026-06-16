@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { X, ChevronLeft, ChevronRight, Download, Trash2 } from 'lucide-react';
 
 function isVideo(url = '') {
@@ -8,6 +8,7 @@ function isVideo(url = '') {
 export default function PixiesetLightbox({ photos, startIndex = 0, onClose, onDownload, onDelete, canDelete }) {
   const [index, setIndex] = useState(startIndex);
   const [loaded, setLoaded] = useState(false);
+  const touchStartRef = useRef(null);
 
   const photo = photos[index];
 
@@ -34,6 +35,20 @@ export default function PixiesetLightbox({ photos, startIndex = 0, onClose, onDo
       document.body.style.overflow = '';
     };
   }, [next, prev, onClose]);
+
+  const handleTouchStart = (event) => {
+    touchStartRef.current = event.touches?.[0]?.clientX ?? null;
+  };
+
+  const handleTouchEnd = (event) => {
+    if (touchStartRef.current === null) return;
+    const endX = event.changedTouches?.[0]?.clientX ?? touchStartRef.current;
+    const delta = endX - touchStartRef.current;
+    touchStartRef.current = null;
+    if (Math.abs(delta) < 45) return;
+    if (delta > 0) prev();
+    else next();
+  };
 
   if (!photo) return null;
   const video = isVideo(photo.file_url);
@@ -94,8 +109,10 @@ export default function PixiesetLightbox({ photos, startIndex = 0, onClose, onDo
 
       {/* Media */}
       <div
-        className="flex-1 flex items-center justify-center p-4 md:p-12"
+        className="flex-1 flex items-center justify-center p-3 sm:p-4 md:p-12 touch-pan-y"
         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         onContextMenu={(e) => e.preventDefault()}
       >
         {video ? (

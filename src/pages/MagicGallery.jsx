@@ -140,7 +140,7 @@ export default function MagicGallery() {
   const hasDrive = !!project.drive_folder_url;
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center p-6" dir="rtl">
+    <div className="min-h-screen bg-black text-white flex flex-col items-center px-3 py-5 md:p-6 font-sans" dir="rtl">
       <div className="w-full max-w-6xl text-center py-8">
         {/* Logo */}
         <img
@@ -176,14 +176,8 @@ export default function MagicGallery() {
               downloaded={downloaded}
               onDownload={handleDownloadAll}
             />
-            <div className="bg-white rounded-3xl p-4 md:p-6 text-slate-900 text-right shadow-2xl">
+            <div className="mt-8 bg-white rounded-3xl p-3 md:p-6 text-slate-900 text-right shadow-2xl">
               <DriveFilesGrid files={data.files || []} project={project} onDownload={handleDownloadFile} onDownloadAll={handleDownloadVisible} />
-              <ThumbnailCarousel
-                files={data.files || []}
-                busy={busy}
-                downloaded={downloaded}
-                onDownload={handleDownloadAll}
-              />
             </div>
           </>
         ) : (

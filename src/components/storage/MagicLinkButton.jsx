@@ -9,7 +9,7 @@ import { base44 } from '@/api/base44Client';
 
 // Share-link button for a project. Generates a public Magic Link based on
 // project.client_access_token and provides quick share to WhatsApp / Email / Copy.
-export default function MagicLinkButton({ project }) {
+export default function MagicLinkButton({ project, compact = false }) {
   const getDriveFolderId = (url = '') => {
     const match = String(url).match(/drive\.google\.com\/drive\/(?:u\/\d+\/)?folders\/([a-zA-Z0-9_-]+)/);
     return match?.[1] || '';
@@ -26,9 +26,9 @@ export default function MagicLinkButton({ project }) {
 
   if (!folderId) {
     return (
-      <Button variant="outline" disabled className="gap-2">
-        <Link2 className="w-4 h-4" />
-        אין קישור (חסרה תיקיית Drive)
+      <Button variant="outline" disabled className={compact ? 'w-full h-10 gap-1 text-xs px-2' : 'gap-2'}>
+        <Link2 className={compact ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+        {compact ? 'אין קישור' : 'אין קישור (חסרה תיקיית Drive)'}
       </Button>
     );
   }
@@ -49,19 +49,21 @@ export default function MagicLinkButton({ project }) {
 
   return (
     <>
-      {/* MASSIVE prominent "Send Gallery" button */}
       <button
         onClick={() => {
           setMessage(defaultMessage);
           setOpen(true);
         }}
-        className="group relative w-full md:w-auto overflow-hidden rounded-2xl bg-gradient-to-r from-[#FFD700] via-[#FFC700] to-[#D4AF37] hover:shadow-[0_8px_30px_rgba(255,215,0,0.5)] active:scale-[0.98] transition-all duration-300 px-6 md:px-10 py-4 md:py-5 flex items-center justify-center gap-3"
+        className={compact
+          ? 'w-full h-10 rounded-xl border border-[#E0B82A] bg-[#FFD700] text-black hover:bg-[#E5B800] transition-colors px-3 flex items-center justify-center gap-1.5 text-xs font-bold'
+          : 'group relative w-full md:w-auto overflow-hidden rounded-2xl bg-gradient-to-r from-[#FFD700] via-[#FFC700] to-[#D4AF37] hover:shadow-[0_8px_30px_rgba(255,215,0,0.5)] active:scale-[0.98] transition-all duration-300 px-6 md:px-10 py-4 md:py-5 flex items-center justify-center gap-3'
+        }
       >
-        <Sparkles className="w-6 h-6 text-black" />
-        <span className="text-lg md:text-xl font-bold text-black tracking-wide">
-          שלח גלריה ללקוח
+        <Sparkles className={compact ? 'w-3.5 h-3.5 text-black shrink-0' : 'w-6 h-6 text-black'} />
+        <span className={compact ? 'text-xs font-bold text-black truncate' : 'text-lg md:text-xl font-bold text-black tracking-wide'}>
+          {compact ? 'שלח גלריה' : 'שלח גלריה ללקוח'}
         </span>
-        <Send className="w-5 h-5 text-black group-hover:translate-x-[-4px] transition-transform" />
+        {!compact && <Send className="w-5 h-5 text-black group-hover:translate-x-[-4px] transition-transform" />}
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>

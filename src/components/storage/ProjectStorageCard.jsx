@@ -25,7 +25,7 @@ export default function ProjectStorageCard({ project, onOpen }) {
   const connected = !!project.drive_folder_url;
 
   return (
-    <Card className="bg-white border-slate-200 hover:border-[#FFD700] hover:shadow-[0_8px_30px_rgba(255,215,0,0.15)] transition-all duration-300 rounded-2xl overflow-hidden">
+    <Card className="bg-white border-slate-200 hover:border-[#FFD700] hover:shadow-[0_10px_28px_rgba(15,23,42,0.10)] transition-[border-color,box-shadow] duration-200 rounded-2xl overflow-hidden font-sans">
       <CardContent className="p-5 space-y-4">
         <button onClick={onOpen} className="w-full text-right group">
           <div className="flex items-start justify-between gap-3">
@@ -83,7 +83,7 @@ export default function ProjectStorageCard({ project, onOpen }) {
 
         <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100">
           <DeliveryLinkButton project={project} />
-          <MagicLinkButton project={project} />
+          <MagicLinkButton project={project} compact />
           <Link to={createPageUrl(`ClientGallery?projectId=${project.id}`)}>
             <Button variant="outline" className="w-full gap-1 text-slate-900 border-slate-300 bg-white hover:bg-slate-50 text-xs h-10">
               <Eye className="w-3 h-3" />

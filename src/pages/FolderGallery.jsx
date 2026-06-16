@@ -105,10 +105,10 @@ export default function FolderGallery() {
   const galleryFiles = files.map((file) => file.is_video && videoUrls[file.id] ? { ...file, view_url: videoUrls[file.id] } : file);
 
   return (
-    <div className="min-h-screen bg-black text-white" dir="rtl">
+    <div className="min-h-screen bg-black text-white font-sans" dir="rtl">
       <StickyDownloadButton position="top" busy={busy} fileCount={files.length} onClick={() => setConsentOpen(true)} />
 
-      <main className="max-w-6xl mx-auto px-4 py-10 md:py-14">
+      <main className="max-w-6xl mx-auto px-3 sm:px-4 py-8 md:py-14">
         <div className="text-center mb-10">
           <img src="https://media.base44.com/images/public/699330cced2139a6e7aa06a9/1e11bfcc1_generated_image.png" alt="KLIKLY" className="h-12 md:h-16 mx-auto mb-8 object-contain drop-shadow-[0_0_18px_rgba(255,215,0,0.55)]" />
           <p className="text-xs uppercase tracking-[0.4em] text-[#FFD700]/70 mb-3">Studio Gold Delivery Portal</p>

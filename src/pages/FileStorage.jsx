@@ -81,7 +81,7 @@ export default function FileStorage() {
   // ========== CLIENT VIEW ==========
   if (isClient) {
     return (
-      <div className="space-y-6 pb-20" dir="rtl">
+      <div className="space-y-6 pb-20 font-sans" dir="rtl">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 mb-2">הגלריה שלי</h1>
           <p className="text-slate-600 text-sm">
@@ -96,7 +96,7 @@ export default function FileStorage() {
   // ========== PHOTOGRAPHER: PROJECT DETAIL ==========
   if (selectedProject) {
     return (
-      <div className="space-y-5 pb-20" dir="rtl">
+      <div className="space-y-5 pb-20 font-sans" dir="rtl">
         {/* Persistent Back Bar */}
         <div className="flex items-center justify-between gap-3 sticky top-0 md:top-0 z-20 bg-white/95 backdrop-blur-md py-2 -mx-4 px-4 md:mx-0 md:px-0 border-b border-slate-100">
           <Button
@@ -144,7 +144,7 @@ export default function FileStorage() {
   );
 
   return (
-    <div className="space-y-6 pb-20" dir="rtl">
+    <div className="space-y-6 pb-20 font-sans" dir="rtl">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 mb-1 flex items-center gap-3">

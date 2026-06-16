@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { X, ChevronLeft, ChevronRight, Download, ExternalLink, Loader2, FileText, Music } from 'lucide-react';
 
 // Premium Pixieset-style lightbox for Drive files.
@@ -10,6 +10,7 @@ import { X, ChevronLeft, ChevronRight, Download, ExternalLink, Loader2, FileText
 export default function DriveLightbox({ files, startIndex = 0, onClose, onDownload }) {
   const [index, setIndex] = useState(startIndex);
   const [loaded, setLoaded] = useState(false);
+  const touchStartRef = useRef(null);
 
   const file = files[index];
 
@@ -37,11 +38,25 @@ export default function DriveLightbox({ files, startIndex = 0, onClose, onDownlo
     };
   }, [next, prev, onClose]);
 
+  const handleTouchStart = (event) => {
+    touchStartRef.current = event.touches?.[0]?.clientX ?? null;
+  };
+
+  const handleTouchEnd = (event) => {
+    if (touchStartRef.current === null) return;
+    const endX = event.changedTouches?.[0]?.clientX ?? touchStartRef.current;
+    const delta = endX - touchStartRef.current;
+    touchStartRef.current = null;
+    if (Math.abs(delta) < 45) return;
+    if (delta > 0) prev();
+    else next();
+  };
+
   if (!file) return null;
 
-  // Drive image high-res preview (s2400 ~= ample resolution; falls back to view_url)
+  // Use a responsive Drive preview size for faster lightbox loading.
   const fullImageSrc = file.thumbnail_url
-    ? file.thumbnail_url.replace(/=s\d+/, '=s2400').replace(/sz=w\d+/, 'sz=w2400')
+    ? file.thumbnail_url.replace(/=s\d+/, '=s1200').replace(/sz=w\d+/, 'sz=w1200')
     : (file.view_url || file.download_url || null);
 
   // Drive video preview embed — uses Drive's native player, no auto-download
@@ -105,8 +120,10 @@ export default function DriveLightbox({ files, startIndex = 0, onClose, onDownlo
 
       {/* Media */}
       <div
-        className="flex-1 flex items-center justify-center p-4 md:p-12 relative"
+        className="flex-1 flex items-center justify-center p-3 sm:p-4 md:p-12 relative touch-pan-y"
         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         onContextMenu={(e) => e.preventDefault()}
       >
         {file.is_video ? (
@@ -150,6 +167,9 @@ export default function DriveLightbox({ files, startIndex = 0, onClose, onDownlo
                 alt={file.name}
                 onLoad={() => setLoaded(true)}
                 onError={() => setLoaded(true)}
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
                 draggable={false}
                 onContextMenu={(e) => e.preventDefault()}
                 className={`max-h-full max-w-full object-contain rounded-lg shadow-2xl transition-opacity duration-300 select-none ${
