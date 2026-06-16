@@ -79,6 +79,10 @@ export default function Dashboard() {
   // KPIs
   const today = new Date().toISOString().split('T')[0];
   const leadsToday = leads.filter(l => l.created_date?.startsWith(today)).length;
+  const websiteLeadsToday = leads.filter(l =>
+    l.created_date?.startsWith(today) &&
+    (String(l.source || '').includes('natigold.com') || String(l.source_post_url || '').includes('natigold.com'))
+  ).length;
   const totalLeads = leads.length;
   const closedWon = leads.filter(l => normalizeLeadStatus(l.status) === 'נסגר בהצלחה').length;
   const conversionRate = totalLeads ? Math.round((closedWon / totalLeads) * 100) : 0;
@@ -104,7 +108,7 @@ export default function Dashboard() {
   }
 
   const photographerStats = [
-    { title: 'לידים היום', value: leadsToday, icon: TrendingUp, link: 'Leads' },
+    { title: 'לידים היום', value: leadsToday, note: `${websiteLeadsToday} נכנסו מהאתר`, icon: TrendingUp, link: 'Leads' },
     { title: 'אחוז המרה', value: `${conversionRate}%`, icon: Target, link: 'Analytics' },
     { title: 'הכנסות', value: `₪${totalRevenue.toLocaleString()}`, icon: DollarSign, link: 'Analytics' },
     { title: 'פרויקטים פעילים', value: activeProjects, icon: Briefcase, link: 'Projects' },
@@ -199,6 +203,7 @@ export default function Dashboard() {
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-medium text-slate-500 truncate">{stat.title}</p>
                       <p className="text-2xl md:text-3xl font-bold text-slate-900 truncate">{stat.value}</p>
+                      {stat.note && <p className="text-[11px] font-bold text-[#C5A028] mt-1 truncate">{stat.note}</p>}
                     </div>
                     <div className="w-11 h-11 rounded-xl bg-[#FFD700]/10 border border-[#FFD700]/20 flex items-center justify-center group-hover:bg-[#FFD700]/20 transition-all flex-shrink-0">
                       <Icon className="w-5 h-5 text-[#C5A028]" />

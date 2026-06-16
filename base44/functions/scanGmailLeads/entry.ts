@@ -83,7 +83,8 @@ function parseStudioGoldLead(subject, body) {
 
   // Extract name from subject "ליד חדש – [Name]" / "ליד חדש מ-[Name]"
   const subjectNameMatch = subject.match(/ליד חדש\s*[מ]?[־\-–—]\s*(.+)/i);
-  const nameFromSubject = subjectNameMatch?.[1]?.trim() || '';
+  const rawNameFromSubject = subjectNameMatch?.[1]?.trim() || '';
+  const nameFromSubject = rawNameFromSubject.replace(/^Studio\s+Gold\s*[—–-]\s*/i, '').trim();
   console.log(`parseStudioGoldLead: nameFromSubject="${nameFromSubject}"`);
 
   // Extract email and phone using regex — more reliable than label-based parsing
@@ -114,6 +115,10 @@ function parseStudioGoldLead(subject, body) {
   }
 
   const service = serviceFromUrl(pageUrl);
+  const formDate = body.match(/תאריך[:\s]*([^\n|]+)/i)?.[1]?.trim() || '';
+  const formTime = body.match(/(?:זמן|שעה)[:\s]*([^\n|]+)/i)?.[1]?.trim() || '';
+  const userAgent = body.match(/(?:פרטי משתמש|דפדפן)[:\s]*([^\n|]+)/i)?.[1]?.trim() || '';
+  const ipAddress = body.match(/IP השולח[:\s]*([^\n|]+)/i)?.[1]?.trim() || '';
   console.log(`parseStudioGoldLead: name="${name}", service="${service}"`);
 
   const phoneDigits = phone.replace(/[^0-9]/g, '');
@@ -130,7 +135,8 @@ function parseStudioGoldLead(subject, body) {
     email,
     phone,
     service,
-    notes: [service && `שירות: ${service}`, pageUrl && `URL: ${pageUrl}`].filter(Boolean).join(' | '),
+    date: formDate,
+    notes: [service && `שירות: ${service}`, formDate && `תאריך: ${formDate}`, formTime && `שעה: ${formTime}`, pageUrl && `URL: ${pageUrl}`, ipAddress && `IP: ${ipAddress}`, userAgent && `דפדפן: ${userAgent}`].filter(Boolean).join(' | '),
     source_post_url: pageUrl,
     _format: 'studio_gold',
   };
@@ -355,6 +361,8 @@ Deno.serve(async (req) => {
         if (l.service && !existing.shooting_type) updateData.shooting_type = l.service;
         if (l.email && !existing.email) updateData.email = l.email;
         if (l.phone && !existing.phone) updateData.phone = l.phone;
+        if (l.notes && (!existing.notes || !existing.notes.includes('דפדפן'))) updateData.notes = l.notes;
+        if (l.source_post_url && !existing.source_post_url) updateData.source_post_url = l.source_post_url;
         if (Object.keys(updateData).length > 0) {
           await base44.asServiceRole.entities.Lead.update(existing.id, updateData);
           updatedCount++;
