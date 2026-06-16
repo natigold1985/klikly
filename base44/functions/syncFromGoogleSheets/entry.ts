@@ -15,6 +15,7 @@ const HEADER_KEYS = {
     link:    ['link', 'קישור', 'url', 'source url', 'source_url', 'קישור מקור', 'קישור ליצירת קשר', 'קישור ליד'],
     company: ['company', 'חברה', 'תפקיד', 'role', 'job', 'position'],
     status:  ['סטטוס', 'status'],
+    stage:   ['התקדמות', 'progress', 'stage', 'שלב'],
 };
 
 function findColumnIndex(headers, keys) {
@@ -33,6 +34,7 @@ function detectSource(...fragments) {
     const text = fragments.filter(Boolean).join(' ').toLowerCase();
     if (!text) return null;
     if (text.includes('linkedin')) return 'LinkedIn';
+    if (text.includes('photography-course') || text.includes('course-price') || text.includes('קורס צילום')) return 'Course Lead';
     if (text.includes('facebook') || text.includes('fb.com')) return 'Facebook';
     if (text.includes('instagram') || text.includes('ig.me') || text.includes('אינסטגרם')) return 'Instagram';
     if (text.includes('whatsapp') || text.includes('wa.me') || text.includes('וואטסאפ')) return 'WhatsApp';
@@ -317,6 +319,7 @@ Deno.serve(async (req) => {
                 link: findColumnIndex(headers, HEADER_KEYS.link),
                 company: findColumnIndex(headers, HEADER_KEYS.company),
                 status: findColumnIndex(headers, HEADER_KEYS.status),
+                stage: findColumnIndex(headers, HEADER_KEYS.stage),
             };
 
             // Claude Code tab has partially-empty headers; map its fixed export columns directly.
@@ -332,6 +335,7 @@ Deno.serve(async (req) => {
                     notes: 7,
                     link: 8,
                     company: -1,
+                    stage: -1,
                     klikly_id: 11, // KLIKLY ID reference
                 };
             };
@@ -356,6 +360,7 @@ Deno.serve(async (req) => {
                 const linkCol = idx.link !== -1 ? String(row[idx.link] || '').trim() : '';
                 const companyCol = idx.company !== -1 ? String(row[idx.company] || '').trim() : '';
                 const statusCol = idx.status !== -1 ? String(row[idx.status] || '').trim() : '';
+                const stageCol = idx.stage !== -1 ? String(row[idx.stage] || '').trim() : '';
                 const kliklyIdCol = idx.klikly_id !== -1 ? String(row[idx.klikly_id] || '').trim() : '';
 
                 // Source detection: explicit column → link → notes → tab name
@@ -424,12 +429,21 @@ Deno.serve(async (req) => {
                     skipped++;
                     continue;
                 }
-                const normalizedStatus = ['נוצר קשר', 'contacted'].includes(statusCol.toLowerCase()) ? 'נוצר קשר'
-                    : ['נשלח פולו-אפ', 'follow-up sent', 'follow up sent'].includes(statusCol.toLowerCase()) ? 'נשלח פולו-אפ'
-                    : ['נענה', 'responded'].includes(statusCol.toLowerCase()) ? 'נענה'
-                    : ['נסגר בהצלחה', 'closed won'].includes(statusCol.toLowerCase()) ? 'נסגר בהצלחה'
-                    : ['לא רלוונטי', 'closed lost', 'not relevant'].includes(statusCol.toLowerCase()) ? 'לא רלוונטי'
+                const statusLower = statusCol.toLowerCase();
+                const stageLower = stageCol.toLowerCase();
+                const closedByStage = ['ליד נסגר בהצלחה', 'נסגר בהצלחה', 'הושלם', 'completed', 'closed won'].includes(stageLower);
+                const normalizedStatus = closedByStage ? 'נסגר בהצלחה'
+                    : ['נוצר קשר', 'contacted', 'בטיפול מהאתר'].includes(statusLower) ? 'נוצר קשר'
+                    : ['נשלח פולו-אפ', 'follow-up sent', 'follow up sent'].includes(statusLower) ? 'נשלח פולו-אפ'
+                    : ['נענה', 'responded'].includes(statusLower) ? 'נענה'
+                    : ['נסגר בהצלחה', 'נסגר מהאתר', 'closed won'].includes(statusLower) ? 'נסגר בהצלחה'
+                    : ['לא רלוונטי', 'closed lost', 'not relevant'].includes(statusLower) ? 'לא רלוונטי'
                     : 'ליד חדש';
+                const normalizedPipelineStage = closedByStage || normalizedStatus === 'נסגר בהצלחה' ? 'completed'
+                    : ['פולו-אפ'].includes(stageCol) ? 'follow_up'
+                    : ['הצעת מחיר נשלחה'].includes(stageCol) ? 'quote_sent'
+                    : ['פנייה ראשונית'].includes(stageCol) ? 'outreach'
+                    : null;
 
                 // Find existing record by KLIKLY ID (if from Claude Code), phone, email, or name+source
                 let match = null;
@@ -456,8 +470,9 @@ Deno.serve(async (req) => {
                     if (name && name !== match.name && !match.name?.includes(name)) updates.name = name;
                     if (notes && !match.notes) updates.notes = notes;
                     if (phone && !match.phone) updates.phone = phone;
-                    // Always sync status from Sheets if it's different (bi-directional)
+                    // Always sync status/progress from Sheets if different (bi-directional)
                     if (normalizedStatus && normalizedStatus !== match.status) updates.status = normalizedStatus;
+                    if (normalizedPipelineStage && normalizedPipelineStage !== match.pipeline_stage) updates.pipeline_stage = normalizedPipelineStage;
 
                     if (Object.keys(updates).length > 0) {
                         await base44.asServiceRole.entities.Lead.update(match.id, updates);
@@ -479,7 +494,7 @@ Deno.serve(async (req) => {
                         notes: notes || undefined,
                         status: normalizedStatus || 'ליד חדש',
                         pipeline: pipelineData.pipeline,
-                        pipeline_stage: pipelineData.pipeline_stage,
+                        pipeline_stage: normalizedPipelineStage || pipelineData.pipeline_stage,
                         last_contact_date: new Date().toISOString(),
                         is_filtered: false,
                     });

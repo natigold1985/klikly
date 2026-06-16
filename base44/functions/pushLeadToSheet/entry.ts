@@ -8,6 +8,10 @@ const HEADERS = ['שם מלא', 'טלפון', 'מייל', 'מקור', 'שירו�
 const SOURCE_TO_TAB = {
   whatsapp: 'WhatsApp',
   'whatsapp leads': 'WhatsApp',
+  'course-price': 'מתעניינים בקורס',
+  'photography-course': 'מתעניינים בקורס',
+  'course lead': 'מתעניינים בקורס',
+  'קורס': 'מתעניינים בקורס',
   'natigold.com (אתר)': 'לידים מהאתר',
   'natigold.com': 'לידים מהאתר',
   website: 'לידים מהאתר',
@@ -26,7 +30,7 @@ const PIPELINE_STAGE_LABELS = {
   quote_sent: 'הצעת מחיר נשלחה',
   follow_up: 'פולו-אפ',
   logistics_coordination: 'תיאום לוגיסטי',
-  completed: 'הושלם',
+  completed: 'ליד נסגר בהצלחה',
   registered_webinar: 'נרשם לוובינר',
   watched_webinar: 'צפה בוובינר',
   consultation_meeting: 'פגישת ייעוץ',
@@ -66,7 +70,8 @@ function normalize(value) {
 function buildRow(lead) {
   const sourceUrl = lead.source_post_url ? `קישור מקור: ${lead.source_post_url}` : '';
   const notes = [lead.notes, sourceUrl].filter(Boolean).join(' | ');
-  const stage = lead.pipeline_stage ? (PIPELINE_STAGE_LABELS[lead.pipeline_stage] || lead.pipeline_stage) : '';
+  const closed = ['נסגר בהצלחה', 'נסגר מהאתר'].includes(sheetStatus(lead));
+  const stage = closed ? 'ליד נסגר בהצלחה' : (lead.pipeline_stage ? (PIPELINE_STAGE_LABELS[lead.pipeline_stage] || lead.pipeline_stage) : '');
   return [
     lead.name || '',
     lead.phone ? `'${lead.phone}` : '',

@@ -7,13 +7,15 @@ const SHEET_ID = '1Acz_kFz4d2oGyJflAWyrY4yiAAlbvWVqR7UNgKHCdD4';
 const SOURCE_TO_TAB = {
   whatsapp: 'WhatsApp',
   'whatsapp leads': 'WhatsApp',
+  'course-price': 'מתעניינים בקורס',
+  'photography-course': 'מתעניינים בקורס',
+  'course lead': 'מתעניינים בקורס',
+  'קורס': 'מתעניינים בקורס',
   'natigold.com (אתר)': 'לידים מהאתר',
   'natigold.com': 'לידים מהאתר',
   instagram: 'אינסטגרם — מענה ופולו-אפ',
   facebook: 'לידים ביטחון 🎯',
   'defense industry': 'לידים ביטחון 🎯',
-  'course lead': 'מתעניינים בקורס',
-  'קורס': 'מתעניינים בקורס',
   'claude code': 'Claude Code',
   'claude': 'Claude Code',
 };
@@ -29,12 +31,13 @@ const PIPELINE_STAGE_LABELS = {
   quote_sent: 'הצעת מחיר נשלחה',
   follow_up: 'פולו-אפ',
   logistics_coordination: 'תיאום לוגיסטי',
-  completed: 'הושלם',
+  completed: 'ליד נסגר בהצלחה',
   registered_webinar: 'נרשם לוובינר',
   watched_webinar: 'צפה בוובינר',
   consultation_meeting: 'פגישת ייעוץ',
 };
 const STATUS_VALUES = ['חדש מהאתר', 'בטיפול מהאתר', 'נסגר מהאתר', 'ליד חדש', 'נוצר קשר', 'נשלח פולו-אפ', 'נענה', 'נסגר בהצלחה', 'לא רלוונטי'];
+const STAGE_VALUES = ['ליד נמצא', 'פנייה ראשונית', 'בדיקת רכש', 'הצעת מחיר נשלחה', 'פולו-אפ', 'תיאום לוגיסטי', 'ליד נסגר בהצלחה'];
 
 function isWebsiteLead(lead) {
   const text = `${lead?.source || ''} ${lead?.source_post_url || ''}`.toLowerCase();
@@ -90,9 +93,12 @@ function leadToRow(lead) {
   const nameLink = lead.id
     ? `=HYPERLINK("${APP_BASE_URL}/LeadDetails?id=${lead.id}","${(lead.name || '').replace(/"/g, '""')}")`
     : (lead.name || '');
-  const stage = lead.pipeline_stage
-    ? (PIPELINE_STAGE_LABELS[lead.pipeline_stage] || lead.pipeline_stage)
-    : '';
+  const closed = ['נסגר בהצלחה', 'נסגר מהאתר'].includes(sheetStatus(lead));
+  const stage = closed
+    ? 'ליד נסגר בהצלחה'
+    : lead.pipeline_stage
+      ? (PIPELINE_STAGE_LABELS[lead.pipeline_stage] || lead.pipeline_stage)
+      : '';
   return [
     nameLink,
     lead.phone ? `'${lead.phone}` : '',
@@ -131,8 +137,12 @@ async function clearAndWriteTab(sheetsAuth, tabName, rows) {
 }
 
 // Color rows + set dropdown validation + RTL in one batchUpdate
-async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads, tabName = '') {
+async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads, tabName = '', conditionalFormatCount = 0) {
   const requests = [];
+
+  for (let i = conditionalFormatCount - 1; i >= 0; i--) {
+    requests.push({ deleteConditionalFormatRule: { sheetId: sheetGid, index: i } });
+  }
 
   // Freeze first column (שם מלא) + header row + set RTL direction
   requests.push({
@@ -247,6 +257,27 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads, tabName
     },
   });
 
+  // Progress dropdown on column G (index 6), rows 2..N
+  requests.push({
+    setDataValidation: {
+      range: {
+        sheetId: sheetGid,
+        startRowIndex: 1,
+        endRowIndex: leads.length + 1,
+        startColumnIndex: 6,
+        endColumnIndex: 7,
+      },
+      rule: {
+        condition: {
+          type: 'ONE_OF_LIST',
+          values: STAGE_VALUES.map(v => ({ userEnteredValue: v })),
+        },
+        showCustomUi: true,
+        strict: true,
+      },
+    },
+  });
+
   // Row background colors + black text per lead status
   leads.forEach((lead, i) => {
     const status = sheetStatus(lead);
@@ -271,6 +302,30 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads, tabName
           },
         },
         fields: 'userEnteredFormat.backgroundColor,userEnteredFormat.textFormat.foregroundColor,userEnteredFormat.textFormat.bold',
+      },
+    });
+  });
+
+  const conditionalFormats = [
+    { values: ['נסגר בהצלחה', 'נסגר מהאתר'], color: { red: 0.776, green: 0.937, blue: 0.776 } },
+    { values: ['לא רלוונטי'], color: { red: 0.992, green: 0.808, blue: 0.808 } },
+    { values: ['נוצר קשר', 'בטיפול מהאתר'], color: { red: 0.996, green: 0.973, blue: 0.714 } },
+    { values: ['נשלח פולו-אפ'], color: { red: 0.906, green: 0.824, blue: 0.992 } },
+    { values: ['ליד חדש', 'חדש מהאתר'], color: { red: 0.820, green: 0.906, blue: 0.980 } },
+  ];
+
+  conditionalFormats.forEach((format, index) => {
+    const formula = format.values.map((value) => `$F2="${value}"`).join(',');
+    requests.push({
+      addConditionalFormatRule: {
+        index,
+        rule: {
+          ranges: [{ sheetId: sheetGid, startRowIndex: 1, endRowIndex: 5000, startColumnIndex: 0, endColumnIndex: 8 }],
+          booleanRule: {
+            condition: { type: 'CUSTOM_FORMULA', values: [{ userEnteredValue: `=OR(${formula})` }] },
+            format: { backgroundColor: format.color, textFormat: { foregroundColor: { red: 0, green: 0, blue: 0 } } },
+          },
+        },
       },
     });
   });
@@ -327,13 +382,15 @@ Deno.serve(async (req) => {
     };
 
     const metaRes = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties,sheets.conditionalFormats`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     const meta = await metaRes.json();
     const tabGids = {};
+    const tabConditionalFormatCounts = {};
     for (const s of (meta.sheets || [])) {
       tabGids[s.properties.title] = s.properties.sheetId;
+      tabConditionalFormatCounts[s.properties.title] = (s.conditionalFormats || []).length;
     }
 
     // Force RTL on ALL tabs first (including WhatsApp and any other tab)
@@ -358,7 +415,7 @@ Deno.serve(async (req) => {
     // Write + format "כל הלידים"
     await clearAndWriteTab(sheetsAuth, ALL_LEADS_TAB, allRows);
     if (tabGids[ALL_LEADS_TAB]) {
-      await applyFormattingAndValidation(sheetsAuth, tabGids[ALL_LEADS_TAB], sortedAllLeads, ALL_LEADS_TAB);
+      await applyFormattingAndValidation(sheetsAuth, tabGids[ALL_LEADS_TAB], sortedAllLeads, ALL_LEADS_TAB, tabConditionalFormatCounts[ALL_LEADS_TAB] || 0);
     }
 
     // Write + format each source tab (sorted by status)
@@ -371,7 +428,7 @@ Deno.serve(async (req) => {
       const sortedLeads = sortLeadsByStatus(leads);
       const rows = sortedLeads.map(leadToRow);
       await clearAndWriteTab(sheetsAuth, tabName, rows);
-      await applyFormattingAndValidation(sheetsAuth, tabGids[tabName], sortedLeads, tabName);
+      await applyFormattingAndValidation(sheetsAuth, tabGids[tabName], sortedLeads, tabName, tabConditionalFormatCounts[tabName] || 0);
       tabSummary[tabName] = sortedLeads.length;
       console.log(`fullSyncLeadsToSheets: wrote ${sortedLeads.length} rows to "${tabName}"`);
     }
