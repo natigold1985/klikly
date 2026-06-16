@@ -27,16 +27,26 @@ Deno.serve(async (req) => {
     }
 
     const driveFiles = await listProjectDriveFiles(base44, project);
-    const photos = driveFiles.map((file) => ({
+    const savedPhotos = await base44.asServiceRole.entities.Photo.filter({ project_id: projectId }).catch(() => []);
+    const savedByDriveId = new Map(savedPhotos.filter((photo) => photo.drive_file_id).map((photo) => [photo.drive_file_id, photo]));
+    const photos = driveFiles.map((file, index) => {
+      const saved = savedByDriveId.get(file.id) || {};
+      return {
         id: file.id,
+        drive_file_id: file.id,
+        name: file.name,
+        file_name: file.name,
+        order_index: index + 1,
         url: file.thumbnail_url || file.view_url,
         thumbnail: file.thumbnail_url,
+        thumbnail_url: file.thumbnail_url,
         download_url: file.download_url,
         view_url: file.view_url,
-        is_selected: false,
-        client_comment: '',
-        editing_status: 'finalized'
-    }));
+        is_selected: saved.is_selected || false,
+        client_comment: saved.client_comment || '',
+        editing_status: saved.editing_status || 'finalized'
+      };
+    });
 
     return Response.json({
         project: {

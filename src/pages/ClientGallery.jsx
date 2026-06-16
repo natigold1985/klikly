@@ -95,7 +95,11 @@ export default function ClientGallery() {
                 .map((photo) => ({
                     id: photo.id,
                     name: photo.file_name || photo.name || photo.id,
+                    file_name: photo.file_name || photo.name || photo.id,
+                    drive_file_id: photo.drive_file_id || photo.id,
+                    order_index: photo.order_index,
                     url: photo.view_url || photo.file_url || photo.url || photo.download_url,
+                    thumbnail_url: photo.thumbnail_url || photo.thumbnail || '',
                     comment: photoComments?.[photo.id] || ''
                 })),
             photoComments,
@@ -132,7 +136,7 @@ export default function ClientGallery() {
         setIsSaving(true);
         try {
             await saveSelection(selectedIds, true);
-            toast.success('הבחירה נשלחה אליי במייל בהצלחה!', {
+            toast.success('הבחירות הועברו לצלם לעריכה בהצלחה!', {
                 icon: <CheckCircle2 className="w-5 h-5 text-green-500" />
             });
         } catch (e) {
