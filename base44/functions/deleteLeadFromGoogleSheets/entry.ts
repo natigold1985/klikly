@@ -22,7 +22,7 @@ function rowMatchesLead(row, lead) {
     return d && (d.includes(leadPhone) || leadPhone.includes(d));
   })) return true;
   if (leadEmail && rowText.includes(leadEmail)) return true;
-  if (leadUrl && rowText.includes(leadUrl)) return true;
+  if (leadUrl && !leadUrl.includes('natigold.com') && rowText.includes(leadUrl)) return true;
   if (leadName && leadName.length > 3 && rowText.includes(leadName)) return true;
   return false;
 }

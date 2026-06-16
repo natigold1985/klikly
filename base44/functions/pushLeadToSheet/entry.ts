@@ -98,7 +98,7 @@ function rowMatchesLead(row, lead) {
     return d && (d.includes(leadPhone) || leadPhone.includes(d));
   })) return true;
   if (leadEmail && rowText.includes(leadEmail)) return true;
-  if (leadUrl && rowText.includes(leadUrl)) return true;
+  if (leadUrl && !leadUrl.includes('natigold.com') && rowText.includes(leadUrl)) return true;
   if (leadName && leadName.length > 3) {
     const rowName = normalize((row || [])[0]);
     if (rowName === leadName) return true;
