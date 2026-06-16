@@ -132,7 +132,7 @@ export default function ClientGallery() {
         setIsSaving(true);
         try {
             await saveSelection(selectedIds, true);
-            toast.success('הבחירה נשמרה בהצלחה!', {
+            toast.success('הבחירה נשלחה אליי במייל בהצלחה!', {
                 icon: <CheckCircle2 className="w-5 h-5 text-green-500" />
             });
         } catch (e) {
