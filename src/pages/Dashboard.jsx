@@ -77,12 +77,18 @@ export default function Dashboard() {
   }, [isClient]);
 
   // KPIs
-  const today = new Date().toISOString().split('T')[0];
-  const leadsToday = leads.filter(l => l.created_date?.startsWith(today)).length;
-  const websiteLeadsToday = leads.filter(l =>
-    l.created_date?.startsWith(today) &&
-    (String(l.source || '').includes('natigold.com') || String(l.source_post_url || '').includes('natigold.com'))
-  ).length;
+  const israelDate = (date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date(date));
+  const today = israelDate(new Date());
+  const isCreatedToday = (lead) => lead.created_date && israelDate(lead.created_date) === today;
+  const isWebsiteLead = (lead) => {
+    const text = `${lead?.source || ''} ${lead?.source_post_url || ''}`.toLowerCase();
+    return text.includes('natigold.com') || text.includes('website') || text.includes('אתר');
+  };
+  const leadsToday = leads.filter(isCreatedToday).length;
+  const websiteLeadsTodayList = leads.filter(l => isCreatedToday(l) && isWebsiteLead(l));
+  const newWebsiteLeadsToday = websiteLeadsTodayList.filter(l => normalizeLeadStatus(l.status) === 'ליד חדש');
+  const websiteLeadsToday = websiteLeadsTodayList.length;
+  const pendingWebsiteLeadsToday = newWebsiteLeadsToday.length;
   const totalLeads = leads.length;
   const closedWon = leads.filter(l => normalizeLeadStatus(l.status) === 'נסגר בהצלחה').length;
   const conversionRate = totalLeads ? Math.round((closedWon / totalLeads) * 100) : 0;
@@ -108,7 +114,7 @@ export default function Dashboard() {
   }
 
   const photographerStats = [
-    { title: 'לידים היום', value: leadsToday, note: `${websiteLeadsToday} נכנסו מהאתר`, icon: TrendingUp, link: 'Leads' },
+    { title: 'לידים היום', value: leadsToday, note: `${pendingWebsiteLeadsToday} חדשים מהאתר לטיפול`, icon: TrendingUp, link: 'Leads' },
     { title: 'אחוז המרה', value: `${conversionRate}%`, icon: Target, link: 'Analytics' },
     { title: 'הכנסות', value: `₪${totalRevenue.toLocaleString()}`, icon: DollarSign, link: 'Analytics' },
     { title: 'פרויקטים פעילים', value: activeProjects, icon: Briefcase, link: 'Projects' },
@@ -117,13 +123,7 @@ export default function Dashboard() {
   ];
 
   const recentLeads = leads.slice(0, 5);
-  const recentWebsiteLeads = leads
-    .filter(l =>
-      l.created_date?.startsWith(today) &&
-      normalizeLeadStatus(l.status) === 'ליד חדש' &&
-      (String(l.source || '').includes('natigold.com') || String(l.source_post_url || '').includes('natigold.com'))
-    )
-    .slice(0, 3);
+  const recentWebsiteLeads = newWebsiteLeadsToday.slice(0, 5);
   const upcomingTasks = tasks.slice(0, 5);
 
   const urgentLeads = leads.filter(l => {
@@ -193,34 +193,53 @@ export default function Dashboard() {
           );
         })()}
 
-        {recentWebsiteLeads.length > 0 && (
-          <Card className="border border-[#FFD700]/40 bg-[#FFD700]/10 rounded-2xl shadow-sm">
-            <CardContent className="p-4 space-y-3">
-              <div className="flex items-center justify-between gap-3">
+        <Card className="border-2 border-[#FFD700]/60 bg-gradient-to-l from-[#FFD700]/20 to-white rounded-2xl shadow-sm">
+          <CardContent className="p-4 md:p-5 space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-[#FFD700] flex items-center justify-center shadow-sm">
+                  <AlertCircle className="w-6 h-6 text-black" />
+                </div>
                 <div>
-                  <h3 className="font-bold text-slate-900">לידים חדשים מהאתר היום</h3>
-                  <p className="text-xs text-slate-600">הלידים האחרונים שנכנסו מטפסי natigold.com</p>
+                  <h3 className="font-extrabold text-slate-900 text-lg">לידים חדשים מהאתר היום</h3>
+                  <p className="text-xs text-slate-600">מדד טיפול מיידי לטפסים שנכנסו מהאתר</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-center bg-white border border-[#FFD700]/40 rounded-2xl px-5 py-3 min-w-[112px]">
+                  <p className="text-4xl font-black text-slate-900 leading-none">{pendingWebsiteLeadsToday}</p>
+                  <p className="text-[11px] font-bold text-[#C5A028] mt-1">דורשים טיפול</p>
                 </div>
                 <Link to={createPageUrl('Leads')}>
                   <Button size="sm" className="bg-[#FFD700] text-black hover:bg-[#e6c200]">פתח לידים</Button>
                 </Link>
               </div>
+            </div>
+            {recentWebsiteLeads.length > 0 ? (
               <div className="grid gap-2">
                 {recentWebsiteLeads.map((lead) => (
                   <Link key={lead.id} to={createPageUrl(`LeadDetails?id=${lead.id}`)}>
-                    <div className="flex items-center justify-between gap-3 rounded-xl bg-white/80 border border-[#FFD700]/30 p-3 hover:bg-white transition-colors">
+                    <div className="flex items-center justify-between gap-3 rounded-xl bg-white border-2 border-blue-200 p-3 hover:border-[#FFD700] transition-colors">
                       <div className="min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[11px] font-black">חדש מהאתר</span>
+                          <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[11px] font-black">לטיפול מיידי</span>
+                        </div>
                         <p className="text-sm font-bold text-slate-900 truncate">{lead.name}</p>
                         <p className="text-xs text-slate-500 truncate">{lead.phone} · {lead.shooting_type || lead.source}</p>
                       </div>
-                      {getStatusBadge(lead.status)}
+                      <MessageCircle className="w-5 h-5 text-[#C5A028] flex-shrink-0" />
                     </div>
                   </Link>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            ) : (
+              <div className="rounded-xl bg-white/70 border border-dashed border-slate-200 p-4 text-center text-sm font-medium text-slate-500">
+                אין כרגע לידים חדשים מהאתר שממתינים לטיפול היום.
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Header */}
         <div className="mb-4 mt-4">
