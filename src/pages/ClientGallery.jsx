@@ -116,8 +116,8 @@ export default function ClientGallery() {
         setSelectedIds(nextSet);
         setSavingPhotoId(photoId);
         try {
-            await saveSelection(nextSet, !wasSelected);
-            toast.success(wasSelected ? 'הבחירה הוסרה' : 'התמונה נבחרה ונשלחה לצלם', {
+            await saveSelection(nextSet, false);
+            toast.success(wasSelected ? 'הבחירה הוסרה' : 'התמונה נשמרה בבחירות', {
                 icon: <CheckCircle2 className="w-5 h-5 text-green-500" />
             });
         } catch (e) {

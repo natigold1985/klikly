@@ -60,8 +60,8 @@ Deno.serve(async (req) => {
         await base44.asServiceRole.integrations.Core.SendEmail({
           to: photographerEmail,
           from_name: 'KLIKLY',
-          subject: `⭐ ${clientName} בחר ${selectedCount} תמונות לעריכה`,
-          body: `הלקוח ${clientName} בחר ${selectedCount} תמונות בפרויקט "${projectTitle}" לעריכה.\n\nהתמונות שנבחרו:\n${selectedLines}\n\nהשלב הבא: לערוך את התמונות שנבחרו ולהעלות את הסופיות לתיקיית הפרויקט.`,
+          subject: `⭐ ${clientName} שמר ${selectedCount} תמונות לבחירה`,
+          body: `הלקוח ${clientName} לחץ על שמור בחירות בפרויקט "${projectTitle}".\n\nאלו התמונות שהוא אהב ובחר לעריכה מתוך הקבצים המקוריים:\n${selectedLines}\n\nהשלב הבא: לערוך בדיוק את התמונות האלו ולהעלות את הסופיות לתיקיית הפרויקט.`,
         });
       } catch (e) {
         console.error('Email notification failed:', e);
