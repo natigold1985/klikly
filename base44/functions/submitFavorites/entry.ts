@@ -3,7 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.24';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { projectId, pin, selectedPhotoIds, photoComments } = await req.json();
+    const { projectId, pin, selectedPhotoIds, selectedPhotoDetails = [], photoComments } = await req.json();
 
     const project = await base44.asServiceRole.entities.Project.get(projectId);
     const currentUser = await getCurrentUser(base44);
@@ -49,15 +49,19 @@ Deno.serve(async (req) => {
     const selectedCount = selectedPhotoIds.length;
     const clientName = project.client_name || currentUser?.email || 'הלקוח';
     const projectTitle = project.project_name || project.title || 'הפרויקט';
-    const photographerEmail = project.created_by;
+    const photographerEmail = project.created_by || 'natigold04@gmail.com';
+    const selectedLines = selectedPhotoDetails.length > 0
+      ? selectedPhotoDetails.map((photo, index) => `${index + 1}. ${photo.name || photo.id}${photo.comment ? ` — הערה: ${photo.comment}` : ''}${photo.url ? `\n   ${photo.url}` : ''}`).join('\n')
+      : selectedPhotoIds.map((photoId, index) => `${index + 1}. ${photoId}`).join('\n');
 
     if (photographerEmail && selectedCount > 0) {
       // Email to photographer
       try {
-        await base44.integrations.Core.SendEmail({
+        await base44.asServiceRole.integrations.Core.SendEmail({
           to: photographerEmail,
+          from_name: 'KLIKLY',
           subject: `📸 ${clientName} בחר ${selectedCount} תמונות לעריכה`,
-          body: `הלקוח ${clientName} בחר ${selectedCount} תמונות בפרויקט "${projectTitle}" לעריכה.\n\nכנס למערכת לצפייה ולהורדה.`,
+          body: `הלקוח ${clientName} בחר ${selectedCount} תמונות בפרויקט "${projectTitle}" לעריכה.\n\nהתמונות שנבחרו:\n${selectedLines}\n\nפתח את אחסון הקבצים בפרויקט כדי לערוך ולהעלות את התמונות הסופיות.`,
         });
       } catch (e) {
         console.error('Email notification failed:', e);
@@ -68,11 +72,11 @@ Deno.serve(async (req) => {
         await base44.asServiceRole.entities.Task.create({
           title: `עריכת ${selectedCount} תמונות — ${projectTitle}`,
           description: `הלקוח ${clientName} בחר תמונות. יש לערוך ולהעלות חזרה לפרויקט.`,
+          related_to_type: 'project',
+          related_to_id: projectId,
           status: 'pending',
           priority: 'high',
           stage: 'editing',
-          project_id: projectId,
-          created_by: photographerEmail,
         });
       } catch (e) {
         console.error('Task creation failed:', e);

@@ -91,6 +91,14 @@ export default function ClientGallery() {
                     projectId: id, 
                     pin, 
                     selectedPhotoIds: Array.from(selectedIds),
+                    selectedPhotoDetails: photos
+                        .filter((photo) => selectedIds.has(photo.id))
+                        .map((photo) => ({
+                            id: photo.id,
+                            name: photo.file_name || photo.name || photo.id,
+                            url: photo.view_url || photo.file_url || photo.url || photo.download_url,
+                            comment: photoComments?.[photo.id] || ''
+                        })),
                     photoComments
                 });
             const data = res.data;
