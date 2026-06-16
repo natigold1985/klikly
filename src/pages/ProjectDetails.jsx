@@ -139,7 +139,7 @@ export default function ProjectDetails() {
     }
     const message = project.workflow_type === 'selection'
       ? `היי ${project.client_name || ''}, לבחירת תמונות לעריכה:\n${url}\n\nסמן/י את התמונות ולחץ/י על שמירת בחירות.`
-      : `היי ${project.client_name || ''}, הגלריה שלך מוכנה לצפייה והורדה:\n${url}\n\nאין צורך בקוד גישה או התחברות.`;
+      : `היי ${project.client_name || ''}, תיקיית הקבצים שלך מוכנה להורדה:\n${url}\n\nאין צורך בקוד גישה או התחברות.`;
     await navigator.clipboard.writeText(message);
     setQuickActionStatus('גלריה הועתקה לשליחה');
     toast.success('ההודעה עם קישור הגלריה הועתקה');
@@ -204,7 +204,7 @@ export default function ProjectDetails() {
     if (!url) { toast.error('אין קישור גלריה תקין לפרויקט'); return; }
     const text = project.workflow_type === 'selection'
       ? `היי ${project.client_name || ''} 😊\nלבחירת תמונות לעריכה:\n${url}\n\nסמן/י את התמונות ולחץ/י על שמירת בחירות.`
-      : `היי ${project.client_name || ''} 😊\nהגלריה שלך מוכנה!\nלצפייה והורדה:\n${url}`;
+      : `היי ${project.client_name || ''} 😊\nתיקיית הקבצים שלך מוכנה להורדה:\n${url}`;
     const msg = encodeURIComponent(text);
     const phone = (project.client_phone || '').replace(/\D/g, '');
     const intlPhone = phone.startsWith('0') ? `972${phone.slice(1)}` : phone;
@@ -230,7 +230,7 @@ export default function ProjectDetails() {
       const res = await base44.functions.invoke('notifyClientNewFiles', {
         project_id: project.id,
         gallery_url: galleryUrl,
-        message: isSelectionGallery ? 'הגלריה שלך מוכנה לבחירת תמונות לעריכה.' : 'הגלריה שלך מוכנה לצפייה והורדה.',
+        message: isSelectionGallery ? 'הגלריה שלך מוכנה לבחירת תמונות לעריכה.' : 'תיקיית הקבצים שלך מוכנה להורדה.',
         notification_type: 'gallery_sent',
       });
       if (res.data?.success) {
@@ -270,7 +270,7 @@ export default function ProjectDetails() {
             </Link>
             <button onClick={handleCopyGalleryLink} className="flex items-center justify-center gap-2 bg-[#FFD700] text-black rounded-xl px-3 py-3 text-sm font-semibold hover:bg-[#e6c200] transition-colors">
               <LinkIcon className="w-4 h-4" />
-              שלח גלריה
+              שלח הורדה
             </button>
             <button onClick={handleSendGalleryWhatsApp} className="flex items-center justify-center gap-2 bg-green-500 text-white rounded-xl px-3 py-3 text-sm font-semibold hover:bg-green-600 transition-colors">
               <MessageCircle className="w-4 h-4" />
@@ -551,14 +551,14 @@ export default function ProjectDetails() {
             <CardHeader className="bg-gradient-to-r from-[#FFD700]/10 to-transparent border-b border-white/10 pb-4">
               <CardTitle className="text-lg font-bold flex items-center gap-2 text-[#FFD700]">
                 <Eye className="w-5 h-5" />
-                גלריית לקוח פרטית
+                הורדת תיקיית לקוח
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6 space-y-5">
               <div>
                 <label className="text-sm text-white/50 mb-1.5 block">גישה ללקוח</label>
                 <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm leading-6">
-                  כניסה ישירה ללא PIN וללא התחברות. הקישור מבוסס על תיקיית Google Drive של הפרויקט.
+                  קישור ישיר להורדת תיקיית הקבצים. ללא PIN וללא התחברות.
                 </div>
               </div>
               <Button 
@@ -566,7 +566,7 @@ export default function ProjectDetails() {
                 className="w-full bg-[#FFD700] hover:bg-[#e6c200] text-black font-bold shadow-[0_4px_14px_rgba(255,215,0,0.25)] flex items-center justify-center gap-2"
               >
                 <LinkIcon className="w-4 h-4" />
-                העתק קישור ללקוח
+                העתק קישור הורדה ללקוח
               </Button>
             </CardContent>
           </Card>

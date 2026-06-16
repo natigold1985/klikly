@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import ThumbnailCarousel from '@/components/ui/thumbnail-carousel';
 import ConsentDownloadDialog from '@/components/gallery/ConsentDownloadDialog';
 import StickyDownloadButton from '@/components/gallery/StickyDownloadButton';
 import { Loader2, ShieldOff } from 'lucide-react';
@@ -29,7 +28,6 @@ export default function FolderGallery() {
   const [downloaded, setDownloaded] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState('');
   const [downloadError, setDownloadError] = useState('');
-  const [videoUrls, setVideoUrls] = useState({});
   const firstFetchRef = useRef(true);
 
   const { data, isLoading, error } = useQuery({
@@ -88,21 +86,6 @@ export default function FolderGallery() {
     document.documentElement.classList.remove('dark');
   }, []);
 
-  useEffect(() => {
-    const loadVideos = async () => {
-      const videos = (data?.files || []).filter((file) => file.is_video && !videoUrls[file.id]);
-      for (const file of videos.slice(0, 3)) {
-        const res = await base44.functions.invoke('downloadFolderFile', { folder_id: folderId, file_id: file.id });
-        const byteCharacters = atob(res.data.base64);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i += 1) byteNumbers[i] = byteCharacters.charCodeAt(i);
-        const blob = new Blob([new Uint8Array(byteNumbers)], { type: res.data.mime_type || 'video/mp4' });
-        setVideoUrls((prev) => ({ ...prev, [file.id]: URL.createObjectURL(blob) }));
-      }
-    };
-    if (data?.files?.some((file) => file.is_video)) loadVideos();
-  }, [data?.files, folderId]);
-
   if (isLoading) {
     return <div className="min-h-screen bg-black flex items-center justify-center"><Loader2 className="w-9 h-9 text-[#FFD700] animate-spin" /></div>;
   }
@@ -121,7 +104,6 @@ export default function FolderGallery() {
   }
 
   const { project, files = [] } = data;
-  const galleryFiles = files.map((file) => file.is_video && videoUrls[file.id] ? { ...file, view_url: videoUrls[file.id] } : file);
   const driveFolderUrl = `https://drive.google.com/drive/folders/${folderId}`;
 
   return (
@@ -137,13 +119,25 @@ export default function FolderGallery() {
           {downloaded && <p className="mt-4 text-emerald-400 font-bold">✓ ההורדה החלה והאישור נשמר</p>}
         </div>
 
-        <ThumbnailCarousel files={galleryFiles} busy={busy} downloaded={downloaded} showDownloadButton={false} />
+        <div className="max-w-xl mx-auto rounded-[2rem] border border-[#FFD700]/25 bg-[#0a0a0a]/90 p-8 md:p-10 text-center shadow-[0_0_60px_rgba(255,215,0,0.12)]">
+          <div className="w-16 h-16 rounded-full bg-[#FFD700]/10 border border-[#FFD700]/30 flex items-center justify-center mx-auto mb-5 text-3xl">📁</div>
+          <h2 className="text-2xl md:text-3xl font-black text-[#FFD700] mb-3">התיקייה מוכנה להורדה</h2>
+          <p className="text-white/60 leading-7 mb-7">כל קבצי הפרויקט זמינים להורדה ישירה. לחץ/י על הכפתור ואשר/י הורדת מספר קבצים אם הדפדפן מבקש.</p>
+          <button
+            onClick={() => setConsentOpen(true)}
+            disabled={busy || files.length === 0}
+            className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#FFD700] to-[#D4AF37] text-black font-black shadow-[0_10px_30px_rgba(255,215,0,0.28)] hover:brightness-110 disabled:opacity-60"
+          >
+            {busy ? 'מוריד...' : `הורד תיקייה מלאה (${files.length} קבצים)`}
+          </button>
+          {downloaded && <p className="mt-4 text-emerald-400 font-bold">✓ ההורדה החלה והאישור נשמר</p>}
+        </div>
 
         <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4"><div className="text-2xl font-black text-[#FFD700]">{files.length}</div><div className="text-xs text-white/45">קבצים זמינים</div></div>
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4"><div className="text-2xl font-black text-[#FFD700]">90</div><div className="text-xs text-white/45">ימי שמירה</div></div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4"><div className="text-2xl font-black text-[#FFD700]">ZIP</div><div className="text-xs text-white/45">הורדה מרוכזת</div></div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4"><div className="text-2xl font-black text-[#FFD700]">LIVE</div><div className="text-xs text-white/45">סנכרון Drive</div></div>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4"><div className="text-2xl font-black text-[#FFD700]">Drive</div><div className="text-xs text-white/45">מקור הקבצים</div></div>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4"><div className="text-2xl font-black text-[#FFD700]">LIVE</div><div className="text-xs text-white/45">סנכרון תיקייה</div></div>
         </div>
       </main>
 

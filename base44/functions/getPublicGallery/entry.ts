@@ -28,7 +28,8 @@ Deno.serve(async (req) => {
     }
 
     const hasValidPin = String(project?.gallery_pin || '').trim() && String(project.gallery_pin).trim() === String(pin || '').trim();
-    if (!project || (!isAdmin && !isProjectClient && !hasValidPin)) {
+    const hasDirectProjectLink = !!project?.drive_folder_url;
+    if (!project || (!isAdmin && !isProjectClient && !hasValidPin && !hasDirectProjectLink)) {
       // BOLA Protection & Security Logging
       await base44.asServiceRole.entities.SystemLog.create({
         action: 'security_violation',

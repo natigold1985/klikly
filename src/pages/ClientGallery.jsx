@@ -24,7 +24,7 @@ export default function ClientGallery() {
     const [submitStatus, setSubmitStatus] = useState(null);
     const [accessPin, setAccessPin] = useState('');
 
-    // Parse PIN from URL if present, or bypass for logged-in admins
+    // Parse PIN from URL if present, or open direct project links without a PIN
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
         const urlPin = urlParams.get('pin');
@@ -33,16 +33,23 @@ export default function ClientGallery() {
             handleLogin(urlPin);
             return;
         }
+        let opened = false;
         base44.auth.isAuthenticated().then(async (isAuthed) => {
-            if (!isAuthed) return;
-            const me = await base44.auth.me();
-            if (me?.role === 'admin' || me?.email === 'natigold04@gmail.com') {
-                handleLogin('__admin__');
-            } else if (me?.role === 'client') {
-                // Logged-in client: bypass PIN — getPublicGallery validates by email match
-                handleLogin('__client__');
+            if (isAuthed) {
+                const me = await base44.auth.me();
+                if (me?.role === 'admin' || me?.email === 'natigold04@gmail.com') {
+                    opened = true;
+                    handleLogin('__admin__');
+                    return;
+                }
+                if (me?.role === 'client') {
+                    opened = true;
+                    handleLogin('__client__');
+                    return;
+                }
             }
-        }).catch(() => {});
+            if (!opened) handleLogin('__direct__');
+        }).catch(() => handleLogin('__direct__'));
     }, [id]);
 
     const handleLogin = async (currentPin = pin) => {

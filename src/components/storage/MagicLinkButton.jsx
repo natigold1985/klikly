@@ -22,7 +22,7 @@ export default function MagicLinkButton({ project, compact = false }) {
     : (folderId ? `${window.location.origin}/gallery/${folderId}` : '');
   const defaultMessage = isSelectionGallery
     ? `היי ${project?.client_name || ''} 👋\n\nלבחירת תמונות לעריכה:\n${link}\n\nסמן/י בכוכב את התמונות שאהבת ולחץ/י על שמירת בחירות.`
-    : `היי ${project?.client_name || ''} 👋\n\nהגלריה שלך מוכנה! ✨\n\nאפשר לצפות בכל התמונות ולהוריד אותן ישירות מהקישור הבא:\n${link}\nאין צורך בקוד גישה או התחברות.\nתהנה/י`;
+    : `היי ${project?.client_name || ''} 👋\n\nתיקיית הקבצים שלך מוכנה להורדה ✨\n\nאפשר להוריד את כל הקבצים ישירות מהקישור הבא:\n${link}\nאין צורך בקוד גישה או התחברות.\nתהנה/י`;
 
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -75,7 +75,7 @@ export default function MagicLinkButton({ project, compact = false }) {
       >
         <Sparkles className={compact ? 'w-3.5 h-3.5 text-black shrink-0' : 'w-6 h-6 text-black'} />
         <span className={compact ? 'text-xs font-bold text-black truncate' : 'text-lg md:text-xl font-bold text-black tracking-wide'}>
-          {compact ? (isSelectionGallery ? 'שלח לבחירה' : 'שלח גלריה') : (isSelectionGallery ? 'שלח בחירת תמונות ללקוח' : 'שלח גלריה ללקוח')}
+          {compact ? (isSelectionGallery ? 'שלח לבחירה' : 'שלח הורדה') : (isSelectionGallery ? 'שלח בחירת תמונות ללקוח' : 'שלח הורדת תיקייה ללקוח')}
         </span>
         {!compact && <Send className="w-5 h-5 text-black group-hover:translate-x-[-4px] transition-transform" />}
       </button>

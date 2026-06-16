@@ -16,8 +16,9 @@ Deno.serve(async (req) => {
     const isAdmin = currentUser?.role === 'admin' || currentUser?.email === 'natigold04@gmail.com';
     const isProjectClient = !!currentUser?.email && clientEmails.includes(currentUser.email.toLowerCase());
     const hasValidPin = String(project?.gallery_pin || '').trim() && String(project.gallery_pin).trim() === String(pin || '').trim();
+    const hasDirectProjectLink = !!project?.drive_folder_url;
 
-    if (!project || (!isAdmin && !isProjectClient && !hasValidPin)) {
+    if (!project || (!isAdmin && !isProjectClient && !hasValidPin && !hasDirectProjectLink)) {
       await base44.asServiceRole.entities.SystemLog.create({
         action: 'client_selection_submit_blocked',
         details: `Selection submit blocked for project ${projectId}. Current user: ${currentUser?.email || 'public'}, pin received: ${pin ? 'yes' : 'no'}.`,
@@ -192,7 +193,7 @@ async function sendGmailEmail(accessToken, fromEmail, { to, subject, body }) {
     html: body,
   });
   const message = await composer.compile().build();
-  const raw = btoa(String.fromCharCode(...new Uint8Array(message))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const raw = base64UrlEncode(new Uint8Array(message));
   const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
@@ -202,6 +203,15 @@ async function sendGmailEmail(accessToken, fromEmail, { to, subject, body }) {
     const errorText = await res.text();
     throw new Error(errorText || `Gmail send failed ${res.status}`);
   }
+}
+
+function base64UrlEncode(bytes) {
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 function escapeHtml(value) {
