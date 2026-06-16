@@ -158,6 +158,30 @@ async function deleteExistingRows(authHeader, tabs, lead, oldLead) {
 
 async function appendRow(authHeader, tabName, row) {
   await ensureHeaders(authHeader, tabName);
+  const status = row[5] || '';
+  const shouldInsertAtTop = status === 'חדש מהאתר' || status === 'ליד חדש';
+
+  if (shouldInsertAtTop) {
+    const metaResp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties`, { headers: authHeader });
+    const meta = await metaResp.json();
+    const sheet = (meta.sheets || []).find((s) => s.properties.title === tabName);
+    if (sheet?.properties?.sheetId !== undefined) {
+      await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`, {
+        method: 'POST',
+        headers: { ...authHeader, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requests: [{ insertDimension: { range: { sheetId: sheet.properties.sheetId, dimension: 'ROWS', startIndex: 1, endIndex: 2 }, inheritFromBefore: false } }] }),
+      });
+      const topUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(`'${tabName}'!A2:H2`)}?valueInputOption=USER_ENTERED`;
+      const topRes = await fetch(topUrl, {
+        method: 'PUT',
+        headers: { ...authHeader, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ values: [row] }),
+      });
+      if (!topRes.ok) console.error(`pushLeadToSheet: insert to top of "${tabName}" failed:`, await topRes.text());
+      return;
+    }
+  }
+
   const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(`'${tabName}'!A:H`)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
   const appendRes = await fetch(appendUrl, {
     method: 'POST',

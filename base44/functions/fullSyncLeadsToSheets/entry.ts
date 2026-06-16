@@ -55,14 +55,14 @@ function sheetStatus(lead) {
 // Sort order: new website leads first, then active work, then regular new, closed at bottom
 const STATUS_SORT_ORDER = {
   'חדש מהאתר':      0,
-  'בטיפול מהאתר':   1,
-  'נוצר קשר':       2,
-  'נשלח פולו-אפ':   3,
-  'נענה':           4,
-  'ליד חדש':        5,
-  'לא רלוונטי':     6,
-  'נסגר בהצלחה':    7,
-  'נסגר מהאתר':     8,
+  'ליד חדש':        1,
+  'בטיפול מהאתר':   2,
+  'נוצר קשר':       3,
+  'נשלח פולו-אפ':   4,
+  'נענה':           5,
+  'לא רלוונטי':     7,
+  'נסגר בהצלחה':    8,
+  'נסגר מהאתר':     9,
 };
 
 function sortLeadsByStatus(leads) {
