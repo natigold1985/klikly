@@ -16,15 +16,20 @@ export default function MagicLinkButton({ project, compact = false }) {
   };
 
   const folderId = getDriveFolderId(project?.drive_folder_url);
-  const link = folderId ? `${window.location.origin}/gallery/${folderId}` : '';
-  const defaultMessage = `היי ${project?.client_name || ''} 👋\n\nהגלריה שלך מוכנה! ✨\n\nאפשר לצפות בכל התמונות ולהוריד אותן ישירות מהקישור הבא:\n${link}\nאין צורך בקוד גישה או התחברות.\nתהנה/י`;
+  const isSelectionGallery = project?.workflow_type === 'selection';
+  const link = isSelectionGallery
+    ? `${window.location.origin}/ClientGallery/${project.id}${project.gallery_pin ? `?pin=${project.gallery_pin}` : ''}`
+    : (folderId ? `${window.location.origin}/gallery/${folderId}` : '');
+  const defaultMessage = isSelectionGallery
+    ? `היי ${project?.client_name || ''} 👋\n\nלבחירת תמונות לעריכה:\n${link}\n\nסמן/י בכוכב את התמונות שאהבת ולחץ/י על שמירת בחירות.`
+    : `היי ${project?.client_name || ''} 👋\n\nהגלריה שלך מוכנה! ✨\n\nאפשר לצפות בכל התמונות ולהוריד אותן ישירות מהקישור הבא:\n${link}\nאין צורך בקוד גישה או התחברות.\nתהנה/י`;
 
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState(defaultMessage);
   const [sendingEmail, setSendingEmail] = useState(false);
 
-  if (!folderId) {
+  if (!link) {
     return (
       <Button variant="outline" disabled className={compact ? 'w-full h-10 gap-1 text-xs px-2' : 'gap-2'}>
         <Link2 className={compact ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
@@ -61,7 +66,7 @@ export default function MagicLinkButton({ project, compact = false }) {
       >
         <Sparkles className={compact ? 'w-3.5 h-3.5 text-black shrink-0' : 'w-6 h-6 text-black'} />
         <span className={compact ? 'text-xs font-bold text-black truncate' : 'text-lg md:text-xl font-bold text-black tracking-wide'}>
-          {compact ? 'שלח גלריה' : 'שלח גלריה ללקוח'}
+          {compact ? (isSelectionGallery ? 'שלח לבחירה' : 'שלח גלריה') : (isSelectionGallery ? 'שלח בחירת תמונות ללקוח' : 'שלח גלריה ללקוח')}
         </span>
         {!compact && <Send className="w-5 h-5 text-black group-hover:translate-x-[-4px] transition-transform" />}
       </button>
@@ -71,7 +76,7 @@ export default function MagicLinkButton({ project, compact = false }) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
               <Sparkles className="w-5 h-5 text-amber-500" />
-              שלח את הגלריה ל{project.client_name}
+              {isSelectionGallery ? `שלח בחירת תמונות ל${project.client_name}` : `שלח את הגלריה ל${project.client_name}`}
             </DialogTitle>
           </DialogHeader>
 
@@ -136,11 +141,11 @@ export default function MagicLinkButton({ project, compact = false }) {
         <tr><td style="padding:36px 40px 28px;">
           <p style="color:#cccccc;font-size:18px;line-height:1.7;margin:0 0 12px;">היי ${project.client_name || ''} 👋</p>
           <p style="color:#aaaaaa;font-size:16px;line-height:1.7;margin:0 0 28px;">
-            הגלריה שלך מוכנה לצפייה ולהורדה! לחץ על הכפתור למטה כדי לצפות בכל התמונות ולהוריד אותן.
+            ${isSelectionGallery ? 'לבחירת תמונות לעריכה — לחץ/י על הכפתור, סמן/י בכוכב את התמונות שאהבת ושמור/י את הבחירה.' : 'הגלריה שלך מוכנה לצפייה ולהורדה! לחץ על הכפתור למטה כדי לצפות בכל התמונות ולהוריד אותן.'}
           </p>
           <div style="text-align:center;margin:0 0 32px;">
             <a href="${link}" style="display:inline-block;background:linear-gradient(135deg,#FFD700,#D4AF37);color:#000;font-size:17px;font-weight:900;padding:18px 52px;border-radius:14px;text-decoration:none;letter-spacing:0.5px;box-shadow:0 8px 24px rgba(255,215,0,0.3);">
-              📸 לצפייה בגלריה שלי
+              ${isSelectionGallery ? '⭐ לבחירת תמונות לעריכה' : '📸 לצפייה בגלריה שלי'}
             </a>
           </div>
           <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:20px 24px;margin-bottom:24px;">
@@ -166,7 +171,7 @@ export default function MagicLinkButton({ project, compact = false }) {
                     await base44.integrations.Core.SendEmail({
                       to: email,
                       from_name: 'KLIKLY',
-                      subject: `📸 הגלריה שלך מוכנה - ${project.client_name || ''}`,
+                      subject: isSelectionGallery ? `⭐ לבחירת תמונות לעריכה - ${project.client_name || ''}` : `📸 הגלריה שלך מוכנה - ${project.client_name || ''}`,
                       body: galleryEmailHtml,
                     });
                     toast.success(`מייל נשלח ל-${email}`);

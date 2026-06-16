@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
     const selectedCount = selectedPhotoIds.length;
     const clientName = project.client_name || currentUser?.email || 'הלקוח';
     const projectTitle = project.project_name || project.title || 'הפרויקט';
-    const photographerEmail = project.created_by || 'natigold04@gmail.com';
+    const photographerEmail = 'natigold04@gmail.com';
     const selectedLines = selectedPhotoDetails.length > 0
       ? selectedPhotoDetails.map((photo, index) => `${index + 1}. ${photo.name || photo.id}${photo.comment ? ` — הערה: ${photo.comment}` : ''}${photo.url ? `\n   ${photo.url}` : ''}`).join('\n')
       : selectedPhotoIds.map((photoId, index) => `${index + 1}. ${photoId}`).join('\n');
@@ -60,8 +60,8 @@ Deno.serve(async (req) => {
         await base44.asServiceRole.integrations.Core.SendEmail({
           to: photographerEmail,
           from_name: 'KLIKLY',
-          subject: `📸 ${clientName} בחר ${selectedCount} תמונות לעריכה`,
-          body: `הלקוח ${clientName} בחר ${selectedCount} תמונות בפרויקט "${projectTitle}" לעריכה.\n\nהתמונות שנבחרו:\n${selectedLines}\n\nפתח את אחסון הקבצים בפרויקט כדי לערוך ולהעלות את התמונות הסופיות.`,
+          subject: `⭐ ${clientName} בחר ${selectedCount} תמונות לעריכה`,
+          body: `הלקוח ${clientName} בחר ${selectedCount} תמונות בפרויקט "${projectTitle}" לעריכה.\n\nהתמונות שנבחרו:\n${selectedLines}\n\nהשלב הבא: לערוך את התמונות שנבחרו ולהעלות את הסופיות לתיקיית הפרויקט.`,
         });
       } catch (e) {
         console.error('Email notification failed:', e);
