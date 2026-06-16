@@ -106,16 +106,25 @@ export default function ProjectDetails() {
     return match?.[1] || '';
   };
 
-  const handleCopyGalleryLink = () => {
-    const folderId = getDriveFolderId(project.drive_folder_url);
-    if (!folderId) {
-      toast.error('אין תיקיית Drive תקינה לפרויקט');
+  const getProjectShareLink = (p = project) => {
+    if (p?.workflow_type === 'selection') {
+      return `${window.location.origin}/ClientGallery/${p.id}${p.gallery_pin ? `?pin=${p.gallery_pin}` : ''}`;
+    }
+    const folderId = getDriveFolderId(p?.drive_folder_url);
+    return folderId ? `${window.location.origin}/gallery/${folderId}` : '';
+  };
+
+  const handleCopyGalleryLink = async () => {
+    const url = getProjectShareLink();
+    if (!url) {
+      toast.error('אין קישור גלריה תקין לפרויקט');
       return;
     }
-    const url = `${window.location.origin}/gallery/${folderId}`;
-    const message = `היי ${project.client_name || ''}, הגלריה שלך מוכנה לצפייה והורדה:\n${url}\n\nאין צורך בקוד גישה או התחברות.`;
-    navigator.clipboard.writeText(message);
-    toast.success('קישור גלריה ללא PIN הועתק');
+    const message = project.workflow_type === 'selection'
+      ? `היי ${project.client_name || ''}, לבחירת תמונות לעריכה:\n${url}\n\nסמן/י את התמונות ולחץ/י על שמירת בחירות.`
+      : `היי ${project.client_name || ''}, הגלריה שלך מוכנה לצפייה והורדה:\n${url}\n\nאין צורך בקוד גישה או התחברות.`;
+    await navigator.clipboard.writeText(message);
+    toast.success('ההודעה עם קישור הגלריה הועתקה');
   };
 
   const [creatingFolder, setCreatingFolder] = useState(false);
@@ -164,31 +173,30 @@ export default function ProjectDetails() {
     return <span className={`px-3 py-1.5 rounded-full text-sm font-semibold ${badge.color}`}>{badge.label}</span>;
   };
 
-  const getDriveFolderIdFromUrl = (url = '') => {
-    const match = String(url).match(/drive\.google\.com\/drive\/(?:u\/\d+\/)?folders\/([a-zA-Z0-9_-]+)/);
-    return match?.[1] || '';
-  };
-
   const handleSendGalleryWhatsApp = () => {
-    const folderId = getDriveFolderIdFromUrl(project.drive_folder_url);
-    if (!folderId) { toast.error('אין תיקיית Drive — צור תיקייה קודם'); return; }
-    const url = `${window.location.origin}/gallery/${folderId}`;
-    const msg = encodeURIComponent(`היי ${project.client_name || ''} 😊\nהגלריה שלך מוכנה!\nלצפייה והורדה:\n${url}`);
+    const url = getProjectShareLink();
+    if (!url) { toast.error('אין קישור גלריה תקין לפרויקט'); return; }
+    const text = project.workflow_type === 'selection'
+      ? `היי ${project.client_name || ''} 😊\nלבחירת תמונות לעריכה:\n${url}\n\nסמן/י את התמונות ולחץ/י על שמירת בחירות.`
+      : `היי ${project.client_name || ''} 😊\nהגלריה שלך מוכנה!\nלצפייה והורדה:\n${url}`;
+    const msg = encodeURIComponent(text);
     const phone = (project.client_phone || '').replace(/\D/g, '');
-    window.open(phone ? `https://wa.me/${phone}?text=${msg}` : `https://wa.me/?text=${msg}`, '_blank');
+    const intlPhone = phone.startsWith('0') ? `972${phone.slice(1)}` : phone;
+    window.open(intlPhone ? `https://wa.me/${intlPhone}?text=${msg}` : `https://wa.me/?text=${msg}`, '_blank');
   };
 
   const handleSendGalleryEmail = async () => {
     const emails = getProjectEmails(project);
     if (!emails.length) { toast.error('לא הוגדר מייל ללקוח'); return; }
-    const folderId = getDriveFolderIdFromUrl(project.drive_folder_url);
-    const galleryUrl = folderId ? `${window.location.origin}/gallery/${folderId}` : window.location.origin;
+    const galleryUrl = getProjectShareLink();
+    if (!galleryUrl) { toast.error('אין קישור גלריה תקין לפרויקט'); return; }
+    const isSelectionGallery = project.workflow_type === 'selection';
     setSendingEmail(true);
     try {
       await base44.integrations.Core.SendEmail({
         to: emails[0],
         from_name: 'KLIKLY',
-        subject: `📸 הגלריה שלך מוכנה - ${project.client_name || ''}`,
+        subject: isSelectionGallery ? `⭐ לבחירת תמונות לעריכה - ${project.client_name || ''}` : `📸 הגלריה שלך מוכנה - ${project.client_name || ''}`,
         body: `<!DOCTYPE html>
 <html dir="rtl" lang="he">
 <head><meta charset="UTF-8"></head>
@@ -202,13 +210,14 @@ export default function ProjectDetails() {
         <tr><td style="padding:36px 40px 28px;">
           <h2 style="color:#0a0a0a;font-size:22px;margin:0 0 12px;">היי ${project.client_name || ''} 🎉</h2>
           <p style="color:#444;font-size:16px;line-height:1.7;margin:0 0 24px;">
-            הגלריה שלך מוכנה לצפייה והורדה! ניתן לגשת אליה בלחיצה על הכפתור:
+            ${isSelectionGallery ? 'הגלריה שלך מוכנה לבחירת תמונות לעריכה. לחץ/י על הכפתור, סמן/י את התמונות שאהבת, ובסיום לחץ/י על שמירת בחירות.' : 'הגלריה שלך מוכנה לצפייה והורדה! ניתן לגשת אליה בלחיצה על הכפתור:'}
           </p>
           <div style="text-align:center;margin:24px 0;">
             <a href="${galleryUrl}" style="display:inline-block;background:#FFD700;color:#000;font-size:16px;font-weight:700;padding:16px 48px;border-radius:12px;text-decoration:none;">
-              📁 לצפייה בגלריה
+              ${isSelectionGallery ? '⭐ כניסה לבחירת התמונות' : '📁 לצפייה בגלריה'}
             </a>
           </div>
+          <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-top:18px;direction:ltr;text-align:left;color:#64748b;font-size:12px;word-break:break-all;">${galleryUrl}</div>
           <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px;">
           <p style="color:#999;font-size:12px;margin:0;text-align:center;">KLIKLY · מערכת ניהול גלריות מקצועית</p>
         </td></tr>
