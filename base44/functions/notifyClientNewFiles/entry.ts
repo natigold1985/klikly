@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import MailComposer from 'npm:nodemailer@6.9.16/lib/mail-composer/index.js';
 
 const ADMIN_EMAIL = 'natigold04@gmail.com';
 
@@ -30,11 +31,13 @@ Deno.serve(async (req) => {
     const subject = isGalleryShare ? `📸 הגלריה שלך מוכנה - ${project?.client_name || ''}` : `📸 ${fileCountText} זמינים לפרויקט שלך`;
     const bodyHtml = buildClientEmail({ project, galleryUrl, message, fileCountText, isGalleryShare });
 
+    const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
+    const fromEmail = await getGmailAddress(accessToken);
     const sent = [];
     const failed = [];
     for (const email of clientEmails) {
       try {
-        await base44.asServiceRole.integrations.Core.SendEmail({ to: email, from_name: 'KLIKLY', subject, body: bodyHtml });
+        await sendGmailEmail(accessToken, fromEmail, { to: email, subject, body: bodyHtml });
         sent.push(email);
       } catch (error) {
         failed.push({ email, error: error.message });
@@ -44,9 +47,8 @@ Deno.serve(async (req) => {
     const adminRecipients = [...new Set([ADMIN_EMAIL, project?.created_by].filter(Boolean).map((email) => String(email).trim().toLowerCase()))];
     for (const email of adminRecipients) {
       try {
-        await base44.asServiceRole.integrations.Core.SendEmail({
+        await sendGmailEmail(accessToken, fromEmail, {
           to: email,
-          from_name: 'KLIKLY',
           subject: `✅ נשלחה גלריה ללקוח - ${project?.client_name || clientEmails[0]}`,
           body: buildAdminEmail({ project, clientEmails, galleryUrl, sent, failed, message }),
         });
@@ -92,6 +94,35 @@ function buildGalleryUrl(req, project) {
   if (!folderId) return '';
   const origin = req.headers.get('origin') || (req.headers.get('referer') ? new URL(req.headers.get('referer')).origin : 'https://klikly.base44.app');
   return `${origin}/gallery/${folderId}`;
+}
+
+async function getGmailAddress(accessToken) {
+  const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) return ADMIN_EMAIL;
+  const data = await res.json();
+  return data.emailAddress || ADMIN_EMAIL;
+}
+
+async function sendGmailEmail(accessToken, fromEmail, { to, subject, body }) {
+  const composer = new MailComposer({
+    from: `KLIKLY <${fromEmail}>`,
+    to,
+    subject,
+    html: body,
+  });
+  const message = await composer.compile().build();
+  const raw = btoa(String.fromCharCode(...new Uint8Array(message))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ raw }),
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || `Gmail send failed ${res.status}`);
+  }
 }
 
 function escapeHtml(value) {

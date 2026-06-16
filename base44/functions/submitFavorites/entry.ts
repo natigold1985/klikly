@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import MailComposer from 'npm:nodemailer@6.9.16/lib/mail-composer/index.js';
 
 Deno.serve(async (req) => {
   try {
@@ -80,11 +81,12 @@ Deno.serve(async (req) => {
     let photographerEmailSent = false;
     let clientEmailSent = false;
     if (notifyPhotographer && selectedCount > 0) {
+      const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
+      const fromEmail = await getGmailAddress(accessToken);
       const emailHtml = buildPhotographerEmail({ clientName, projectTitle, selectedItems, selectedCount });
       for (const email of notificationEmails) {
-        await base44.asServiceRole.integrations.Core.SendEmail({
+        await sendGmailEmail(accessToken, fromEmail, {
           to: email,
-          from_name: 'KLIKLY',
           subject: `⭐ ${clientName} שלח ${selectedCount} בחירות לעריכה`,
           body: emailHtml,
         });
@@ -92,9 +94,8 @@ Deno.serve(async (req) => {
       photographerEmailSent = true;
 
       if (project.client_email) {
-        await base44.asServiceRole.integrations.Core.SendEmail({
+        await sendGmailEmail(accessToken, fromEmail, {
           to: project.client_email,
-          from_name: 'KLIKLY',
           subject: `✅ הבחירות שלך התקבלו - ${projectTitle}`,
           body: buildClientConfirmationEmail({ clientName, projectTitle, selectedCount }),
         });
@@ -172,6 +173,35 @@ function extractRawNumber(fileName) {
   const clean = String(fileName || '').split('/').pop().replace(/\.[^.]+$/, '');
   const match = clean.match(/(?:IMG|DSC|DSCF|DSC_|_)?0*([0-9]{3,})/i);
   return match ? match[1] : clean;
+}
+
+async function getGmailAddress(accessToken) {
+  const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) return 'natigold04@gmail.com';
+  const data = await res.json();
+  return data.emailAddress || 'natigold04@gmail.com';
+}
+
+async function sendGmailEmail(accessToken, fromEmail, { to, subject, body }) {
+  const composer = new MailComposer({
+    from: `KLIKLY <${fromEmail}>`,
+    to,
+    subject,
+    html: body,
+  });
+  const message = await composer.compile().build();
+  const raw = btoa(String.fromCharCode(...new Uint8Array(message))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ raw }),
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || `Gmail send failed ${res.status}`);
+  }
 }
 
 function escapeHtml(value) {
