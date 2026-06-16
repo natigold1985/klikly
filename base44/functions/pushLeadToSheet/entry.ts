@@ -4,6 +4,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 const SHEET_ID = '1Acz_kFz4d2oGyJflAWyrY4yiAAlbvWVqR7UNgKHCdD4';
 const ALL_LEADS_TAB = '🎯 כל הלידים';
 const HEADERS = ['שם מלא', 'טלפון', 'מייל', 'מקור', 'שירות / עניין', 'סטטוס', 'התקדמות', 'הערות'];
+const WEBSITE_FORM_TAB = 'טופס מהאתר';
+const WEBSITE_FORM_HEADERS = ['שם מלא', 'טלפון', 'מייל', 'מקור', 'שירות / עניין'];
 
 const SOURCE_TO_TAB = {
   whatsapp: 'WhatsApp',
@@ -12,9 +14,9 @@ const SOURCE_TO_TAB = {
   'photography-course': 'מתעניינים בקורס',
   'course lead': 'מתעניינים בקורס',
   'קורס': 'מתעניינים בקורס',
-  'natigold.com (אתר)': 'לידים מהאתר',
-  'natigold.com': 'לידים מהאתר',
-  website: 'לידים מהאתר',
+  'natigold.com (אתר)': WEBSITE_FORM_TAB,
+  'natigold.com': WEBSITE_FORM_TAB,
+  website: WEBSITE_FORM_TAB,
   instagram: 'אינסטגרם — מענה ופולו-אפ',
   facebook: 'לידים ביטחון 🎯',
   'defense industry': 'לידים ביטחון 🎯',
@@ -50,7 +52,7 @@ function sheetStatus(lead) {
 }
 
 function detectTab(lead) {
-  if (isWebsiteLead(lead)) return 'לידים מהאתר';
+  if (isWebsiteLead(lead)) return WEBSITE_FORM_TAB;
   const src = String(lead.source || '').toLowerCase().trim();
   for (const [key, tab] of Object.entries(SOURCE_TO_TAB)) {
     if (src.includes(key.toLowerCase())) return tab;
@@ -107,7 +109,8 @@ function rowMatchesLead(row, lead) {
 }
 
 async function ensureHeaders(authHeader, tabName) {
-  const headerRange = encodeURIComponent(`'${tabName}'!A1:H1`);
+  const isWebsiteForm = tabName === WEBSITE_FORM_TAB;
+  const headerRange = encodeURIComponent(`'${tabName}'!A1:${isWebsiteForm ? 'E' : 'H'}1`);
   const checkRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${headerRange}`, { headers: authHeader });
   const checkData = await checkRes.json();
   if ((checkData.values || []).length > 0) return;
@@ -115,7 +118,7 @@ async function ensureHeaders(authHeader, tabName) {
   await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${headerRange}?valueInputOption=USER_ENTERED`, {
     method: 'PUT',
     headers: { ...authHeader, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ values: [HEADERS] }),
+    body: JSON.stringify({ values: [isWebsiteForm ? WEBSITE_FORM_HEADERS : HEADERS] }),
   });
 }
 
@@ -158,8 +161,10 @@ async function deleteExistingRows(authHeader, tabs, lead, oldLead) {
 
 async function appendRow(authHeader, tabName, row) {
   await ensureHeaders(authHeader, tabName);
+  const isWebsiteForm = tabName === WEBSITE_FORM_TAB;
+  const sheetRow = isWebsiteForm ? row.slice(0, 5) : row;
   const status = row[5] || '';
-  const isNew = status === 'חדש מהאתר' || status === 'ליד חדש';
+  const isNew = isWebsiteForm || status === 'חדש מהאתר' || status === 'ליד חדש';
 
   if (!isNew) {
     const metaResp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties`, { headers: authHeader });
@@ -182,18 +187,18 @@ async function appendRow(authHeader, tabName, row) {
       const insertRes = await fetch(insertUrl, {
         method: 'PUT',
         headers: { ...authHeader, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ values: [row] }),
+        body: JSON.stringify({ values: [sheetRow] }),
       });
       if (!insertRes.ok) console.error(`pushLeadToSheet: insert into "${tabName}" failed:`, await insertRes.text());
       return;
     }
   }
 
-  const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(`'${tabName}'!A:H`)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+  const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(`'${tabName}'!A:${isWebsiteForm ? 'E' : 'H'}`)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
   const appendRes = await fetch(appendUrl, {
     method: 'POST',
     headers: { ...authHeader, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ values: [row] }),
+    body: JSON.stringify({ values: [sheetRow] }),
   });
   if (!appendRes.ok) console.error(`pushLeadToSheet: append to "${tabName}" failed:`, await appendRes.text());
 }

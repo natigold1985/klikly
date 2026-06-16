@@ -16,8 +16,8 @@ export default function PublicLeadForm() {
     setLoading(true);
     await base44.entities.Lead.create({
       ...form,
-      source: 'Public Form',
-      status: 'new',
+      source: 'natigold.com (אתר)',
+      status: 'ליד חדש',
       last_contact_date: new Date().toISOString(),
     });
     setSubmitted(true);

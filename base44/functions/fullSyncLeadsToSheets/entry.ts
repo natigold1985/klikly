@@ -3,6 +3,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const SHEET_ID = '1Acz_kFz4d2oGyJflAWyrY4yiAAlbvWVqR7UNgKHCdD4';
+const ALL_LEADS_TAB = '🎯 כל הלידים';
+const WEBSITE_FORM_TAB = 'טופס מהאתר';
+const HEADERS = ['שם מלא', 'טלפון', 'מייל', 'מקור', 'שירות / עניין', 'סטטוס', 'התקדמות', 'הערות'];
+const WEBSITE_FORM_HEADERS = ['שם מלא', 'טלפון', 'מייל', 'מקור', 'שירות / עניין'];
 
 const SOURCE_TO_TAB = {
   whatsapp: 'WhatsApp',
@@ -11,17 +15,15 @@ const SOURCE_TO_TAB = {
   'photography-course': 'מתעניינים בקורס',
   'course lead': 'מתעניינים בקורס',
   'קורס': 'מתעניינים בקורס',
-  'natigold.com (אתר)': 'לידים מהאתר',
-  'natigold.com': 'לידים מהאתר',
+  'natigold.com (אתר)': WEBSITE_FORM_TAB,
+  'natigold.com': WEBSITE_FORM_TAB,
+  website: WEBSITE_FORM_TAB,
   instagram: 'אינסטגרם — מענה ופולו-אפ',
   facebook: 'לידים ביטחון 🎯',
   'defense industry': 'לידים ביטחון 🎯',
   'claude code': 'Claude Code',
   'claude': 'Claude Code',
 };
-
-const ALL_LEADS_TAB = '🎯 כל הלידים';
-const HEADERS = ['שם מלא', 'טלפון', 'מייל', 'מקור', 'שירות / עניין', 'סטטוס', 'התקדמות', 'הערות'];
 
 const PIPELINE_STAGE_LABELS = {
   lead_found: 'ליד נמצא',
@@ -111,8 +113,18 @@ function leadToRow(lead) {
   ];
 }
 
+function leadToWebsiteFormRow(lead) {
+  return [
+    lead.name || '',
+    lead.phone ? `'${lead.phone}` : '',
+    lead.email || '',
+    lead.source || '',
+    lead.shooting_type || lead.lead_type || '',
+  ];
+}
+
 function detectTab(lead) {
-  if (isWebsiteLead(lead)) return 'לידים מהאתר';
+  if (isWebsiteLead(lead)) return WEBSITE_FORM_TAB;
   const src = String(lead.source || '').toLowerCase().trim();
   for (const [key, tab] of Object.entries(SOURCE_TO_TAB)) {
     if (src.includes(key.toLowerCase())) return tab;
@@ -128,7 +140,7 @@ async function clearAndWriteTab(sheetsAuth, tabName, rows) {
     `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encTab}!A:Z:clear`,
     { method: 'POST', headers: sheetsAuth }
   );
-  const allRows = [HEADERS, ...rows];
+  const allRows = [tabName === WEBSITE_FORM_TAB ? WEBSITE_FORM_HEADERS : HEADERS, ...rows];
   const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encTab}!A1?valueInputOption=USER_ENTERED`;
   await fetch(updateUrl, {
     method: 'PUT',
@@ -140,6 +152,8 @@ async function clearAndWriteTab(sheetsAuth, tabName, rows) {
 // Color rows + set dropdown validation + RTL in one batchUpdate
 async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads, tabName = '', conditionalFormatCount = 0) {
   const requests = [];
+  const isWebsiteForm = tabName === WEBSITE_FORM_TAB;
+  const columnCount = isWebsiteForm ? 5 : 8;
 
   for (let i = conditionalFormatCount - 1; i >= 0; i--) {
     requests.push({ deleteConditionalFormatRule: { sheetId: sheetGid, index: i } });
@@ -177,7 +191,7 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads, tabName
         startRowIndex: 0,
         endRowIndex: 1,
         startColumnIndex: 0,
-        endColumnIndex: 8,
+        endColumnIndex: columnCount,
       },
       cell: {
         userEnteredFormat: {
@@ -224,7 +238,7 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads, tabName
         startRowIndex: 0,
         endRowIndex: leads.length + 1,
         startColumnIndex: 0,
-        endColumnIndex: 8,
+        endColumnIndex: columnCount,
       },
       cell: {
         userEnteredFormat: {
@@ -236,48 +250,49 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads, tabName
     },
   });
 
-  // Status dropdown on column F (index 5), rows 2..N
-  requests.push({
-    setDataValidation: {
-      range: {
-        sheetId: sheetGid,
-        startRowIndex: 1,
-        endRowIndex: leads.length + 1,
-        startColumnIndex: 5,
-        endColumnIndex: 6,
-
-      },
-      rule: {
-        condition: {
-          type: 'ONE_OF_LIST',
-          values: STATUS_VALUES.map(v => ({ userEnteredValue: v })),
+  if (!isWebsiteForm) {
+    // Status dropdown on column F (index 5), rows 2..N
+    requests.push({
+      setDataValidation: {
+        range: {
+          sheetId: sheetGid,
+          startRowIndex: 1,
+          endRowIndex: leads.length + 1,
+          startColumnIndex: 5,
+          endColumnIndex: 6,
         },
-        showCustomUi: true,
-        strict: true,
-      },
-    },
-  });
-
-  // Progress dropdown on column G (index 6), rows 2..N
-  requests.push({
-    setDataValidation: {
-      range: {
-        sheetId: sheetGid,
-        startRowIndex: 1,
-        endRowIndex: leads.length + 1,
-        startColumnIndex: 6,
-        endColumnIndex: 7,
-      },
-      rule: {
-        condition: {
-          type: 'ONE_OF_LIST',
-          values: STAGE_VALUES.map(v => ({ userEnteredValue: v })),
+        rule: {
+          condition: {
+            type: 'ONE_OF_LIST',
+            values: STATUS_VALUES.map(v => ({ userEnteredValue: v })),
+          },
+          showCustomUi: true,
+          strict: true,
         },
-        showCustomUi: true,
-        strict: true,
       },
-    },
-  });
+    });
+
+    // Progress dropdown on column G (index 6), rows 2..N
+    requests.push({
+      setDataValidation: {
+        range: {
+          sheetId: sheetGid,
+          startRowIndex: 1,
+          endRowIndex: leads.length + 1,
+          startColumnIndex: 6,
+          endColumnIndex: 7,
+        },
+        rule: {
+          condition: {
+            type: 'ONE_OF_LIST',
+            values: STAGE_VALUES.map(v => ({ userEnteredValue: v })),
+          },
+          showCustomUi: true,
+          strict: true,
+        },
+      },
+    });
+  }
 
   // Row background colors + black text per lead status
   leads.forEach((lead, i) => {
@@ -291,7 +306,7 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads, tabName
           startRowIndex: i + 1, // +1 to skip header
           endRowIndex: i + 2,
           startColumnIndex: 0,
-          endColumnIndex: 9,
+          endColumnIndex: columnCount,
         },
         cell: {
           userEnteredFormat: {
@@ -307,29 +322,31 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads, tabName
     });
   });
 
-  const conditionalFormats = [
-    { values: ['נסגר בהצלחה', 'נסגר מהאתר'], color: { red: 0.776, green: 0.937, blue: 0.776 } },
-    { values: ['לא רלוונטי'], color: { red: 0.992, green: 0.808, blue: 0.808 } },
-    { values: ['נוצר קשר'], color: { red: 0.996, green: 0.973, blue: 0.714 } },
-    { values: ['נשלח פולו-אפ'], color: { red: 0.906, green: 0.824, blue: 0.992 } },
-    { values: ['ליד חדש', 'חדש מהאתר', 'בטיפול מהאתר'], color: { red: 0.820, green: 0.906, blue: 0.980 } },
-  ];
+  if (!isWebsiteForm) {
+    const conditionalFormats = [
+      { values: ['נסגר בהצלחה', 'נסגר מהאתר'], color: { red: 0.776, green: 0.937, blue: 0.776 } },
+      { values: ['לא רלוונטי'], color: { red: 0.992, green: 0.808, blue: 0.808 } },
+      { values: ['נוצר קשר'], color: { red: 0.996, green: 0.973, blue: 0.714 } },
+      { values: ['נשלח פולו-אפ'], color: { red: 0.906, green: 0.824, blue: 0.992 } },
+      { values: ['ליד חדש', 'חדש מהאתר', 'בטיפול מהאתר'], color: { red: 0.820, green: 0.906, blue: 0.980 } },
+    ];
 
-  conditionalFormats.forEach((format, index) => {
-    const formula = format.values.map((value) => `$F2="${value}"`).join(',');
-    requests.push({
-      addConditionalFormatRule: {
-        index,
-        rule: {
-          ranges: [{ sheetId: sheetGid, startRowIndex: 1, endRowIndex: 5000, startColumnIndex: 0, endColumnIndex: 8 }],
-          booleanRule: {
-            condition: { type: 'CUSTOM_FORMULA', values: [{ userEnteredValue: `=OR(${formula})` }] },
-            format: { backgroundColor: format.color, textFormat: { foregroundColor: { red: 0, green: 0, blue: 0 } } },
+    conditionalFormats.forEach((format, index) => {
+      const formula = format.values.map((value) => `$F2="${value}"`).join(',');
+      requests.push({
+        addConditionalFormatRule: {
+          index,
+          rule: {
+            ranges: [{ sheetId: sheetGid, startRowIndex: 1, endRowIndex: 5000, startColumnIndex: 0, endColumnIndex: columnCount }],
+            booleanRule: {
+              condition: { type: 'CUSTOM_FORMULA', values: [{ userEnteredValue: `=OR(${formula})` }] },
+              format: { backgroundColor: format.color, textFormat: { foregroundColor: { red: 0, green: 0, blue: 0 } } },
+            },
           },
         },
-      },
+      });
     });
-  });
+  }
 
   if (requests.length === 0) return;
 
@@ -427,7 +444,7 @@ Deno.serve(async (req) => {
         continue;
       }
       const sortedLeads = sortLeadsByStatus(leads);
-      const rows = sortedLeads.map(leadToRow);
+      const rows = tabName === WEBSITE_FORM_TAB ? sortedLeads.map(leadToWebsiteFormRow) : sortedLeads.map(leadToRow);
       await clearAndWriteTab(sheetsAuth, tabName, rows);
       await applyFormattingAndValidation(sheetsAuth, tabGids[tabName], sortedLeads, tabName, tabConditionalFormatCounts[tabName] || 0);
       tabSummary[tabName] = sortedLeads.length;
