@@ -49,6 +49,7 @@ const SERVICE_MAP = {
   'photography-course': 'קורס צילום',
   'course-price': 'קורס צילום',
   'event-photography': 'צילום אירועים',
+  'looking-for-an-event-photographer': 'צילום אירועים',
   'sadnat-tzilum-learganim': 'סדנת צילום',
   'product-photography': 'צילום מוצרים',
   'stills': 'צילום סטילס',
@@ -89,7 +90,7 @@ function parseStudioGoldLead(subject, body) {
 
   // Extract email and phone using regex — more reliable than label-based parsing
   const emailMatch = body.match(/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i);
-  const phoneMatch = body.match(/(?:(?:\+972|972|0)[\s\-]?(?:5[0-9]|[2-9])[\d\s\-]{6,10})/);
+  const phoneMatch = body.match(/(?:\+972|972|0)[\s\-]?5[0-9][\d\s\-]{7,10}/);
   // Extract URL — look for מקור בדפדפן or any natigold.com URL
   const urlMatch = body.match(/מקור בדפדפן[:\s]*(\S+)/i) ||
                    body.match(/(https?:\/\/[^\s\n]+natigold[^\s\n]*)/i) ||
@@ -182,6 +183,7 @@ function parseContactForm(body) {
     'photography-course': 'קורס צילום',
     'course-price': 'קורס צילום',
     'event-photography': 'צילום אירועים',
+    'looking-for-an-event-photographer': 'צילום אירועים',
     'sadnat-tzilum-learganim': 'סדנת צילום',
     'product-photography': 'צילום מוצרים',
     'stills': 'צילום סטילס',
@@ -196,7 +198,7 @@ function parseContactForm(body) {
   }
 
   // Fallback: extract phone/email from raw body if labels weren't found
-  const fallbackPhone = phone || (body.match(/(?:(?:\+972|972|0)[\s\-]?(?:5[0-9]|[2-9])[\d\s\-]{7,10})/)?.[0]?.replace(/\s/g, '') || '');
+  const fallbackPhone = phone || (body.match(/(?:\+972|972|0)[\s\-]?5[0-9][\d\s\-]{7,10}/)?.[0]?.replace(/\s/g, '') || '');
   const fallbackEmail = email || (body.match(/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i)?.[0] || '');
 
   // Fallback: extract name — look for Reply-To or first line that looks like a name
