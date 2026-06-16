@@ -426,43 +426,8 @@ Deno.serve(async (req) => {
       createdLeads.push(...(Array.isArray(created) ? created : newLeads));
     }
 
-    // Write new leads to Google Sheets — לשונית "לידים מהאתר"
-    // Columns: A=שם, B=טלפון, C=מקור, D=עניין, E=הודעה מוכנה
-    if (newLeads.length > 0) {
-      try {
-        const sheetsConn = await base44.asServiceRole.connectors.getConnection('googlesheets');
-        const sheetsAuth = { Authorization: `Bearer ${sheetsConn.accessToken}` };
-
-        const values = newLeads.map(l => {
-          const waMsg = `היי ${l.name.split(' ')[0]}, קיבלתי את הפנייה שלך${l.service ? ` בנושא ${l.service}` : ''}. אחזור אליך בהקדם 🙏`;
-          return [
-            l.name,
-            l.phone,
-            'natigold.com (אתר)',
-            l.service || '',
-            waMsg,
-            l.source_post_url || '',
-          ];
-        });
-
-        const encTab = encodeURIComponent(SHEET_TAB);
-        const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encTab}!A:F:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
-        const sheetsRes = await fetch(appendUrl, {
-          method: 'POST',
-          headers: { ...sheetsAuth, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ values }),
-        });
-
-        if (!sheetsRes.ok) {
-          const err = await sheetsRes.text();
-          console.error('scanGmailLeads: Sheets append failed:', err);
-        } else {
-          console.log(`scanGmailLeads: appended ${values.length} rows to Sheets tab "${SHEET_TAB}"`);
-        }
-      } catch (e) {
-        console.error('scanGmailLeads: Sheets error:', e.message);
-      }
-    }
+    // Google Sheets is synced by the Lead create/update automation (pushLeadToSheet),
+    // so this scanner only creates/updates KLIKLY records and avoids writing duplicate/misaligned rows.
 
     // Build rich lead details for display in the log
     const leadDetails = newLeads.map(l => {
