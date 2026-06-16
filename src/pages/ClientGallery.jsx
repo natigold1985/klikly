@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, Lock, CheckCircle2, Loader2, Camera, Send, MessageSquare, ArrowRight } from 'lucide-react';
+import { Heart, Lock, CheckCircle2, Loader2, Camera, Send, MessageSquare, ArrowRight, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ClientGalleryLightbox from '@/components/gallery/ClientGalleryLightbox';
@@ -21,6 +21,7 @@ export default function ClientGallery() {
     const [savingPhotoId, setSavingPhotoId] = useState(null);
     const [lightboxIndex, setLightboxIndex] = useState(null);
     const [photoComments, setPhotoComments] = useState({});
+    const [submitStatus, setSubmitStatus] = useState(null);
 
     // Parse PIN from URL if present, or bypass for logged-in admins
     useEffect(() => {
@@ -106,6 +107,7 @@ export default function ClientGallery() {
             notifyPhotographer
         });
         if (res.status !== 200) throw new Error(res.data?.error || 'שגיאה בשמירה');
+        return res.data;
     };
 
     const handleSelectPhoto = async (photoId) => {
@@ -133,13 +135,24 @@ export default function ClientGallery() {
     };
 
     const handleSave = async () => {
+        if (selectedIds.size === 0) {
+            setSubmitStatus({ type: 'error', message: 'לא נבחרו תמונות לשליחה. בחר/י לפחות תמונה אחת ואז לחץ/י שליחה.' });
+            toast.error('לא נבחרו תמונות לשליחה');
+            return;
+        }
         setIsSaving(true);
+        setSubmitStatus({ type: 'loading', message: 'שולח את הבחירות לצלם ושומר במערכת...' });
         try {
-            await saveSelection(selectedIds, true);
+            const result = await saveSelection(selectedIds, true);
+            setSubmitStatus({
+                type: 'success',
+                message: `הבחירות נשלחו בהצלחה לצלם. נשלח גם אישור למייל שלך${result?.clientEmailSent ? '' : ' אם מוגדר בפרויקט'}.`
+            });
             toast.success('הבחירות הועברו לצלם לעריכה בהצלחה!', {
                 icon: <CheckCircle2 className="w-5 h-5 text-green-500" />
             });
         } catch (e) {
+            setSubmitStatus({ type: 'error', message: e.message || 'השליחה נכשלה. נסה/י שוב או פנה/י לצלם.' });
             toast.error(e.message || 'שגיאת רשת');
         } finally {
             setIsSaving(false);
@@ -220,11 +233,29 @@ export default function ClientGallery() {
                             className="hidden md:flex items-center gap-2 bg-[#FFD700] text-black hover:brightness-110 shadow-[0_0_15px_rgba(255,215,0,0.3)]"
                         >
                             {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                            שמור בחירות
+                            שלח בחירות לצלם
                         </Button>
                     </div>
                 </div>
             </header>
+
+            {submitStatus && (
+                <div className={`max-w-7xl mx-auto px-3 sm:px-4 md:px-8 pt-4`}>
+                    <div className={`rounded-2xl border px-4 py-3 flex items-start gap-3 ${
+                        submitStatus.type === 'success'
+                            ? 'bg-green-500/10 border-green-400/30 text-green-100'
+                            : submitStatus.type === 'error'
+                            ? 'bg-red-500/10 border-red-400/30 text-red-100'
+                            : 'bg-[#FFD700]/10 border-[#FFD700]/30 text-[#FFD700]'
+                    }`}>
+                        {submitStatus.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0 mt-0.5" /> : submitStatus.type === 'error' ? <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" /> : <Loader2 className="w-5 h-5 animate-spin shrink-0 mt-0.5" />}
+                        <div>
+                            <p className="font-bold text-sm">{submitStatus.type === 'success' ? 'נשלח בהצלחה' : submitStatus.type === 'error' ? 'השליחה נכשלה' : 'שולח בחירות'}</p>
+                            <p className="text-sm opacity-90 leading-relaxed">{submitStatus.message}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Mobile Selection Counter (Floating above bottom bar) */}
             <div className="md:hidden fixed bottom-24 left-1/2 -translate-x-1/2 bg-[#0a0a0a]/90 backdrop-blur-xl border border-white/10 px-6 py-2.5 rounded-full shadow-2xl flex items-center gap-3 z-30">

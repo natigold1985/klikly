@@ -62,23 +62,61 @@ Deno.serve(async (req) => {
     const selectedCount = selectedPhotoIds.length;
     const clientName = project.client_name || currentUser?.email || 'הלקוח';
     const projectTitle = project.project_name || project.shooting_type || 'הפרויקט';
-    const photographerEmail = project.created_by || 'natigold04@gmail.com';
+    const adminEmail = 'natigold04@gmail.com';
+    const photographerEmail = project.created_by || adminEmail;
+    const notificationEmails = [...new Set([adminEmail, photographerEmail].filter(Boolean).map((email) => String(email).toLowerCase()))];
     const selectedItems = buildSelectedItems(selectedPhotoIds, selectedPhotoDetails, photoComments, existingPhotos);
 
     let photographerEmailSent = false;
+    let clientEmailSent = false;
     if (notifyPhotographer && selectedCount > 0) {
       const emailHtml = buildPhotographerEmail({ clientName, projectTitle, selectedItems, selectedCount });
-      await base44.asServiceRole.integrations.Core.SendEmail({
-        to: photographerEmail,
-        from_name: 'KLIKLY',
-        subject: `⭐ ${clientName} שלח ${selectedCount} בחירות לעריכה`,
-        body: emailHtml,
-      });
+      for (const email of notificationEmails) {
+        await base44.asServiceRole.integrations.Core.SendEmail({
+          to: email,
+          from_name: 'KLIKLY',
+          subject: `⭐ ${clientName} שלח ${selectedCount} בחירות לעריכה`,
+          body: emailHtml,
+        });
+      }
       photographerEmailSent = true;
+
+      if (project.client_email) {
+        await base44.asServiceRole.integrations.Core.SendEmail({
+          to: project.client_email,
+          from_name: 'KLIKLY',
+          subject: `✅ הבחירות שלך התקבלו - ${projectTitle}`,
+          body: buildClientConfirmationEmail({ clientName, projectTitle, selectedCount }),
+        });
+        clientEmailSent = true;
+      }
+
+      await base44.asServiceRole.entities.SystemLog.create({
+        action: 'client_selection_submitted',
+        details: `${clientName} submitted ${selectedCount} selected photos for project ${projectTitle}. Admin email sent: ${photographerEmailSent}. Client confirmation sent: ${clientEmailSent}.`,
+        status: 'success',
+        related_entity_type: 'Project',
+        related_entity_id: projectId,
+        owner_id: project.created_by_id || project.user_id || project.created_by || adminEmail,
+      }).catch(() => {});
+
+      await base44.asServiceRole.entities.Activity.create({
+        related_to_type: 'project',
+        related_to_id: projectId,
+        activity_type: 'selection_made',
+        title: `הלקוח שלח ${selectedCount} תמונות לעריכה`,
+        description: `נשלחו מיילים: מנהל ${photographerEmailSent ? 'כן' : 'לא'}, לקוח ${clientEmailSent ? 'כן' : 'לא'}.`,
+        metadata: {
+          selected_count: selectedCount,
+          client_email: project.client_email || '',
+          admin_email: adminEmail,
+          selected_items: selectedItems.map((item) => ({ name: item.name, rawNumber: item.rawNumber, comment: item.comment }))
+        }
+      }).catch(() => {});
 
       await base44.asServiceRole.entities.Task.create({
         title: `עריכת ${selectedCount} תמונות — ${projectTitle}`,
-        description: `הלקוח ${clientName} בחר ${selectedCount} תמונות לעריכה. פירוט הבחירות וההערות נשלח אליך במייל.`,
+        description: `הלקוח ${clientName} בחר ${selectedCount} תמונות לעריכה. פירוט הבחירות וההערות נשלח אליך במייל ל-${adminEmail}.`,
         related_to_type: 'project',
         related_to_id: projectId,
         status: 'pending',
@@ -87,7 +125,7 @@ Deno.serve(async (req) => {
       }).catch(() => {});
     }
 
-    return Response.json({ success: true, photographerEmailSent, selectedCount });
+    return Response.json({ success: true, photographerEmailSent, clientEmailSent, selectedCount });
   } catch (error) {
     console.error('submitFavorites error:', error);
     return Response.json({ error: error.message }, { status: 500 });
@@ -133,6 +171,38 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+function buildClientConfirmationEmail({ clientName, projectTitle, selectedCount }) {
+  return `<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,Helvetica,sans-serif;direction:rtl;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:36px 16px;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#fff;border-radius:18px;overflow:hidden;border:1px solid #e5e7eb;box-shadow:0 8px 30px rgba(0,0,0,0.08);">
+        <tr><td style="background:#0a0a0a;padding:26px;text-align:center;border-bottom:3px solid #FFD700;">
+          <img src="https://media.base44.com/images/public/699330cced2139a6e7aa06a9/1e11bfcc1_generated_image.png" alt="KLIKLY" style="height:68px;width:auto;object-fit:contain;margin:0 auto 10px;display:block;" />
+          <div style="color:#FFD700;font-size:22px;font-weight:900;letter-spacing:3px;">KLIKLY</div>
+        </td></tr>
+        <tr><td style="padding:32px 34px;text-align:right;">
+          <div style="font-size:36px;text-align:center;margin-bottom:12px;">✅</div>
+          <h1 style="color:#111827;font-size:24px;margin:0 0 12px;text-align:center;">הבחירות התקבלו בהצלחה</h1>
+          <p style="color:#374151;font-size:16px;line-height:1.8;margin:0 0 18px;">היי ${escapeHtml(clientName)},</p>
+          <p style="color:#374151;font-size:16px;line-height:1.8;margin:0 0 22px;">
+            קיבלנו את ${selectedCount} התמונות שבחרת בפרויקט <strong>${escapeHtml(projectTitle)}</strong>, והן הועברו לטיפול הצלם.
+          </p>
+          <div style="background:#ecfdf5;border:1px solid #bbf7d0;border-right:5px solid #22c55e;border-radius:12px;padding:18px;margin:22px 0;">
+            <p style="color:#166534;font-size:15px;font-weight:800;margin:0 0 6px;">מה קורה עכשיו?</p>
+            <p style="color:#166534;font-size:14px;line-height:1.7;margin:0;">הצלם קיבל מייל עם רשימת התמונות וההערות שלך ויתחיל לעבוד עליהן.</p>
+          </div>
+          <p style="color:#9ca3af;font-size:12px;text-align:center;margin:24px 0 0;line-height:1.7;">הודעה אוטומטית מ-KLIKLY · אין צורך להשיב למייל זה</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 }
 
 function buildPhotographerEmail({ clientName, projectTitle, selectedItems, selectedCount }) {

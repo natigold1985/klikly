@@ -7,7 +7,7 @@ import {
   ArrowRight, Phone, Mail, Calendar, MapPin, 
   DollarSign, CheckCircle2, ListTodo, Download, Eye, Upload,
   Link as LinkIcon, Copy, Lock, RefreshCw, FolderPlus, ExternalLink, Loader2,
-  Pencil, Plus, Save, X, MessageCircle, Send, Zap
+  Pencil, Plus, Save, X, MessageCircle, Send, Zap, Bell, Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,6 +41,23 @@ export default function ProjectDetails() {
     },
     enabled: !!projectId && !!project?.drive_folder_url && !isClient,
     refetchInterval: 10000,
+  });
+
+  const { data: selectedPhotos = [] } = useQuery({
+    queryKey: ['projectSelectedPhotos', projectId],
+    queryFn: async () => {
+      const photos = await base44.entities.Photo.filter({ project_id: projectId }, '-selected_at', 500);
+      return photos.filter((photo) => photo.is_selected);
+    },
+    enabled: !!projectId && !isClient,
+    refetchInterval: 15000,
+  });
+
+  const { data: selectionActivities = [] } = useQuery({
+    queryKey: ['projectSelectionActivities', projectId],
+    queryFn: () => base44.entities.Activity.filter({ related_to_type: 'project', related_to_id: projectId, activity_type: 'selection_made' }, '-created_date', 5),
+    enabled: !!projectId && !isClient,
+    refetchInterval: 15000,
   });
 
   const [isEditingDetails, setIsEditingDetails] = useState(false);
@@ -402,7 +419,7 @@ export default function ProjectDetails() {
             <CardHeader className="border-b border-slate-100">
               <CardTitle>סטטוס קבצים</CardTitle>
             </CardHeader>
-            <CardContent className="pt-6">
+            <CardContent className="pt-6 space-y-5">
               <div className="flex gap-4 md:gap-8 justify-around">
                 <div className="text-center">
                   <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2">
@@ -426,6 +443,42 @@ export default function ProjectDetails() {
                   <div className="text-xs text-slate-500">ערוכות ומוכנות</div>
                 </div>
               </div>
+
+              {selectionActivities[0] && (
+                <div className="rounded-2xl border border-green-200 bg-green-50 p-4 flex items-start gap-3">
+                  <Bell className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold text-green-900">בחירות לקוח נשלחו אליך</p>
+                    <p className="text-sm text-green-700 leading-relaxed">{selectionActivities[0].description}</p>
+                    <p className="text-xs text-green-600 mt-1 flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(selectionActivities[0].created_date).toLocaleString('he-IL')}</p>
+                  </div>
+                </div>
+              )}
+
+              {selectedPhotos.length > 0 && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-amber-600" />
+                      <p className="font-bold text-amber-900">פירוט התמונות שנבחרו לעריכה</p>
+                    </div>
+                    <span className="text-xs font-bold text-amber-700 bg-white px-2 py-1 rounded-full">{selectedPhotos.length} תמונות</span>
+                  </div>
+                  <div className="space-y-2 max-h-56 overflow-y-auto">
+                    {selectedPhotos.map((photo, index) => (
+                      <div key={photo.id} className="bg-white border border-amber-100 rounded-xl p-3 flex items-center gap-3">
+                        <span className="w-7 h-7 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center text-xs font-bold shrink-0">{index + 1}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold text-slate-900 truncate" dir="ltr">{photo.file_name || photo.drive_file_id || photo.id}</p>
+                          {photo.client_comment && <p className="text-xs text-slate-600 mt-1">הערת לקוח: {photo.client_comment}</p>}
+                          {photo.selected_at && <p className="text-[11px] text-slate-400 mt-1">נבחרה: {new Date(photo.selected_at).toLocaleString('he-IL')}</p>}
+                        </div>
+                        {photo.file_url && <a href={photo.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-amber-700 underline shrink-0">פתיחה</a>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -460,6 +513,7 @@ export default function ProjectDetails() {
                 <p className="text-sm font-bold text-amber-800">
                   הלקוח בחר {liveSelectedCount} תמונות לעריכה
                 </p>
+                <p className="text-xs text-amber-700 mt-0.5">הפירוט המלא מופיע בכרטיס סטטוס הקבצים ונשלח למייל natigold04@gmail.com לאחר לחיצה על שליחה.</p>
                 <Link to={createPageUrl(`FileStorage?project_id=${project.id}`)} className="text-xs text-amber-600 underline">
                   עבור לניהול קבצים ←
                 </Link>
