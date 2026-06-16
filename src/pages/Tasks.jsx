@@ -181,16 +181,20 @@ export default function Tasks() {
             {task.google_calendar_event_id && <span className="text-green-600 font-bold">מסונכרן ליומן</span>}
             {completed && task.completed_at && <span>הושלם ב-{new Date(task.completed_at).toLocaleDateString('he-IL')}</span>}
           </div>
-          <div className="flex items-center gap-2 mt-3">
+          <div className="flex items-center gap-2 mt-3 flex-wrap">
             {!completed && (
-              <Button variant="outline" size="sm" onClick={() => openEditDialog(task)} className="h-9 gap-1 text-slate-900 border-slate-300 bg-white hover:bg-slate-50">
-                <Pencil className="w-4 h-4" />
-                עריכה
+              <Button variant="outline" size="sm" onClick={() => toggleTaskStatus(task)} className="h-9 gap-1 text-green-700 border-green-200 bg-green-50 hover:bg-green-100">
+                <CheckCircle2 className="w-4 h-4" />
+                סיום
               </Button>
             )}
+            <Button variant="outline" size="sm" onClick={() => openEditDialog(task)} className="h-9 gap-1 text-slate-900 border-slate-300 bg-white hover:bg-slate-50">
+              <Pencil className="w-4 h-4" />
+              עריכה
+            </Button>
             <Button variant="outline" size="sm" onClick={() => deleteTaskMutation.mutate(task)} className="h-9 gap-1 text-red-600 border-red-200 bg-red-50 hover:bg-red-100">
               <Trash2 className="w-4 h-4" />
-              {completed ? 'הסר' : 'מחק'}
+              מחיקה
             </Button>
           </div>
         </div>

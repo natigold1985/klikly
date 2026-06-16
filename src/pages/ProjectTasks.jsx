@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   CheckCircle2, Circle, Clock, Plus, ArrowRight,
   Camera, Image as ImageIcon, Send, Calendar as CalendarIcon,
-  Bell, ListTodo, Trash2
+  Bell, ListTodo, Trash2, Pencil
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +27,14 @@ const STAGES = [
   { id: 'general', label: 'כללי', icon: ListTodo, color: 'text-slate-500', bg: 'bg-slate-50' },
 ];
 
+const toLocalInputDate = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const offset = date.getTimezoneOffset();
+  return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 16);
+};
+
 export default function ProjectTasks() {
   const urlParams = new URLSearchParams(window.location.search);
   const projectId = urlParams.get('projectId');
@@ -35,6 +43,7 @@ export default function ProjectTasks() {
 
   const [activeStage, setActiveStage] = useState('before_shooting');
   const [showNewTaskDialog, setShowNewTaskDialog] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
   const [newTask, setNewTask] = useState({ title: '', due_date: '' });
   const [editingDueDate, setEditingDueDate] = useState(null); // task id being edited
 
@@ -52,12 +61,17 @@ export default function ProjectTasks() {
     enabled: !!projectId,
   });
 
+  const resetTaskDialog = () => {
+    setShowNewTaskDialog(false);
+    setEditingTask(null);
+    setNewTask({ title: '', due_date: '' });
+  };
+
   const createTaskMutation = useMutation({
     mutationFn: (taskData) => base44.entities.Task.create(taskData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectTasks', projectId] });
-      setShowNewTaskDialog(false);
-      setNewTask({ title: '', due_date: '' });
+      resetTaskDialog();
       toast.success('משימה נוספה בהצלחה');
     },
   });
@@ -67,6 +81,7 @@ export default function ProjectTasks() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectTasks', projectId] });
       setEditingDueDate(null);
+      if (editingTask) resetTaskDialog();
     },
   });
 
@@ -78,18 +93,38 @@ export default function ProjectTasks() {
     }
   });
 
-  const handleCreateTask = () => {
+  const openNewTaskDialog = () => {
+    setEditingTask(null);
+    setNewTask({ title: '', due_date: '' });
+    setShowNewTaskDialog(true);
+  };
+
+  const openEditTaskDialog = (task) => {
+    setEditingTask(task);
+    setNewTask({ title: task.title || '', due_date: toLocalInputDate(task.due_date) });
+    setShowNewTaskDialog(true);
+  };
+
+  const handleSaveTask = () => {
     if (!newTask.title) return;
     const taskData = {
+      title: newTask.title,
+      due_date: newTask.due_date ? new Date(newTask.due_date).toISOString() : null,
+    };
+
+    if (editingTask) {
+      updateTaskMutation.mutate({ id: editingTask.id, data: taskData });
+      return;
+    }
+
+    createTaskMutation.mutate({
+      ...taskData,
       related_to_type: 'project',
       related_to_id: projectId,
-      title: newTask.title,
       stage: activeStage,
       status: 'pending',
       priority: 'medium',
-      due_date: newTask.due_date ? new Date(newTask.due_date).toISOString() : null,
-    };
-    createTaskMutation.mutate(taskData);
+    });
   };
 
   const getDueDateStatus = (due_date) => {
@@ -128,6 +163,7 @@ export default function ProjectTasks() {
   }, {});
 
   const currentTasks = tasksByStage[activeStage] || [];
+  const activeTasks = currentTasks.filter(t => t.status !== 'completed');
   const completedCount = currentTasks.filter(t => t.status === 'completed').length;
   const progress = currentTasks.length > 0 ? Math.round((completedCount / currentTasks.length) * 100) : 0;
 
@@ -186,7 +222,7 @@ export default function ProjectTasks() {
             </div>
             <CardTitle className="text-lg">{STAGES.find(s=>s.id === activeStage)?.label}</CardTitle>
           </div>
-          <Button onClick={() => setShowNewTaskDialog(true)} size="sm" className="bg-[#FFD700] hover:bg-[#e6c200] text-black font-bold gap-3">
+          <Button onClick={openNewTaskDialog} size="sm" className="bg-[#FFD700] hover:bg-[#e6c200] text-black font-bold gap-3">
             <Plus className="w-4 h-4" />
             משימה חדשה
           </Button>
@@ -204,30 +240,25 @@ export default function ProjectTasks() {
           </div>
 
           <div className="space-y-3">
-            {currentTasks.length === 0 ? (
+            {activeTasks.length === 0 ? (
               <div className="text-center py-10 text-slate-500 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
                 <ListTodo className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                אין משימות לשלב זה.<br/>לחץ על "משימה חדשה" כדי להתחיל.
+                אין משימות פעילות לשלב זה.<br/>לחץ על "משימה חדשה" כדי להתחיל.
               </div>
             ) : (
-              currentTasks.map(task => {
+              activeTasks.map(task => {
                 const dueDateStatus = getDueDateStatus(task.due_date);
                 return (
-                  <div key={task.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl border transition-all gap-3 ${task.status === 'completed' ? 'bg-slate-50 border-slate-200 opacity-60' : 'bg-white border-[#FFD700] shadow-sm hover:shadow-md'}`}>
-                    <div className="flex items-start gap-3 flex-1 cursor-pointer" onClick={() => toggleTaskStatus(task)}>
-                      <button className="mt-0.5 shrink-0 focus:outline-none">
-                        {task.status === 'completed' ? (
-                          <CheckCircle2 className="w-5 h-5 text-green-500" />
-                        ) : (
-                          <Circle className="w-5 h-5 text-slate-300 hover:text-indigo-400 transition-colors" />
-                        )}
+                  <div key={task.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl border transition-all gap-3 bg-white border-[#FFD700] shadow-sm hover:shadow-md">
+                    <div className="flex items-start gap-3 flex-1">
+                      <button onClick={() => toggleTaskStatus(task)} className="mt-0.5 shrink-0 focus:outline-none" title="סיום">
+                        <Circle className="w-5 h-5 text-slate-300 hover:text-green-500 transition-colors" />
                       </button>
                       <div>
-                        <div className={task.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-800 font-medium'}>
+                        <div className="text-slate-800 font-medium">
                           {task.title}
                         </div>
-                        {task.status !== 'completed' && (
-                          <div className="mt-1">
+                        <div className="mt-1">
                             {editingDueDate === task.id ? (
                               <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                                 <Input
@@ -255,12 +286,22 @@ export default function ProjectTasks() {
                               </button>
                             )}
                           </div>
-                        )}
                       </div>
                     </div>
-                    <button onClick={(e) => { e.stopPropagation(); deleteTaskMutation.mutate(task.id); }} className="text-slate-300 hover:text-red-500 transition-colors p-1 rounded-md hover:bg-red-50 self-start sm:self-center">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-2 self-start sm:self-center">
+                      <Button variant="outline" size="sm" onClick={() => toggleTaskStatus(task)} className="h-9 gap-1 text-green-700 border-green-200 bg-green-50 hover:bg-green-100">
+                        <CheckCircle2 className="w-4 h-4" />
+                        סיום
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => openEditTaskDialog(task)} className="h-9 gap-1 text-slate-900 border-slate-300 bg-white hover:bg-slate-50">
+                        <Pencil className="w-4 h-4" />
+                        עריכה
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => deleteTaskMutation.mutate(task.id)} className="h-9 gap-1 text-red-600 border-red-200 bg-red-50 hover:bg-red-100">
+                        <Trash2 className="w-4 h-4" />
+                        מחיקה
+                      </Button>
+                    </div>
                   </div>
                 );
               })
@@ -269,10 +310,10 @@ export default function ProjectTasks() {
         </CardContent>
       </Card>
 
-      <Dialog open={showNewTaskDialog} onOpenChange={setShowNewTaskDialog}>
+      <Dialog open={showNewTaskDialog} onOpenChange={(open) => open ? setShowNewTaskDialog(true) : resetTaskDialog()}>
         <DialogContent className="sm:max-w-[420px]" dir="rtl">
           <DialogHeader>
-            <DialogTitle>הוספת משימה ל{STAGES.find(s=>s.id === activeStage)?.label}</DialogTitle>
+            <DialogTitle>{editingTask ? 'עריכת משימה' : `הוספת משימה ל${STAGES.find(s=>s.id === activeStage)?.label}`}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <div>
@@ -282,7 +323,7 @@ export default function ProjectTasks() {
                 onChange={(e) => setNewTask({...newTask, title: e.target.value})} 
                 placeholder="למשל: תיאום ציפיות עם הלקוח"
                 autoFocus
-                onKeyDown={(e) => e.key === 'Enter' && handleCreateTask()}
+                onKeyDown={(e) => e.key === 'Enter' && handleSaveTask()}
               />
             </div>
             <div>
@@ -298,8 +339,8 @@ export default function ProjectTasks() {
               />
               <p className="text-xs text-slate-400 mt-1">תקבל תזכורת כשהדדליין מתקרב</p>
             </div>
-            <Button onClick={handleCreateTask} className="w-full h-11 text-base bg-[#FFD700] hover:bg-[#e6c200] text-black font-bold gap-3" disabled={!newTask.title}>
-              שמור משימה
+            <Button onClick={handleSaveTask} className="w-full h-11 text-base bg-[#FFD700] hover:bg-[#e6c200] text-black font-bold gap-3" disabled={!newTask.title || createTaskMutation.isPending || updateTaskMutation.isPending}>
+              {editingTask ? 'שמור שינויים' : 'שמור משימה'}
             </Button>
           </div>
         </DialogContent>
