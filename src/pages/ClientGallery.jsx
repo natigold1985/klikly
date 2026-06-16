@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Lock, CheckCircle2, Loader2, Camera, Download, Send, MessageSquare } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Heart, Lock, CheckCircle2, Loader2, Camera, Send, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import ClientGalleryLightbox from '@/components/gallery/ClientGalleryLightbox';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 
@@ -17,8 +17,7 @@ export default function ClientGallery() {
     const [photos, setPhotos] = useState([]);
     const [selectedIds, setSelectedIds] = useState(new Set());
     const [isSaving, setIsSaving] = useState(false);
-    const [isFullscreen, setIsFullscreen] = useState(false);
-    const [fullscreenImage, setFullscreenImage] = useState(null);
+    const [lightboxIndex, setLightboxIndex] = useState(null);
     const [photoComments, setPhotoComments] = useState({});
 
     // Parse PIN from URL if present, or bypass for logged-in admins
@@ -81,6 +80,8 @@ export default function ClientGallery() {
         }
         setSelectedIds(newSet);
     };
+
+    const getPhotoSrc = (photo) => photo?.thumbnail_url || photo?.thumbnail || photo?.file_url || photo?.url || photo?.view_url;
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -176,14 +177,14 @@ export default function ClientGallery() {
             </div>
 
             {/* Gallery Grid */}
-            <main className="max-w-7xl mx-auto px-4 md:px-8 py-8">
+            <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-8 py-5 md:py-8">
                 {photos.length === 0 ? (
                     <div className="text-center py-32 opacity-50 flex flex-col items-center">
                         <Camera className="w-16 h-16 mb-4" />
                         <h2 className="text-xl">טרם הועלו תמונות לגלריה זו</h2>
                     </div>
                 ) : (
-                    <div className="columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
+                    <div className="columns-2 sm:columns-3 lg:columns-4 2xl:columns-5 gap-2 sm:gap-3 md:gap-4 space-y-2 sm:space-y-3 md:space-y-4">
                         {photos.map((photo) => {
                             const isSelected = selectedIds.has(photo.id);
                             return (
@@ -191,14 +192,15 @@ export default function ClientGallery() {
                                     key={photo.id}
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
-                                    className="relative group cursor-pointer break-inside-avoid rounded-xl overflow-hidden"
-                                    onClick={() => setFullscreenImage(photo)}
+                                    className="relative group cursor-zoom-in break-inside-avoid rounded-xl md:rounded-2xl overflow-hidden bg-white/5 shadow-lg active:scale-[0.99] transition-transform"
+                                    onClick={() => setLightboxIndex(photos.findIndex((item) => item.id === photo.id))}
                                 >
                                     <img 
-                                        src={photo.thumbnail || photo.url || photo.view_url} 
-                                        alt="Gallery Image" 
+                                        src={getPhotoSrc(photo)} 
+                                        alt={photo.file_name || 'Gallery Image'} 
                                         className={`w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105 ${isSelected ? 'ring-4 ring-[#FFD700]' : ''}`}
                                         loading="lazy"
+                                        decoding="async"
                                     />
                                     {/* Overlay Gradient */}
                                     <div className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${isSelected ? 'opacity-100 from-black/60' : ''}`} />
@@ -232,64 +234,18 @@ export default function ClientGallery() {
                 )}
             </main>
 
-            {/* Fullscreen Image Viewer */}
-            <AnimatePresence>
-                {fullscreenImage && (
-                    <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4"
-                        onClick={() => setFullscreenImage(null)}
-                    >
-                        <button className="absolute top-6 left-6 text-white/50 hover:text-white z-50">✕ סגור</button>
-                        <div className="relative max-w-full max-h-[85vh] flex flex-col md:flex-row items-center justify-center gap-6" onClick={(e) => e.stopPropagation()}>
-                            <img 
-                                src={fullscreenImage.url || fullscreenImage.thumbnail || fullscreenImage.view_url} 
-                                alt="Fullscreen" 
-                                className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
-                            />
-                            
-                            <div className="w-full md:w-80 bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 shadow-[0_10px_40px_rgba(0,0,0,0.8)] flex flex-col gap-4">
-                                <h3 className="text-lg font-bold text-[#FFD700]">פעולות לתמונה</h3>
-                                
-                                {fullscreenImage.editing_status !== 'pending' && (
-                                    <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2 text-sm">
-                                        <div className={`w-2 h-2 rounded-full ${fullscreenImage.editing_status === 'in_progress' ? 'bg-blue-500' : 'bg-green-500'}`} />
-                                        <span className="text-white/70">סטטוס:</span>
-                                        <span className="font-bold text-white">
-                                            {fullscreenImage.editing_status === 'in_progress' ? 'בעבודה אצל הצלם' : 'עריכה הסתיימה'}
-                                        </span>
-                                    </div>
-                                )}
-
-                                <button 
-                                    onClick={() => toggleSelection(fullscreenImage.id)}
-                                    className={`w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl transition-all active:scale-95 border ${selectedIds.has(fullscreenImage.id) ? 'bg-[#FFD700] text-black border-[#FFD700] shadow-[0_0_20px_rgba(255,215,0,0.2)]' : 'bg-white/5 text-white hover:bg-white/10 border-white/10'}`}
-                                >
-                                    <Heart className={`w-5 h-5 ${selectedIds.has(fullscreenImage.id) ? 'fill-black' : ''}`} />
-                                    <span className="font-bold text-lg">{selectedIds.has(fullscreenImage.id) ? 'נבחרה' : 'סמן כמועדפת'}</span>
-                                </button>
-
-                                {selectedIds.has(fullscreenImage.id) && (
-                                    <div className="space-y-2 mt-2">
-                                        <label className="text-sm font-medium text-white/70 flex items-center gap-2">
-                                            <MessageSquare className="w-4 h-4" />
-                                            הערות לעריכה (אופציונלי)
-                                        </label>
-                                        <Textarea 
-                                            placeholder="למשל: אפשר להבהיר קצת? / לחתוך את הרקע"
-                                            value={photoComments[fullscreenImage.id] || ''}
-                                            onChange={(e) => setPhotoComments({ ...photoComments, [fullscreenImage.id]: e.target.value })}
-                                            className="bg-white/5 border-white/10 text-white min-h-[100px] resize-none focus-visible:ring-[#FFD700]"
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {lightboxIndex !== null && (
+                <ClientGalleryLightbox
+                    photos={photos}
+                    index={lightboxIndex}
+                    setIndex={setLightboxIndex}
+                    onClose={() => setLightboxIndex(null)}
+                    selectedIds={selectedIds}
+                    toggleSelection={toggleSelection}
+                    photoComments={photoComments}
+                    setPhotoComments={setPhotoComments}
+                />
+            )}
 
             {/* Mobile Fixed Bottom Save Bar */}
             <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/90 to-transparent z-40">
