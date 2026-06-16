@@ -50,7 +50,51 @@ Deno.serve(async (req) => {
     }
 
     const action = payload.action || payload.event?.type || 'sync';
-    const task = payload.task || payload.data;
+    const task = payload.task || payload.data || payload.old_data;
+
+    if (action === 'sync_all') {
+      let accessToken;
+      try {
+        accessToken = await getAccessToken(base44);
+      } catch (_) {
+        return Response.json({ success: true, skipped: 'calendar_not_connected' });
+      }
+      if (!accessToken) return Response.json({ success: true, skipped: 'calendar_not_connected' });
+
+      const tasks = await base44.asServiceRole.entities.Task.list('-updated_date', 1000);
+      let synced = 0;
+      let removed = 0;
+      for (const item of tasks) {
+        if (item.status === 'completed' || !item.due_date) {
+          if (item.google_calendar_event_id) {
+            await deleteCalendarEvent(accessToken, item.google_calendar_event_id);
+            await base44.asServiceRole.entities.Task.update(item.id, {
+              google_calendar_event_id: null,
+              google_calendar_synced_at: new Date().toISOString(),
+            });
+            removed++;
+          }
+          continue;
+        }
+
+        const event = buildCalendarEvent(item);
+        const hasEvent = !!item.google_calendar_event_id;
+        const response = await fetch(hasEvent ? `${CALENDAR_API}/${item.google_calendar_event_id}` : CALENDAR_API, {
+          method: hasEvent ? 'PATCH' : 'POST',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(event),
+        });
+        if (!response.ok) throw new Error(`Google Calendar sync failed: ${await response.text()}`);
+        const data = await response.json();
+        await base44.asServiceRole.entities.Task.update(item.id, {
+          google_calendar_event_id: data.id,
+          google_calendar_synced_at: new Date().toISOString(),
+        });
+        synced++;
+      }
+      return Response.json({ success: true, action: 'sync_all', synced, removed });
+    }
+
     if (!task) return Response.json({ success: true, skipped: 'no_task' });
 
     if (task.google_calendar_synced_at && task.updated_date) {
