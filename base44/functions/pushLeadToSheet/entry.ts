@@ -160,20 +160,16 @@ async function appendRow(authHeader, tabName, row) {
   await ensureHeaders(authHeader, tabName);
   const status = row[5] || '';
   const isNew = status === 'חדש מהאתר' || status === 'ליד חדש';
-  const isClosed = status === 'נסגר מהאתר' || status === 'נסגר בהצלחה';
 
-  if (!isClosed) {
+  if (!isNew) {
     const metaResp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets.properties`, { headers: authHeader });
     const meta = await metaResp.json();
     const sheet = (meta.sheets || []).find((s) => s.properties.title === tabName);
     if (sheet?.properties?.sheetId !== undefined) {
-      let insertIndex = 1;
-      if (!isNew) {
-        const valuesResp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(`'${tabName}'!A1:H3000`)}`, { headers: authHeader });
-        const rows = (await valuesResp.json()).values || [];
-        const firstBottomRow = rows.findIndex((r, i) => i > 0 && ['לא רלוונטי', 'נסגר בהצלחה', 'נסגר מהאתר'].includes(r[5] || ''));
-        insertIndex = firstBottomRow > 0 ? firstBottomRow : Math.max(rows.length, 1);
-      }
+      const valuesResp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(`'${tabName}'!A1:H3000`)}`, { headers: authHeader });
+      const rows = (await valuesResp.json()).values || [];
+      const firstBottomRow = rows.findIndex((r, i) => i > 0 && ['חדש מהאתר', 'ליד חדש'].includes(r[5] || ''));
+      const insertIndex = firstBottomRow > 0 ? firstBottomRow : Math.max(rows.length, 1);
       await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`, {
         method: 'POST',
         headers: { ...authHeader, 'Content-Type': 'application/json' },

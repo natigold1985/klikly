@@ -52,17 +52,17 @@ function sheetStatus(lead) {
   return 'חדש מהאתר';
 }
 
-// Sort order: new website leads first, then active work, then regular new, closed at bottom
+// Sort order: active leads first; new leads stay at the bottom until their status changes
 const STATUS_SORT_ORDER = {
-  'חדש מהאתר':      0,
-  'ליד חדש':        1,
-  'בטיפול מהאתר':   2,
-  'נוצר קשר':       3,
-  'נשלח פולו-אפ':   4,
-  'נענה':           5,
-  'לא רלוונטי':     7,
-  'נסגר בהצלחה':    8,
-  'נסגר מהאתר':     9,
+  'בטיפול מהאתר':   0,
+  'נוצר קשר':       1,
+  'נשלח פולו-אפ':   2,
+  'נענה':           3,
+  'נסגר בהצלחה':    6,
+  'נסגר מהאתר':     7,
+  'לא רלוונטי':     8,
+  'ליד חדש':        20,
+  'חדש מהאתר':      21,
 };
 
 function sortLeadsByStatus(leads) {
