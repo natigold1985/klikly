@@ -289,6 +289,15 @@ Deno.serve(async (req) => {
             const tabFallbackSource = tabNameToSource(tabName);
             let tabAdded = 0, tabUpdated = 0, tabSkipped = 0;
 
+            // LinkedIn extension rows are outreach prospects, not CRM leads.
+            // They must stay out of Lead until manually promoted after filtering.
+            if (/לידים ביטחון|linkedin|לינקדאין/i.test(tabName)) {
+                const rowCount = Math.max((rows.length || 1) - 1, 0);
+                skipped += rowCount;
+                perTab.push({ tab: tabName, added: 0, updated: 0, skipped: rowCount, note: 'linkedin-outreach-skipped' });
+                continue;
+            }
+
             if (rows.length < 2) {
                 perTab.push({ tab: tabName, added: 0, updated: 0, skipped: 0, note: 'empty' });
                 continue;
@@ -355,6 +364,13 @@ Deno.serve(async (req) => {
                     sourceCol ||                        // raw value if non-empty
                     tabFallbackSource ||
                     'Google Sheets';
+
+                // LinkedIn prospects are outreach only, not real leads until manually promoted.
+                if (/linkedin|לינקדאין/i.test([detectedSource, sourceCol, linkCol, notesCol].filter(Boolean).join(' '))) {
+                    tabSkipped++;
+                    skipped++;
+                    continue;
+                }
 
                 // Compose notes (preserve link/company info)
                 const notesParts = [];
