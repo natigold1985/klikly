@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
 
       try {
         await base44.asServiceRole.functions.invoke('sendPushNotification', {
-          user_email: photographerEmail,
+          target_email: photographerEmail,
           title,
           body,
           url: '/Tasks',
