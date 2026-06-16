@@ -84,7 +84,8 @@ Deno.serve(async (req) => {
     if (notifyPhotographer && selectedCount > 0) {
       const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
       const fromEmail = await getGmailAddress(accessToken);
-      const emailHtml = buildPhotographerEmail({ clientName, projectTitle, selectedItems, selectedCount });
+      const sourceFolderUrl = project.drive_folder_url || '';
+      const emailHtml = buildPhotographerEmail({ clientName, projectTitle, selectedItems, selectedCount, sourceFolderUrl });
       for (const email of notificationEmails) {
         await sendGmailEmail(accessToken, fromEmail, {
           to: email,
@@ -105,7 +106,7 @@ Deno.serve(async (req) => {
 
       await base44.asServiceRole.entities.SystemLog.create({
         action: 'client_selection_submitted',
-        details: `${clientName} submitted ${selectedCount} selected photos for project ${projectTitle}. Admin email sent: ${photographerEmailSent}. Client confirmation sent: ${clientEmailSent}.`,
+        details: `${clientName} submitted ${selectedCount} selected photos for project ${projectTitle}. Source folder: ${project.drive_folder_url || 'none'}. Selected files: ${selectedItems.map((item) => item.name).join(', ')}. Admin email sent: ${photographerEmailSent}. Client confirmation sent: ${clientEmailSent}.`,
         status: 'success',
         related_entity_type: 'Project',
         related_entity_id: projectId,
@@ -122,13 +123,14 @@ Deno.serve(async (req) => {
           selected_count: selectedCount,
           client_email: project.client_email || '',
           admin_email: adminEmail,
-          selected_items: selectedItems.map((item) => ({ name: item.name, rawNumber: item.rawNumber, comment: item.comment }))
+          source_folder_url: project.drive_folder_url || '',
+          selected_items: selectedItems.map((item) => ({ name: item.name, rawNumber: item.rawNumber, comment: item.comment, url: item.url }))
         }
       }).catch(() => {});
 
       await base44.asServiceRole.entities.Task.create({
         title: `עריכת ${selectedCount} תמונות — ${projectTitle}`,
-        description: `הלקוח ${clientName} בחר ${selectedCount} תמונות לעריכה. פירוט הבחירות וההערות נשלח אליך במייל ל-${adminEmail}.`,
+        description: `הלקוח ${clientName} בחר ${selectedCount} תמונות לעריכה. תיקיית מקור: ${project.drive_folder_url || 'לא הוגדרה'}. קבצים: ${selectedItems.map((item) => item.name).join(', ')}.`,
         related_to_type: 'project',
         related_to_id: projectId,
         status: 'pending',
@@ -255,14 +257,15 @@ function buildClientConfirmationEmail({ clientName, projectTitle, selectedCount 
 </html>`;
 }
 
-function buildPhotographerEmail({ clientName, projectTitle, selectedItems, selectedCount }) {
+function buildPhotographerEmail({ clientName, projectTitle, selectedItems, selectedCount, sourceFolderUrl }) {
+  const exactFileList = selectedItems.map((item) => item.name).join('\n');
   const rows = selectedItems.map((item) => `
     <tr>
       <td style="padding:14px 12px;border-bottom:1px solid #2a2a2a;color:#FFD700;font-weight:900;text-align:center;">${item.index}</td>
       <td style="padding:14px 12px;border-bottom:1px solid #2a2a2a;color:#fff;font-weight:800;direction:ltr;text-align:left;">${escapeHtml(item.name)}</td>
       <td style="padding:14px 12px;border-bottom:1px solid #2a2a2a;color:#FFD700;font-weight:900;direction:ltr;text-align:left;">${escapeHtml(item.rawNumber)}</td>
       <td style="padding:14px 12px;border-bottom:1px solid #2a2a2a;color:#ccc;line-height:1.6;">${item.comment ? escapeHtml(item.comment) : '—'}</td>
-      <td style="padding:14px 12px;border-bottom:1px solid #2a2a2a;text-align:center;">${item.url ? `<a href="${escapeHtml(item.url)}" style="color:#FFD700;text-decoration:underline;">פתיחה</a>` : '—'}</td>
+      <td style="padding:14px 12px;border-bottom:1px solid #2a2a2a;text-align:center;">${item.url ? `<a href="${escapeHtml(item.url)}" style="color:#FFD700;text-decoration:underline;">פתיחת הקובץ</a>` : '—'}</td>
     </tr>`).join('');
 
   return `<!DOCTYPE html>
@@ -283,7 +286,9 @@ function buildPhotographerEmail({ clientName, projectTitle, selectedItems, selec
           <p style="color:#1a1a1a;font-size:14px;margin:8px 0 0;font-weight:700;">${selectedCount} תמונות נבחרו בפרויקט ${escapeHtml(projectTitle)}</p>
         </td></tr>
         <tr><td style="padding:34px 28px 26px;">
-          <p style="color:#ccc;font-size:16px;line-height:1.8;margin:0 0 22px;">אלו התמונות שהלקוח בחר לעריכה. עמודת <strong style="color:#FFD700;">מספר RAW</strong> מיועדת לזיהוי מהיר של הקובץ המקורי לעריכה.</p>
+          <p style="color:#ccc;font-size:16px;line-height:1.8;margin:0 0 22px;">אלו התמונות שהלקוח בחר לעריכה. שמות הקבצים מופיעים בדיוק כפי שהם בדרייב, כדי שתוכל לאתר ולהוריד את קבצי המקור.</p>
+          ${sourceFolderUrl ? `<div style="text-align:center;margin:0 0 22px;"><a href="${escapeHtml(sourceFolderUrl)}" style="display:inline-block;background:#FFD700;color:#000;font-size:16px;font-weight:900;padding:15px 34px;border-radius:12px;text-decoration:none;">📁 פתיחת תיקיית המקור בדרייב</a></div>` : ''}
+          <div style="background:#050505;border:1px solid #333;border-radius:12px;padding:16px 18px;margin:0 0 22px;direction:ltr;text-align:left;white-space:pre-wrap;color:#fff;font-size:14px;line-height:1.8;">${escapeHtml(exactFileList)}</div>
           <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;overflow:hidden;">
             <thead>
               <tr style="background:#0a0a0a;">
@@ -291,14 +296,14 @@ function buildPhotographerEmail({ clientName, projectTitle, selectedItems, selec
                 <th style="padding:12px;color:#FFD700;font-size:12px;text-align:left;direction:ltr;">שם קובץ</th>
                 <th style="padding:12px;color:#FFD700;font-size:12px;text-align:left;direction:ltr;">מספר RAW</th>
                 <th style="padding:12px;color:#FFD700;font-size:12px;text-align:right;">הערות לעריכה</th>
-                <th style="padding:12px;color:#FFD700;font-size:12px;text-align:center;">קישור</th>
+                <th style="padding:12px;color:#FFD700;font-size:12px;text-align:center;">קישור לקובץ</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
           </table>
           <div style="background:#1f1a00;border:1px solid #FFD700;border-right:4px solid #FFD700;border-radius:10px;padding:16px 20px;margin:24px 0 0;">
             <p style="color:#FFD700;font-size:14px;font-weight:900;margin:0 0 4px;">השלב הבא</p>
-            <p style="color:#ccc;font-size:13px;line-height:1.7;margin:0;">לערוך בדיוק את הקבצים שמופיעים בטבלה לפי מספר RAW והערות הלקוח.</p>
+            <p style="color:#ccc;font-size:13px;line-height:1.7;margin:0;">פתח את תיקיית המקור בדרייב, הורד בדיוק את שמות הקבצים שמופיעים ברשימה, וערוך לפי הערות הלקוח.</p>
           </div>
           <hr style="border:none;border-top:1px solid #2a2a2a;margin:24px 0 18px;">
           <p style="color:#555;font-size:11px;margin:0;text-align:center;line-height:1.8;">הודעה אוטומטית מ-KLIKLY · לא להשיב למייל זה</p>
