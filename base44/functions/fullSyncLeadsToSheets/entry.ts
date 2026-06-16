@@ -77,7 +77,7 @@ function sortLeadsByStatus(leads) {
 // RGB background colors per status (for Google Sheets) — matches KLIKLY UI colors exactly
 const STATUS_ROW_COLORS = {
   'חדש מהאתר':      { red: 0.820, green: 0.906, blue: 0.980 },  // blue-100
-  'בטיפול מהאתר':   { red: 0.996, green: 0.973, blue: 0.714 },  // yellow-200
+  'בטיפול מהאתר':   { red: 0.820, green: 0.906, blue: 0.980 },  // blue-100
   'נסגר מהאתר':     { red: 0.776, green: 0.937, blue: 0.776 },  // green-200
   'ליד חדש':        { red: 0.820, green: 0.906, blue: 0.980 },  // blue-100
   'נוצר קשר':       { red: 0.996, green: 0.973, blue: 0.714 },  // yellow-200
@@ -310,9 +310,9 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads, tabName
   const conditionalFormats = [
     { values: ['נסגר בהצלחה', 'נסגר מהאתר'], color: { red: 0.776, green: 0.937, blue: 0.776 } },
     { values: ['לא רלוונטי'], color: { red: 0.992, green: 0.808, blue: 0.808 } },
-    { values: ['נוצר קשר', 'בטיפול מהאתר'], color: { red: 0.996, green: 0.973, blue: 0.714 } },
+    { values: ['נוצר קשר'], color: { red: 0.996, green: 0.973, blue: 0.714 } },
     { values: ['נשלח פולו-אפ'], color: { red: 0.906, green: 0.824, blue: 0.992 } },
-    { values: ['ליד חדש', 'חדש מהאתר'], color: { red: 0.820, green: 0.906, blue: 0.980 } },
+    { values: ['ליד חדש', 'חדש מהאתר', 'בטיפול מהאתר'], color: { red: 0.820, green: 0.906, blue: 0.980 } },
   ];
 
   conditionalFormats.forEach((format, index) => {
