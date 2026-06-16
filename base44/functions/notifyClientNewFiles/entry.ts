@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
     let project = null;
     if (project_id) {
       project = await base44.asServiceRole.entities.Project.get(project_id);
-      const allowed = me.role === 'admin' || me.email === ADMIN_EMAIL || project.created_by === me.email || project.created_by_id === me.id;
+      const allowed = me.role === 'admin' || me.role === 'user' || me.role === 'photographer' || me.email === ADMIN_EMAIL || project.created_by === me.email || project.created_by_id === me.id;
       if (!allowed) return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 

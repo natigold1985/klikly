@@ -27,7 +27,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'הגלריה זמינה רק לאחר תשלום' }, { status: 402 });
     }
 
-    if (!project || (!isAdmin && !isProjectClient && project.gallery_pin !== pin)) {
+    const hasValidPin = String(project?.gallery_pin || '').trim() && String(project.gallery_pin).trim() === String(pin || '').trim();
+    if (!project || (!isAdmin && !isProjectClient && !hasValidPin)) {
       // BOLA Protection & Security Logging
       await base44.asServiceRole.entities.SystemLog.create({
         action: 'security_violation',

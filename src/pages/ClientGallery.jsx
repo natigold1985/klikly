@@ -22,6 +22,7 @@ export default function ClientGallery() {
     const [lightboxIndex, setLightboxIndex] = useState(null);
     const [photoComments, setPhotoComments] = useState({});
     const [submitStatus, setSubmitStatus] = useState(null);
+    const [accessPin, setAccessPin] = useState('');
 
     // Parse PIN from URL if present, or bypass for logged-in admins
     useEffect(() => {
@@ -53,6 +54,7 @@ export default function ClientGallery() {
             
             if (res.status === 200) {
                 setProject(data.project);
+                setAccessPin(currentPin);
                 setPhotos(data.photos || []);
                 const selected = new Set(data.photos.filter(p => p.is_selected).map(p => p.id));
                 setSelectedIds(selected);
@@ -87,9 +89,10 @@ export default function ClientGallery() {
     const getPhotoSrc = (photo) => photo?.thumbnail_url || photo?.thumbnail || photo?.file_url || photo?.url || photo?.view_url;
 
     const saveSelection = async (nextSelectedIds, notifyPhotographer = true) => {
+        const urlPin = new URLSearchParams(window.location.search).get('pin') || '';
         const res = await base44.functions.invoke('submitFavorites', {
             projectId: id,
-            pin,
+            pin: accessPin || pin || urlPin,
             selectedPhotoIds: Array.from(nextSelectedIds),
             selectedPhotoDetails: photos
                 .filter((photo) => nextSelectedIds.has(photo.id))
@@ -335,7 +338,8 @@ export default function ClientGallery() {
                     setIndex={setLightboxIndex}
                     onClose={() => setLightboxIndex(null)}
                     selectedIds={selectedIds}
-                    toggleSelection={toggleSelection}
+                    toggleSelection={handleSelectPhoto}
+                    savingPhotoId={savingPhotoId}
                     photoComments={photoComments}
                     setPhotoComments={setPhotoComments}
                 />

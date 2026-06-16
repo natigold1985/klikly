@@ -12,10 +12,20 @@ Deno.serve(async (req) => {
       project?.client_email,
       ...(Array.isArray(project?.client_emails) ? project.client_emails : [])
     ].filter(Boolean).map((email) => String(email).toLowerCase());
+    const isAdmin = currentUser?.role === 'admin' || currentUser?.email === 'natigold04@gmail.com';
     const isProjectClient = !!currentUser?.email && clientEmails.includes(currentUser.email.toLowerCase());
+    const hasValidPin = String(project?.gallery_pin || '').trim() && String(project.gallery_pin).trim() === String(pin || '').trim();
 
-    if (!project || (!isProjectClient && project.gallery_pin !== pin)) {
-      return Response.json({ error: 'קוד שגוי' }, { status: 403 });
+    if (!project || (!isAdmin && !isProjectClient && !hasValidPin)) {
+      await base44.asServiceRole.entities.SystemLog.create({
+        action: 'client_selection_submit_blocked',
+        details: `Selection submit blocked for project ${projectId}. Current user: ${currentUser?.email || 'public'}, pin received: ${pin ? 'yes' : 'no'}.`,
+        status: 'error',
+        related_entity_type: 'Project',
+        related_entity_id: projectId,
+        owner_id: project?.created_by_id || project?.created_by || 'system',
+      }).catch(() => {});
+      return Response.json({ error: 'קוד שגוי או קישור בחירה לא תקין' }, { status: 403 });
     }
 
     const selectedIdSet = new Set(selectedPhotoIds);

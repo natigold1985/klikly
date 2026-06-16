@@ -102,7 +102,7 @@ export default function ProjectStorageCard({ project, onOpen }) {
         <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100">
           <DeliveryLinkButton project={project} />
           <MagicLinkButton project={project} compact />
-          <Link to={`/ClientGallery/${project.id}`}>
+          <Link to={`/ClientGallery/${project.id}${project.gallery_pin ? `?pin=${project.gallery_pin}` : ''}`}>
             <Button variant="outline" className="w-full gap-1 text-slate-900 border-slate-300 bg-white hover:bg-slate-50 text-xs h-10">
               <Eye className="w-3 h-3" />
               בחירה
