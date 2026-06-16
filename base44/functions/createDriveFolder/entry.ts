@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     // Get project data if not provided by automation
     let project = projectData;
     if (!project || !project.client_name) {
-      const projects = await base44.entities.Project.filter({ id: projectId });
+      const projects = await base44.asServiceRole.entities.Project.filter({ id: projectId });
       project = projects[0];
       if (!project) {
         return Response.json({ error: 'Project not found' }, { status: 404 });
@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
     }
 
     // Update project with Drive folder URL
-    await base44.entities.Project.update(projectId, {
+    await base44.asServiceRole.entities.Project.update(projectId, {
       drive_folder_url: folderUrl,
     });
 

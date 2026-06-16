@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       const projects = await base44.asServiceRole.entities.Project.filter({ id: project_id });
       project = projects[0];
       if (!project) return Response.json({ error: 'Project not found' }, { status: 404 });
-      isOwner = project.created_by === me.email || me.role === 'admin';
+      isOwner = project.created_by === me.email || project.created_by_id === me.id || project.user_id === me.id || me.role === 'admin';
       isProjectClient = me.role === 'client' && project.client_email === me.email;
       if (!isOwner && !isProjectClient) {
         return Response.json({ error: 'Forbidden' }, { status: 403 });

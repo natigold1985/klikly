@@ -37,6 +37,45 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }) {
     setFiles([]);
   };
 
+  const uploadDirectToDrive = (uploadUrl, file) => new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', uploadUrl);
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(JSON.parse(xhr.responseText || '{}'));
+      } else {
+        reject(new Error(`העלאה ל-Google Drive נכשלה (${xhr.status})`));
+      }
+    };
+    xhr.onerror = () => reject(new Error('שגיאת רשת בהעלאה ל-Google Drive'));
+    xhr.send(file);
+  });
+
+  const uploadInitialFile = async (projectId, file) => {
+    const initRes = await base44.functions.invoke('uploadToDrive', {
+      project_id: projectId,
+      file_name: file.name,
+      mime_type: file.type || 'application/octet-stream',
+      file_size: file.size,
+      target_subfolder: 'raw',
+      direct_upload_init: true,
+    });
+    const uploadUrl = initRes.data?.upload_url;
+    if (!uploadUrl) throw new Error(initRes.data?.error || 'לא התקבלה כתובת העלאה מ-Google Drive');
+
+    const driveFile = await uploadDirectToDrive(uploadUrl, file);
+    const completeRes = await base44.functions.invoke('uploadToDrive', {
+      project_id: projectId,
+      file_name: file.name,
+      mime_type: file.type || 'application/octet-stream',
+      target_subfolder: 'raw',
+      direct_upload_complete: true,
+      drive_file: driveFile,
+    });
+    if (!completeRes.data?.success) throw new Error(completeRes.data?.error || 'שמירת הקובץ ב-Drive נכשלה');
+  };
+
   const handleCreate = async () => {
     if (!projectName.trim() || !selectedClient) {
       toast.error('נא להזין שם פרויקט ולבחור לקוח');
@@ -64,25 +103,13 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }) {
       }
 
       for (const file of files) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
-        await base44.functions.invoke('uploadToDrive', {
-          project_id: project.id,
-          file_url,
-          file_name: file.name,
-          mime_type: file.type || 'application/octet-stream',
-          target_subfolder: 'raw',
-        });
+        await uploadInitialFile(project.id, file);
       }
 
-      if (files.length > 0) {
-        await base44.entities.Project.update(project.id, { raw_photos_count: files.length });
-      }
-
-      toast.success('הפרויקט נוצר וסונכרן ל-Google Drive');
+      toast.success(files.length ? 'הפרויקט נוצר והקבצים הועלו ל-Google Drive' : 'הפרויקט נוצר וסונכרן ל-Google Drive');
       onCreated?.(project);
       resetForm();
       onOpenChange(false);
-      // Navigate directly to project details
       navigate(`/ProjectDetails?id=${project.id}`);
     } catch (error) {
       toast.error(error.message || 'שגיאה ביצירת הפרויקט');
