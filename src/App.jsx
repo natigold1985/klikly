@@ -35,6 +35,7 @@ import LeadsDashboard from './pages/LeadsDashboard';
 import LinkedInOutreach from './pages/LinkedInOutreach';
 import ClientNewsletter from './pages/ClientNewsletter';
 import ClientPortal from './pages/ClientPortal';
+import Calendar from './pages/Calendar';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -202,6 +203,11 @@ const AuthenticatedApp = () => {
       <Route path="/ClientPortal" element={
         <LayoutWrapper currentPageName="ClientPortal">
           <ClientPortal />
+        </LayoutWrapper>
+      } />
+      <Route path="/Calendar" element={
+        <LayoutWrapper currentPageName="Calendar">
+          <Calendar />
         </LayoutWrapper>
       } />
       {Object.entries(Pages).map(([path, Page]) => (

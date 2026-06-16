@@ -26,7 +26,8 @@ import {
   Megaphone,
   MessageCircle,
   Linkedin,
-  Home
+  Home,
+  CalendarDays
 } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
@@ -73,6 +74,7 @@ export default function Layout({ children, currentPageName }) {
         { name: 'ספקי משנה', icon: UserCog, page: 'SubVendors' },
         { name: 'אחסון קבצים', icon: Folder, page: 'FileStorage' },
         { name: 'משימות', icon: CheckCircle2, page: 'Tasks' },
+        { name: 'לוח שנה', icon: CalendarDays, page: 'Calendar' },
         { name: 'אנליטיקס', icon: BarChart3, page: 'Analytics' },
         { name: 'LinkedIn Outreach', icon: Linkedin, page: 'LinkedInOutreach' },
         { name: 'ניוזלטר וברכות', icon: Mail, page: 'Newsletter' },
