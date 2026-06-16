@@ -250,6 +250,8 @@ function App() {
             <NavigationTracker />
             <Routes>
               <Route path="/gallery/:folderId" element={<FolderGallery />} />
+              <Route path="/ClientGallery/:id" element={<ClientGallery />} />
+              <Route path="/ClientGallery" element={<ClientGallery />} />
               <Route path="/g/:token" element={<MagicGallery />} />
               <Route path="/demo" element={<GalleryDemo />} />
               <Route path="/quote/view" element={<QuoteView />} />

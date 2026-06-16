@@ -9,7 +9,8 @@ import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 
 export default function ClientGallery() {
-    const { id } = useParams();
+    const { id: routeId } = useParams();
+    const id = routeId || new URLSearchParams(window.location.search).get('projectId');
     const [pin, setPin] = useState('');
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
