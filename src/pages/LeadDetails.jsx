@@ -70,9 +70,12 @@ export default function LeadDetails() {
   };
 
   const deleteLeadMutation = useMutation({
-    mutationFn: () => base44.entities.Lead.delete(leadId),
+    mutationFn: async () => {
+      await base44.functions.invoke('deleteLeadFromGoogleSheets', { data: lead });
+      return base44.entities.Lead.delete(leadId);
+    },
     onSuccess: () => {
-      toast.success('הליד נמחק');
+      toast.success('הליד נמחק גם מ-Google Sheets');
       navigate(-1);
     },
   });
