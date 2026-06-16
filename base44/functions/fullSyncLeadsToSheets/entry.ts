@@ -112,6 +112,7 @@ function leadToRow(lead) {
 }
 
 function detectTab(lead) {
+  if (isWebsiteLead(lead)) return 'לידים מהאתר';
   const src = String(lead.source || '').toLowerCase().trim();
   for (const [key, tab] of Object.entries(SOURCE_TO_TAB)) {
     if (src.includes(key.toLowerCase())) return tab;
