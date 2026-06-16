@@ -11,6 +11,7 @@ import DriveProjectView from '../components/storage/DriveProjectView';
 import GoogleDriveIcon from '../components/storage/GoogleDriveIcon';
 import CreateProjectDialog from '../components/projects/CreateProjectDialog';
 import ProjectStorageCard from '../components/storage/ProjectStorageCard';
+import StorageOverviewStats from '../components/storage/StorageOverviewStats';
 import AddUserDialog from '../components/admin/AddUserDialog';
 
 export default function FileStorage() {
@@ -140,47 +141,56 @@ export default function FileStorage() {
       p.project_name?.toLowerCase().includes(search.toLowerCase()) ||
       p.client_name?.toLowerCase().includes(search.toLowerCase()) ||
       p.client_email?.toLowerCase().includes(search.toLowerCase()) ||
+      p.shooting_type?.toLowerCase().includes(search.toLowerCase()) ||
+      p.shooting_location?.toLowerCase().includes(search.toLowerCase()) ||
       (Array.isArray(p.client_emails) && p.client_emails.some((email) => email.toLowerCase().includes(search.toLowerCase())))
   );
 
   return (
     <div className="space-y-6 pb-20 font-sans" dir="rtl">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-1 flex items-center gap-3">
-            אחסון קבצים
-          </h1>
-          <p className="text-slate-600 text-sm flex items-center gap-1.5">
-            <GoogleDriveIcon className="w-4 h-4" />
-            מחובר ל-Google Drive · תיקייה ייחודית לכל פרויקט · גלריה ובחירת לקוח
-          </p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button
-            onClick={() => setShowAddClient(true)}
-            variant="outline"
-            className="gap-2 border-[#FFD700] text-[#b38f2d] bg-white hover:bg-amber-50 font-bold"
-          >
-            <UserPlus className="w-5 h-5" />
-            הוסף לקוח
-          </Button>
-          <Button onClick={() => setShowCreateProject(true)} className="gap-2 bg-[#FFD700] text-black hover:bg-[#E5B800]">
-            <Plus className="w-5 h-5" />
-            פרויקט חדש
-          </Button>
+      <div className="rounded-3xl bg-gradient-to-l from-slate-950 via-slate-900 to-black text-white p-5 md:p-7 shadow-2xl shadow-slate-900/15 overflow-hidden relative">
+        <div className="absolute inset-y-0 left-0 w-64 bg-[#FFD700]/15 blur-3xl" />
+        <div className="relative flex items-start justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-3xl font-black mb-2 flex items-center gap-3">
+              אחסון אירועים וקבצים
+            </h1>
+            <p className="text-white/70 text-sm flex items-center gap-1.5">
+              <GoogleDriveIcon className="w-4 h-4" />
+              תיקייה ייחודית לכל פרויקט · העלאות · גלריה · בחירת לקוח
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              onClick={() => setShowAddClient(true)}
+              variant="outline"
+              className="gap-2 border-white/20 text-white bg-white/10 hover:bg-white/20 font-bold"
+            >
+              <UserPlus className="w-5 h-5" />
+              הוסף לקוח
+            </Button>
+            <Button onClick={() => setShowCreateProject(true)} className="gap-2 bg-[#FFD700] text-black hover:bg-[#E5B800]">
+              <Plus className="w-5 h-5" />
+              פרויקט חדש
+            </Button>
+          </div>
         </div>
       </div>
 
+      <StorageOverviewStats projects={projects} />
+
       <PhotographerDisclaimer />
 
-      <div className="relative max-w-md">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="חיפוש פרויקט לפי שם או אימייל..."
-          className="pr-10"
-        />
+      <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="relative">
+          <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="חיפוש לפי אירוע, לקוח, אימייל, סוג צילום או מיקום..."
+            className="pr-11 h-12 rounded-2xl bg-slate-50 border-slate-200"
+          />
+        </div>
       </div>
 
       {loadingProjects ? (

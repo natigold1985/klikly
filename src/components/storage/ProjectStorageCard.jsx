@@ -4,7 +4,7 @@ import { createPageUrl } from '@/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Briefcase, FolderOpen, Eye, Upload, ListTodo, Mail, Phone } from 'lucide-react';
+import { Briefcase, FolderOpen, Eye, Upload, ListTodo, Mail, Phone, CalendarDays, MapPin } from 'lucide-react';
 import DeliveryLinkButton from '@/components/DeliveryLinkButton';
 import ProductionStatusTracker from '@/components/projects/ProductionStatusTracker';
 import GoogleDriveIcon from './GoogleDriveIcon';
@@ -23,6 +23,7 @@ const STATUS_LABELS = {
 
 export default function ProjectStorageCard({ project, onOpen }) {
   const connected = !!project.drive_folder_url;
+  const shootingDate = project.shooting_date ? new Date(project.shooting_date).toLocaleDateString('he-IL') : null;
 
   return (
     <Card className="bg-white border-slate-200 hover:border-[#FFD700] hover:shadow-[0_10px_28px_rgba(15,23,42,0.10)] transition-[border-color,box-shadow] duration-200 rounded-2xl overflow-hidden font-sans">
@@ -48,11 +49,28 @@ export default function ProjectStorageCard({ project, onOpen }) {
                     <Phone className="w-3 h-3" /> {project.client_phone}
                   </p>
                 )}
+                <div className="flex flex-wrap gap-2 mt-3" dir="rtl">
+                  {shootingDate && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-700">
+                      <CalendarDays className="w-3 h-3" /> {shootingDate}
+                    </span>
+                  )}
+                  {project.shooting_location && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-700 max-w-full truncate">
+                      <MapPin className="w-3 h-3 shrink-0" /> {project.shooting_location}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-            <Badge className="bg-[#FFD700] text-black hover:bg-[#FFD700] shrink-0">
-              {STATUS_LABELS[project.status] || project.status || 'פעיל'}
-            </Badge>
+            <div className="flex flex-col items-end gap-2 shrink-0">
+              <Badge className="bg-[#FFD700] text-black hover:bg-[#FFD700]">
+                {STATUS_LABELS[project.status] || project.status || 'פעיל'}
+              </Badge>
+              <span className={`text-[11px] font-black rounded-full px-2.5 py-1 ${connected ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>
+                {connected ? 'Drive מחובר' : 'טרם חובר Drive'}
+              </span>
+            </div>
           </div>
         </button>
 
