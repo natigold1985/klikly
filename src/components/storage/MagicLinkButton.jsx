@@ -7,6 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 
+const CLIENT_APP_ORIGIN = 'https://klikly.base44.app';
+
 // Share-link button for a project. Generates a public Magic Link based on
 // project.client_access_token and provides quick share to WhatsApp / Email / Copy.
 export default function MagicLinkButton({ project, compact = false }) {
@@ -18,8 +20,8 @@ export default function MagicLinkButton({ project, compact = false }) {
   const folderId = getDriveFolderId(project?.drive_folder_url);
   const isSelectionGallery = project?.workflow_type === 'selection';
   const link = isSelectionGallery
-    ? `${window.location.origin}/ClientGallery/${project.id}${project.gallery_pin ? `?pin=${project.gallery_pin}` : ''}`
-    : (folderId ? `${window.location.origin}/gallery/${folderId}` : '');
+    ? `${CLIENT_APP_ORIGIN}/ClientGallery/${project.id}${project.gallery_pin ? `?pin=${project.gallery_pin}` : ''}`
+    : (folderId ? `${CLIENT_APP_ORIGIN}/gallery/${folderId}` : '');
   const defaultMessage = isSelectionGallery
     ? `היי ${project?.client_name || ''} 👋\n\nלבחירת תמונות לעריכה:\n${link}\n\nסמן/י בכוכב את התמונות שאהבת ולחץ/י על שמירת בחירות.`
     : `היי ${project?.client_name || ''} 👋\n\nתיקיית הקבצים שלך מוכנה להורדה ✨\n\nאפשר להוריד את כל הקבצים ישירות מהקישור הבא:\n${link}\nאין צורך בקוד גישה או התחברות.\nתהנה/י`;

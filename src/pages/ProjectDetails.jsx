@@ -15,6 +15,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
+const CLIENT_APP_ORIGIN = 'https://klikly.base44.app';
+
 export default function ProjectDetails() {
   const urlParams = new URLSearchParams(window.location.search);
   const projectId = urlParams.get('id');
@@ -125,10 +127,10 @@ export default function ProjectDetails() {
 
   const getProjectShareLink = (p = project) => {
     if (p?.workflow_type === 'selection') {
-      return `${window.location.origin}/ClientGallery/${p.id}${p.gallery_pin ? `?pin=${p.gallery_pin}` : ''}`;
+      return `${CLIENT_APP_ORIGIN}/ClientGallery/${p.id}${p.gallery_pin ? `?pin=${p.gallery_pin}` : ''}`;
     }
     const folderId = getDriveFolderId(p?.drive_folder_url);
-    return folderId ? `${window.location.origin}/gallery/${folderId}` : '';
+    return folderId ? `${CLIENT_APP_ORIGIN}/gallery/${folderId}` : '';
   };
 
   const handleCopyGalleryLink = async () => {
