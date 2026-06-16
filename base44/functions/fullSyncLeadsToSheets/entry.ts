@@ -34,34 +34,54 @@ const PIPELINE_STAGE_LABELS = {
   watched_webinar: 'צפה בוובינר',
   consultation_meeting: 'פגישת ייעוץ',
 };
-const STATUS_VALUES = ['ליד חדש', 'נוצר קשר', 'נשלח פולו-אפ', 'נענה', 'נסגר בהצלחה', 'לא רלוונטי'];
+const STATUS_VALUES = ['חדש מהאתר', 'בטיפול מהאתר', 'נסגר מהאתר', 'ליד חדש', 'נוצר קשר', 'נשלח פולו-אפ', 'נענה', 'נסגר בהצלחה', 'לא רלוונטי'];
 
-// Sort order: active statuses first, then new leads, then closed, then irrelevant at bottom
+function isWebsiteLead(lead) {
+  const text = `${lead?.source || ''} ${lead?.source_post_url || ''}`.toLowerCase();
+  return text.includes('natigold.com') || text.includes('אתר') || text.includes('website');
+}
+
+function sheetStatus(lead) {
+  if (!isWebsiteLead(lead)) return lead.status || 'ליד חדש';
+  if (lead.status === 'נסגר בהצלחה') return 'נסגר מהאתר';
+  if (lead.status === 'לא רלוונטי') return 'לא רלוונטי';
+  if (lead.status && lead.status !== 'ליד חדש') return 'בטיפול מהאתר';
+  return 'חדש מהאתר';
+}
+
+// Sort order: new website leads first, then active work, then regular new, closed at bottom
 const STATUS_SORT_ORDER = {
-  'נוצר קשר':      1,
-  'נשלח פולו-אפ':  2,
-  'נענה':          3,
-  'ליד חדש':       4,
-  'נסגר בהצלחה':   5,
-  'לא רלוונטי':    6,
+  'חדש מהאתר':      0,
+  'בטיפול מהאתר':   1,
+  'נוצר קשר':       2,
+  'נשלח פולו-אפ':   3,
+  'נענה':           4,
+  'ליד חדש':        5,
+  'נסגר מהאתר':     6,
+  'נסגר בהצלחה':    7,
+  'לא רלוונטי':     8,
 };
 
 function sortLeadsByStatus(leads) {
   return [...leads].sort((a, b) => {
-    const aOrder = STATUS_SORT_ORDER[a.status] ?? 4;
-    const bOrder = STATUS_SORT_ORDER[b.status] ?? 4;
-    return aOrder - bOrder;
+    const aOrder = STATUS_SORT_ORDER[sheetStatus(a)] ?? 5;
+    const bOrder = STATUS_SORT_ORDER[sheetStatus(b)] ?? 5;
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return new Date(b.created_date || 0) - new Date(a.created_date || 0);
   });
 }
 
 // RGB background colors per status (for Google Sheets) — matches KLIKLY UI colors exactly
 const STATUS_ROW_COLORS = {
-  'ליד חדש':     { red: 0.820, green: 0.906, blue: 0.980 },  // blue-100  (matches KLIKLY כחול)
-  'נוצר קשר':    { red: 0.996, green: 0.973, blue: 0.714 },  // yellow-200 (matches KLIKLY צהוב)
-  'נשלח פולו-אפ':{ red: 0.906, green: 0.824, blue: 0.992 },  // purple-200 (matches KLIKLY סגול)
-  'נענה':         { red: 1.0,   green: 0.953, blue: 0.784 },  // yellow-100 lighter (matches KLIKLY כתום-צהוב)
-  'נסגר בהצלחה': { red: 0.776, green: 0.937, blue: 0.776 },  // green-200  (matches KLIKLY ירוק)
-  'לא רלוונטי':  { red: 0.992, green: 0.808, blue: 0.808 },  // red-200    (matches KLIKLY אדום)
+  'חדש מהאתר':      { red: 0.820, green: 0.906, blue: 0.980 },  // blue-100
+  'בטיפול מהאתר':   { red: 0.996, green: 0.973, blue: 0.714 },  // yellow-200
+  'נסגר מהאתר':     { red: 0.776, green: 0.937, blue: 0.776 },  // green-200
+  'ליד חדש':        { red: 0.820, green: 0.906, blue: 0.980 },  // blue-100
+  'נוצר קשר':       { red: 0.996, green: 0.973, blue: 0.714 },  // yellow-200
+  'נשלח פולו-אפ':   { red: 0.906, green: 0.824, blue: 0.992 },  // purple-200
+  'נענה':           { red: 1.0,   green: 0.953, blue: 0.784 },  // yellow-100
+  'נסגר בהצלחה':    { red: 0.776, green: 0.937, blue: 0.776 },  // green-200
+  'לא רלוונטי':     { red: 0.992, green: 0.808, blue: 0.808 },  // red-200
 };
 
 const APP_BASE_URL = 'https://klikly.base44.app';
@@ -79,7 +99,7 @@ function leadToRow(lead) {
     lead.email || '',
     lead.source || '',
     lead.shooting_type || lead.lead_type || '',
-    lead.status || 'ליד חדש',
+    sheetStatus(lead),
     stage,
     lead.notes || '',
   ];
@@ -229,7 +249,7 @@ async function applyFormattingAndValidation(sheetsAuth, sheetGid, leads, tabName
 
   // Row background colors + black text per lead status
   leads.forEach((lead, i) => {
-    const status = lead.status || 'ליד חדש';
+    const status = sheetStatus(lead);
     const color = STATUS_ROW_COLORS[status] || { red: 1.0, green: 1.0, blue: 1.0 };
 
     requests.push({

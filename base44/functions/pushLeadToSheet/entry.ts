@@ -32,6 +32,19 @@ const PIPELINE_STAGE_LABELS = {
   consultation_meeting: 'פגישת ייעוץ',
 };
 
+function isWebsiteLead(lead) {
+  const text = `${lead?.source || ''} ${lead?.source_post_url || ''}`.toLowerCase();
+  return text.includes('natigold.com') || text.includes('אתר') || text.includes('website');
+}
+
+function sheetStatus(lead) {
+  if (!isWebsiteLead(lead)) return lead.status || 'ליד חדש';
+  if (lead.status === 'נסגר בהצלחה') return 'נסגר מהאתר';
+  if (lead.status === 'לא רלוונטי') return 'לא רלוונטי';
+  if (lead.status && lead.status !== 'ליד חדש') return 'בטיפול מהאתר';
+  return 'חדש מהאתר';
+}
+
 function detectTab(lead) {
   const src = String(lead.source || '').toLowerCase().trim();
   for (const [key, tab] of Object.entries(SOURCE_TO_TAB)) {
@@ -60,7 +73,7 @@ function buildRow(lead) {
     lead.email || '',
     lead.source || '',
     lead.shooting_type || lead.lead_type || '',
-    lead.status || 'ליד חדש',
+    sheetStatus(lead),
     stage,
     notes,
   ];
