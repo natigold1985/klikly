@@ -27,6 +27,8 @@ export default function FolderGallery() {
   const [consentOpen, setConsentOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState('');
+  const [downloadError, setDownloadError] = useState('');
   const [videoUrls, setVideoUrls] = useState({});
   const firstFetchRef = useRef(true);
 
@@ -43,27 +45,40 @@ export default function FolderGallery() {
   });
 
   const handleConfirmDownload = async () => {
+    const filesToDownload = data?.files || [];
     setBusy(true);
+    setDownloadError('');
+    setDownloadProgress('מתחיל הורדה...');
     try {
       await base44.functions.invoke('trackFolderDelivery', {
         folder_id: folderId,
         action_type: 'download_confirmed',
-        file_count: data?.files?.length || 0,
+        file_count: filesToDownload.length,
       });
-      const zip = await base44.functions.invoke('downloadFolderZip', { folder_id: folderId });
       await base44.functions.invoke('trackFolderDelivery', {
         folder_id: folderId,
         action_type: 'download_started',
-        file_count: zip.data.file_count || data?.files?.length || 0,
+        file_count: filesToDownload.length,
       });
-      saveBase64File(zip.data.base64, zip.data.name || 'studio-gold-gallery.zip', 'application/zip');
+
+      for (let i = 0; i < filesToDownload.length; i += 1) {
+        const file = filesToDownload[i];
+        setDownloadProgress(`מוריד ${i + 1} מתוך ${filesToDownload.length}: ${file.name || 'קובץ'}`);
+        const res = await base44.functions.invoke('downloadFolderFile', { folder_id: folderId, file_id: file.id });
+        saveBase64File(res.data.base64, res.data.name || file.name || `gallery-file-${i + 1}`, res.data.mime_type || file.mime_type || 'application/octet-stream');
+        await new Promise((resolve) => setTimeout(resolve, 450));
+      }
+
       await base44.functions.invoke('trackFolderDelivery', {
         folder_id: folderId,
         action_type: 'download_completed',
-        file_count: zip.data.file_count || data?.files?.length || 0,
+        file_count: filesToDownload.length,
       });
       setDownloaded(true);
+      setDownloadProgress('ההורדות התחילו בהצלחה');
       setConsentOpen(false);
+    } catch (error) {
+      setDownloadError(error?.response?.data?.error || error?.message || 'שגיאה בהורדה');
     } finally {
       setBusy(false);
     }
@@ -107,6 +122,7 @@ export default function FolderGallery() {
 
   const { project, files = [] } = data;
   const galleryFiles = files.map((file) => file.is_video && videoUrls[file.id] ? { ...file, view_url: videoUrls[file.id] } : file);
+  const driveFolderUrl = `https://drive.google.com/drive/folders/${folderId}`;
 
   return (
     <div className="min-h-screen bg-black text-white font-sans" dir="rtl">
@@ -132,7 +148,7 @@ export default function FolderGallery() {
       </main>
 
       <StickyDownloadButton position="bottom" busy={busy} fileCount={files.length} onClick={() => setConsentOpen(true)} />
-      <ConsentDownloadDialog open={consentOpen} busy={busy} onClose={() => setConsentOpen(false)} onConfirm={handleConfirmDownload} />
+      <ConsentDownloadDialog open={consentOpen} busy={busy} progress={downloadProgress} error={downloadError} driveFolderUrl={driveFolderUrl} onClose={() => setConsentOpen(false)} onConfirm={handleConfirmDownload} />
     </div>
   );
 }

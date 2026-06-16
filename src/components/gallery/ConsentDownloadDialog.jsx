@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { ShieldCheck, X } from 'lucide-react';
+import { ExternalLink, ShieldCheck, X } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 
 const CONSENT_TEXT = 'I confirm that I am downloading these files. I acknowledge that storage is provided for 90 days only. After this period, BASE 44 and the photographer are not responsible for file retention.';
 
-export default function ConsentDownloadDialog({ open, busy, onClose, onConfirm }) {
+export default function ConsentDownloadDialog({ open, busy, progress = '', error = '', driveFolderUrl = '', onClose, onConfirm }) {
   const [checked, setChecked] = useState(false);
 
   if (!open) return null;
@@ -37,8 +37,17 @@ export default function ConsentDownloadDialog({ open, busy, onClose, onConfirm }
             <span className="text-sm leading-6 text-white/90">אני מאשר/ת את קבלת הקבצים ומבין/ה שהאחסון נשמר ל-90 יום בלבד.</span>
           </label>
           <Button onClick={onConfirm} disabled={!checked || busy} className="w-full h-14 text-lg rounded-2xl">
-            {busy ? 'מתחיל הורדה...' : 'מאשר/ת ומתחיל/ה הורדה'}
+            {busy ? 'מוריד קבצים...' : 'מאשר/ת ומתחיל/ה הורדה'}
           </Button>
+          {progress && <p className="text-center text-sm font-bold text-[#FFD700] leading-6">{progress}</p>}
+          {error && <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-center text-sm font-bold text-red-300">{error}</p>}
+          {driveFolderUrl && (
+            <a href={driveFolderUrl} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-bold text-white hover:bg-white/10">
+              <ExternalLink className="w-4 h-4" />
+              פתיחת התיקייה ב-Google Drive
+            </a>
+          )}
+          <p className="text-center text-xs text-white/45 leading-5">במחשב ובנייד ייתכן שתתבקש/י לאשר הורדת מספר קבצים. יש לאשר כדי שכל התמונות יישמרו.</p>
         </div>
       </div>
     </div>
