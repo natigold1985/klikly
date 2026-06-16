@@ -37,7 +37,7 @@ export default function ConsentDownloadDialog({ open, busy, progress = '', error
             <span className="text-sm leading-6 text-white/90">אני מאשר/ת את קבלת הקבצים, את תחילת ההורדה, ואת תנאי שמירת הגיבוי הזמני עד 90 יום.</span>
           </label>
           <Button onClick={onConfirm} disabled={!checked || busy} className="w-full h-14 text-lg rounded-2xl">
-            {busy ? 'מוריד קבצים...' : 'מאשר/ת ומתחיל/ה הורדה'}
+            {busy ? 'מכין ZIP להורדה...' : 'מאשר/ת ומוריד/ה ZIP מלא'}
           </Button>
           {progress && <p className="text-center text-sm font-bold text-[#FFD700] leading-6">{progress}</p>}
           {error && <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-center text-sm font-bold text-red-300">{error}</p>}
@@ -47,7 +47,7 @@ export default function ConsentDownloadDialog({ open, busy, progress = '', error
               פתיחת התיקייה ב-Google Drive
             </a>
           )}
-          <p className="text-center text-xs text-white/45 leading-5">במחשב ובנייד ייתכן שתתבקש/י לאשר הורדת מספר קבצים. יש לאשר כדי שכל התמונות יישמרו.</p>
+          <p className="text-center text-xs text-white/45 leading-5">ההורדה תיפתח כקובץ ZIP אחד. לאחר ההורדה יש לפתוח/לחלץ את הקובץ כדי לראות את כל התמונות.</p>
         </div>
       </div>
     </div>

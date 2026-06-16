@@ -29,14 +29,26 @@ Deno.serve(async (req) => {
     const zip = new JSZip();
     for (const file of files) {
       const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, { headers: { Authorization: `Bearer ${accessToken}` } });
-      if (fileRes.ok) zip.file(safeFileName(file.name), await fileRes.arrayBuffer());
+      if (fileRes.ok) {
+        const folderName = safeFileName(file.parent_name || '');
+        const fileName = safeFileName(file.name);
+        const zipPath = folderName ? `${folderName}/${fileName}` : fileName;
+        zip.file(zipPath, await fileRes.arrayBuffer());
+      }
     }
 
-    const zipBytes = await zip.generateAsync({ type: 'uint8array' });
-    let binary = '';
-    for (let i = 0; i < zipBytes.length; i += 1) binary += String.fromCharCode(zipBytes[i]);
+    const zipBytes = await zip.generateAsync({ type: 'uint8array', compression: 'STORE' });
+    const zipName = `${safeFileName(project.project_name || project.client_name || 'studio-gold-gallery')}.zip`;
 
-    return Response.json({ name: `${safeFileName(project.project_name || project.client_name || 'studio-gold-gallery')}.zip`, base64: btoa(binary), file_count: files.length });
+    return new Response(zipBytes, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/zip',
+        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(zipName)}`,
+        'X-File-Count': String(files.length),
+        'X-File-Name': encodeURIComponent(zipName),
+      },
+    });
   } catch (error) {
     console.error('downloadFolderZip error:', error);
     return Response.json({ error: error.message }, { status: 500 });
@@ -46,7 +58,7 @@ Deno.serve(async (req) => {
 function isDeliverable(file) {
   const name = String(file.name || '').toLowerCase();
   const size = Number(file.size || 0);
-  if (!size || size > MAX_SIZE) return false;
+  if (!size) return false;
   if (RAW_EXTENSIONS.some((ext) => name.endsWith(ext))) return false;
   return String(file.mimeType || '').startsWith('image/') || String(file.mimeType || '').startsWith('video/');
 }
