@@ -56,7 +56,7 @@ function buildRow(lead) {
   const stage = lead.pipeline_stage ? (PIPELINE_STAGE_LABELS[lead.pipeline_stage] || lead.pipeline_stage) : '';
   return [
     lead.name || '',
-    lead.phone || '',
+    lead.phone ? `'${lead.phone}` : '',
     lead.email || '',
     lead.source || '',
     lead.shooting_type || lead.lead_type || '',

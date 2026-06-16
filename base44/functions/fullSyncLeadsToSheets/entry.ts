@@ -75,7 +75,7 @@ function leadToRow(lead) {
     : '';
   return [
     nameLink,
-    lead.phone || '',
+    lead.phone ? `'${lead.phone}` : '',
     lead.email || '',
     lead.source || '',
     lead.shooting_type || lead.lead_type || '',
