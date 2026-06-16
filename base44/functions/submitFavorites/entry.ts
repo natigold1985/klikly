@@ -3,7 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.24';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { projectId, pin, selectedPhotoIds, selectedPhotoDetails = [], photoComments } = await req.json();
+    const { projectId, pin, selectedPhotoIds, selectedPhotoDetails = [], photoComments, notifyPhotographer = true } = await req.json();
 
     const project = await base44.asServiceRole.entities.Project.get(projectId);
     const currentUser = await getCurrentUser(base44);
@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
       ? selectedPhotoDetails.map((photo, index) => `${index + 1}. ${photo.name || photo.id}${photo.comment ? ` — הערה: ${photo.comment}` : ''}${photo.url ? `\n   ${photo.url}` : ''}`).join('\n')
       : selectedPhotoIds.map((photoId, index) => `${index + 1}. ${photoId}`).join('\n');
 
-    if (photographerEmail && selectedCount > 0) {
+    if (notifyPhotographer && photographerEmail && selectedCount > 0) {
       // Email to photographer
       try {
         await base44.asServiceRole.integrations.Core.SendEmail({

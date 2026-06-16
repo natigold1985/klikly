@@ -18,6 +18,7 @@ export default function ClientGallery() {
     const [photos, setPhotos] = useState([]);
     const [selectedIds, setSelectedIds] = useState(new Set());
     const [isSaving, setIsSaving] = useState(false);
+    const [savingPhotoId, setSavingPhotoId] = useState(null);
     const [lightboxIndex, setLightboxIndex] = useState(null);
     const [photoComments, setPhotoComments] = useState({});
 
@@ -84,33 +85,58 @@ export default function ClientGallery() {
 
     const getPhotoSrc = (photo) => photo?.thumbnail_url || photo?.thumbnail || photo?.file_url || photo?.url || photo?.view_url;
 
+    const saveSelection = async (nextSelectedIds, notifyPhotographer = true) => {
+        const res = await base44.functions.invoke('submitFavorites', {
+            projectId: id,
+            pin,
+            selectedPhotoIds: Array.from(nextSelectedIds),
+            selectedPhotoDetails: photos
+                .filter((photo) => nextSelectedIds.has(photo.id))
+                .map((photo) => ({
+                    id: photo.id,
+                    name: photo.file_name || photo.name || photo.id,
+                    url: photo.view_url || photo.file_url || photo.url || photo.download_url,
+                    comment: photoComments?.[photo.id] || ''
+                })),
+            photoComments,
+            notifyPhotographer
+        });
+        if (res.status !== 200) throw new Error(res.data?.error || 'שגיאה בשמירה');
+    };
+
+    const handleSelectPhoto = async (photoId) => {
+        const wasSelected = selectedIds.has(photoId);
+        const nextSet = new Set(selectedIds);
+        if (wasSelected) {
+            nextSet.delete(photoId);
+        } else {
+            nextSet.add(photoId);
+        }
+
+        setSelectedIds(nextSet);
+        setSavingPhotoId(photoId);
+        try {
+            await saveSelection(nextSet, !wasSelected);
+            toast.success(wasSelected ? 'הבחירה הוסרה' : 'התמונה נבחרה ונשלחה לצלם', {
+                icon: <CheckCircle2 className="w-5 h-5 text-green-500" />
+            });
+        } catch (e) {
+            setSelectedIds(selectedIds);
+            toast.error(e.message || 'שגיאה בשמירה');
+        } finally {
+            setSavingPhotoId(null);
+        }
+    };
+
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            const res = await base44.functions.invoke('submitFavorites', {
-                    projectId: id, 
-                    pin, 
-                    selectedPhotoIds: Array.from(selectedIds),
-                    selectedPhotoDetails: photos
-                        .filter((photo) => selectedIds.has(photo.id))
-                        .map((photo) => ({
-                            id: photo.id,
-                            name: photo.file_name || photo.name || photo.id,
-                            url: photo.view_url || photo.file_url || photo.url || photo.download_url,
-                            comment: photoComments?.[photo.id] || ''
-                        })),
-                    photoComments
-                });
-            const data = res.data;
-            if (res.status === 200) {
-                toast.success('הבחירה נשמרה בהצלחה!', {
-                    icon: <CheckCircle2 className="w-5 h-5 text-green-500" />
-                });
-            } else {
-                toast.error(data.error || 'שגיאה בשמירה');
-            }
+            await saveSelection(selectedIds, true);
+            toast.success('הבחירה נשמרה בהצלחה!', {
+                icon: <CheckCircle2 className="w-5 h-5 text-green-500" />
+            });
         } catch (e) {
-            toast.error('שגיאת רשת');
+            toast.error(e.message || 'שגיאת רשת');
         } finally {
             setIsSaving(false);
         }
@@ -230,11 +256,17 @@ export default function ClientGallery() {
                                     </div>
 
                                     {/* Select Button */}
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); toggleSelection(photo.id); }}
-                                        className={`absolute bottom-3 right-3 p-2.5 rounded-full backdrop-blur-md transition-all duration-300 active:scale-90 ${isSelected ? 'bg-[#FFD700] shadow-[0_0_15px_rgba(255,215,0,0.5)]' : 'bg-black/50 hover:bg-black/70 border border-white/20'}`}
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleSelectPhoto(photo.id); }}
+                                        disabled={savingPhotoId === photo.id}
+                                        className={`absolute bottom-3 right-3 flex items-center gap-2 px-3 py-2 rounded-full backdrop-blur-md text-xs font-bold transition-all duration-300 active:scale-90 disabled:opacity-70 ${isSelected ? 'bg-[#FFD700] text-black shadow-[0_0_15px_rgba(255,215,0,0.5)]' : 'bg-black/70 text-white hover:bg-black/90 border border-white/20'}`}
                                     >
-                                        <Heart className={`w-5 h-5 transition-colors ${isSelected ? 'text-black fill-black' : 'text-white'}`} />
+                                        {savingPhotoId === photo.id ? (
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                            <Heart className={`w-4 h-4 transition-colors ${isSelected ? 'text-black fill-black' : 'text-white'}`} />
+                                        )}
+                                        {isSelected ? 'נבחרה' : 'בחר תמונה'}
                                     </button>
                                 </motion.div>
                             );
