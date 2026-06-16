@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, Lock, CheckCircle2, Loader2, Camera, Send, MessageSquare } from 'lucide-react';
+import { Heart, Lock, CheckCircle2, Loader2, Camera, Send, MessageSquare, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ClientGalleryLightbox from '@/components/gallery/ClientGalleryLightbox';
@@ -146,6 +146,14 @@ export default function ClientGallery() {
         }
     };
 
+    const handleBack = () => {
+        if (window.history.length > 1) {
+            window.history.back();
+        } else {
+            window.location.href = '/Projects';
+        }
+    };
+
     if (!isAuthenticated) {
         return (
             <div className="min-h-screen bg-black flex items-center justify-center p-4 font-sans" dir="rtl">
@@ -186,12 +194,22 @@ export default function ClientGallery() {
         <div className="min-h-screen bg-black text-white font-sans pb-32" dir="rtl">
             {/* Header */}
             <header className="sticky top-0 z-40 bg-black/80 backdrop-blur-2xl border-b border-white/10">
-                <div className="max-w-7xl mx-auto px-4 md:px-8 h-20 flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-[#FFD700] tracking-wide">{project?.client_name}</h1>
-                        <p className="text-sm text-white/50">{project?.shooting_type} • {project?.shooting_date && new Date(project.shooting_date).toLocaleDateString('he-IL')}</p>
+                <div className="max-w-7xl mx-auto px-4 md:px-8 h-20 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <button
+                            onClick={handleBack}
+                            className="h-11 px-3 md:px-4 rounded-full bg-white/10 hover:bg-white/15 border border-white/10 text-white flex items-center gap-2 text-sm font-bold transition-colors shrink-0"
+                            aria-label="חזרה"
+                        >
+                            <ArrowRight className="w-4 h-4" />
+                            <span className="hidden sm:inline">חזרה</span>
+                        </button>
+                        <div className="min-w-0">
+                            <h1 className="text-xl md:text-2xl font-bold text-[#FFD700] tracking-wide truncate">{project?.client_name}</h1>
+                            <p className="text-xs md:text-sm text-white/50 truncate">{project?.shooting_type} • {project?.shooting_date && new Date(project.shooting_date).toLocaleDateString('he-IL')}</p>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 shrink-0">
                         <div className="hidden md:flex items-center gap-2 text-white/70 bg-white/5 px-4 py-2 rounded-full border border-white/10">
                             <Heart className="w-4 h-4 text-[#FFD700] fill-[#FFD700]" />
                             <span className="font-bold">{selectedIds.size} / {photos.length} נבחרו</span>
