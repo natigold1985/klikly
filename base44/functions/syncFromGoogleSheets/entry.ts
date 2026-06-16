@@ -241,7 +241,7 @@ Deno.serve(async (req) => {
         }
 
         // 2) Batch fetch all tabs
-        const ranges = tabs.map(t => `ranges=${encodeURIComponent(`'${t}'!A1:Z1000`)}`).join('&');
+        const ranges = tabs.map(t => `ranges=${encodeURIComponent(`'${t}'!A1:Z5000`)}`).join('&');
         const valuesUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchGet?${ranges}`;
         const valuesResp = await fetch(valuesUrl, { headers: { 'Authorization': `Bearer ${accessToken}` } });
         if (!valuesResp.ok) {
@@ -255,10 +255,12 @@ Deno.serve(async (req) => {
         // We intentionally load ALL recent leads (not filtered by created_by),
         // because the same sheet can be synced by either the user OR a scheduled
         // service token, and both should de-duplicate against each other.
-        const existing = await base44.asServiceRole.entities.Lead.list('-created_date', 2000);
+        const existing = await base44.asServiceRole.entities.Lead.list('-created_date', 5000);
         const phoneMap = {};
         const emailMap = {};
         const nameSourceMap = {};
+        const allLeadsSheetKeys = new Set();
+        let sawAllLeadsMasterTab = false;
         for (const lead of existing) {
             if (lead.phone) {
                 const np = normPhone(lead.phone);
@@ -364,6 +366,14 @@ Deno.serve(async (req) => {
                     sourceCol ||                        // raw value if non-empty
                     tabFallbackSource ||
                     'Google Sheets';
+
+                if (tabName === '🎯 כל הלידים') {
+                    sawAllLeadsMasterTab = true;
+                    const cleanPhoneForKey = normPhone(phone);
+                    if (cleanPhoneForKey) allLeadsSheetKeys.add('phone:' + cleanPhoneForKey);
+                    if (email) allLeadsSheetKeys.add('email:' + normalizeKey(email));
+                    if (name) allLeadsSheetKeys.add('name_source:' + normalizeKey(name) + '|' + normalizeKey(detectedSource));
+                }
 
                 // LinkedIn prospects are outreach only, not real leads until manually promoted.
                 if (/linkedin|לינקדאין/i.test([detectedSource, sourceCol, linkCol, notesCol].filter(Boolean).join(' '))) {
@@ -485,6 +495,30 @@ Deno.serve(async (req) => {
             perTab.push({ tab: tabName, added: tabAdded, updated: tabUpdated, skipped: tabSkipped });
         }
 
+        // Google Sheets → KLIKLY delete sync:
+        // The master tab "🎯 כל הלידים" is the deletion source of truth.
+        // If a lead is missing there, remove it from the app too, with a short grace period
+        // so brand-new website leads are not removed before their create automation writes to Sheets.
+        let deletedMissingFromSheet = 0;
+        if (sawAllLeadsMasterTab && allLeadsSheetKeys.size > 5 && body.syncDeletes !== false) {
+            const graceCutoff = Date.now() - 10 * 60 * 1000;
+            for (const lead of existing) {
+                const createdTime = new Date(lead.created_date || 0).getTime();
+                if (createdTime && createdTime > graceCutoff) continue;
+
+                const keys = [];
+                const leadPhone = normPhone(lead.phone);
+                if (leadPhone) keys.push('phone:' + leadPhone);
+                if (lead.email) keys.push('email:' + normalizeKey(lead.email));
+                if (lead.name) keys.push('name_source:' + normalizeKey(lead.name) + '|' + normalizeKey(lead.source));
+
+                if (keys.length && !keys.some((key) => allLeadsSheetKeys.has(key))) {
+                    await base44.asServiceRole.entities.Lead.delete(lead.id);
+                    deletedMissingFromSheet++;
+                }
+            }
+        }
+
         return Response.json({
             success: true,
             spreadsheetId,
@@ -492,6 +526,7 @@ Deno.serve(async (req) => {
             added,
             updated,
             skipped,
+            deleted_missing_from_sheet: deletedMissingFromSheet,
             per_tab: perTab,
         });
     } catch (error) {

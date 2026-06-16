@@ -12,7 +12,6 @@ const SOURCE_TO_TAB = {
   instagram: 'אינסטגרם — מענה ופולו-אפ',
   facebook: 'לידים ביטחון 🎯',
   'defense industry': 'לידים ביטחון 🎯',
-  linkedin: 'לידים ביטחון 🎯',
   'course lead': 'מתעניינים בקורס',
   'קורס': 'מתעניינים בקורס',
   'claude code': 'Claude Code',
