@@ -117,6 +117,13 @@ export default function Dashboard() {
   ];
 
   const recentLeads = leads.slice(0, 5);
+  const recentWebsiteLeads = leads
+    .filter(l =>
+      l.created_date?.startsWith(today) &&
+      normalizeLeadStatus(l.status) === 'ליד חדש' &&
+      (String(l.source || '').includes('natigold.com') || String(l.source_post_url || '').includes('natigold.com'))
+    )
+    .slice(0, 3);
   const upcomingTasks = tasks.slice(0, 5);
 
   const urgentLeads = leads.filter(l => {
@@ -185,6 +192,35 @@ export default function Dashboard() {
             </div>
           );
         })()}
+
+        {recentWebsiteLeads.length > 0 && (
+          <Card className="border border-[#FFD700]/40 bg-[#FFD700]/10 rounded-2xl shadow-sm">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-bold text-slate-900">לידים חדשים מהאתר היום</h3>
+                  <p className="text-xs text-slate-600">הלידים האחרונים שנכנסו מטפסי natigold.com</p>
+                </div>
+                <Link to={createPageUrl('Leads')}>
+                  <Button size="sm" className="bg-[#FFD700] text-black hover:bg-[#e6c200]">פתח לידים</Button>
+                </Link>
+              </div>
+              <div className="grid gap-2">
+                {recentWebsiteLeads.map((lead) => (
+                  <Link key={lead.id} to={createPageUrl(`LeadDetails?id=${lead.id}`)}>
+                    <div className="flex items-center justify-between gap-3 rounded-xl bg-white/80 border border-[#FFD700]/30 p-3 hover:bg-white transition-colors">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-900 truncate">{lead.name}</p>
+                        <p className="text-xs text-slate-500 truncate">{lead.phone} · {lead.shooting_type || lead.source}</p>
+                      </div>
+                      {getStatusBadge(lead.status)}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Header */}
         <div className="mb-4 mt-4">
