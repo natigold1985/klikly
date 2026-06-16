@@ -13,6 +13,19 @@ Deno.serve(async (req) => {
     const project = projects.find((p) => String(p.drive_folder_url || '').includes(folder_id));
     if (!project) return Response.json({ error: 'Gallery not found' }, { status: 404 });
 
+    if (project.gallery_requires_payment && project.payment_status !== 'paid') {
+      await createAudit(base44, req, project, folder_id, 'payment_required_blocked', 0, null);
+      await base44.asServiceRole.entities.SystemLog.create({
+        action: 'gallery_payment_blocked',
+        details: `Gallery access blocked until payment for ${project.client_name || project.id}`,
+        status: 'pending',
+        related_entity_type: 'Project',
+        related_entity_id: project.id,
+        owner_id: project.created_by_id || project.created_by || '',
+      }).catch(() => {});
+      return Response.json({ error: 'payment_required', message: 'הגלריה זמינה רק לאחר תשלום' }, { status: 402 });
+    }
+
     const firstDownloadAt = project.first_download_at ? new Date(project.first_download_at) : null;
     if (firstDownloadAt && Date.now() - firstDownloadAt.getTime() > 90 * 24 * 60 * 60 * 1000) {
       await createAudit(base44, req, project, folder_id, 'expired_access_blocked', 0, null);

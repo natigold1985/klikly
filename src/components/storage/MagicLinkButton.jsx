@@ -28,6 +28,7 @@ export default function MagicLinkButton({ project, compact = false }) {
   const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState(defaultMessage);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [actionStatus, setActionStatus] = useState('');
 
   if (!link) {
     return (
@@ -41,7 +42,15 @@ export default function MagicLinkButton({ project, compact = false }) {
   const copy = async () => {
     await navigator.clipboard.writeText(message);
     setCopied(true);
+    setActionStatus('הקישור הועתק');
     toast.success('ההודעה עם הקישור הועתקה');
+    base44.entities.SystemLog.create({
+      action: 'gallery_link_copied',
+      details: `Gallery link copied for project ${project?.id || ''}: ${link}`,
+      status: 'success',
+      related_entity_type: 'Project',
+      related_entity_id: project?.id || '',
+    }).catch(() => {});
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -107,6 +116,16 @@ export default function MagicLinkButton({ project, compact = false }) {
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => {
+                setActionStatus('WhatsApp נפתח ונרשם בלוג');
+                base44.entities.SystemLog.create({
+                  action: 'gallery_whatsapp_opened',
+                  details: `WhatsApp share opened for project ${project?.id || ''}. Phone: ${project?.client_phone || ''}. Link: ${link}`,
+                  status: 'success',
+                  related_entity_type: 'Project',
+                  related_entity_id: project?.id || '',
+                }).catch(() => {});
+              }}
               className="flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-gradient-to-r from-green-500 to-green-600 text-white hover:shadow-lg hover:shadow-green-500/40 active:scale-[0.98] transition-all text-base font-bold"
             >
               <Send className="w-5 h-5" />
@@ -121,62 +140,23 @@ export default function MagicLinkButton({ project, compact = false }) {
                   const email = project.client_email;
                   if (!email) { toast.error('לא הוגדר מייל ללקוח'); return; }
                   setSendingEmail(true);
+                  setActionStatus('שולח מייל...');
                   try {
-                    const galleryEmailHtml = `<!DOCTYPE html>
-<html dir="rtl" lang="he">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#1a1a1a;font-family:Arial,Helvetica,sans-serif;direction:rtl;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#1a1a1a;padding:40px 16px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#111111;border-radius:20px;overflow:hidden;border:1px solid #2a2a2a;">
-        <tr><td style="background:linear-gradient(135deg,#0a0a0a 0%,#1a1a1a 100%);padding:32px 40px;text-align:center;border-bottom:2px solid #FFD700;">
-          <img src="https://media.base44.com/images/public/699330cced2139a6e7aa06a9/1e11bfcc1_generated_image.png" alt="KLIKLY" style="height:80px;width:auto;object-fit:contain;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;" />
-          <div style="color:#FFD700;font-size:28px;font-weight:900;letter-spacing:4px;text-shadow:0 0 20px rgba(255,215,0,0.3);">KLIKLY</div>
-          <div style="color:#888;font-size:12px;letter-spacing:2px;margin-top:4px;text-transform:uppercase;">מערכת ניהול גלריות מקצועית</div>
-        </td></tr>
-        <tr><td style="background:linear-gradient(135deg,#FFD700 0%,#D4AF37 100%);padding:28px 40px;text-align:center;">
-          <div style="font-size:36px;margin-bottom:8px;">${isSelectionGallery ? '⭐' : '🎉'}</div>
-          <h1 style="color:#000;font-size:24px;font-weight:900;margin:0;letter-spacing:1px;">${isSelectionGallery ? 'בחירת התמונות שלך מוכנה!' : 'הגלריה שלך מוכנה!'}</h1>
-          <p style="color:#1a1a1a;font-size:14px;margin:8px 0 0;font-weight:600;">${isSelectionGallery ? 'בחר/י את התמונות לעריכה' : 'הצילומים שלך מחכים לך'}</p>
-        </td></tr>
-        <tr><td style="padding:36px 40px 28px;">
-          <p style="color:#cccccc;font-size:18px;line-height:1.7;margin:0 0 12px;">היי ${project.client_name || ''} 👋</p>
-          <p style="color:#aaaaaa;font-size:16px;line-height:1.7;margin:0 0 28px;">
-            ${isSelectionGallery ? 'הכנו עבורך גלריה לבחירת התמונות שייכנסו לעריכה. לחץ/י על הכפתור, סמן/י את התמונות שאהבת, ובסיום לחץ/י על שמירת בחירות. לאחר השמירה תופיע הודעת אישור והצלם יקבל מייל מסודר עם הבחירה שלך.' : 'הגלריה שלך מוכנה לצפייה ולהורדה! לחץ על הכפתור למטה כדי לצפות בכל התמונות ולהוריד אותן.'}
-          </p>
-          <div style="text-align:center;margin:0 0 32px;">
-            <a href="${link}" style="display:inline-block;background:linear-gradient(135deg,#FFD700,#D4AF37);color:#000;font-size:17px;font-weight:900;padding:18px 52px;border-radius:14px;text-decoration:none;letter-spacing:0.5px;box-shadow:0 8px 24px rgba(255,215,0,0.3);">
-              ${isSelectionGallery ? '⭐ כניסה לבחירת התמונות שלי' : '📸 לצפייה בגלריה שלי'}
-            </a>
-          </div>
-          <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:20px 24px;margin-bottom:24px;">
-            <p style="color:#FFD700;font-size:14px;font-weight:700;margin:0 0 10px;">🔗 ${isSelectionGallery ? 'קישור ישיר לבחירת התמונות:' : 'קישור ישיר לגלריה:'}</p>
-            <p style="color:#888;font-size:12px;word-break:break-all;margin:0;direction:ltr;text-align:left;">${link}</p>
-          </div>
-          <hr style="border:none;border-top:1px solid #2a2a2a;margin:24px 0 20px;">
-          <p style="color:#555;font-size:11px;margin:0;text-align:center;line-height:1.8;">
-            הודעה אוטומטית מ-KLIKLY · לא להשיב למייל זה<br>
-            קיבלת מייל זה מכיוון שהצלם שלך שיתף איתך גלריה. לביטול קבלת הודעות עתידיות,
-            <a href="https://app.klikly.com/unsubscribe" style="color:#888;text-decoration:underline;">לחץ כאן להסרה מרשימת התפוצה</a>.
-          </p>
-        </td></tr>
-        <tr><td style="background:#0a0a0a;padding:20px 40px;text-align:center;border-top:1px solid #2a2a2a;">
-          <div style="color:#FFD700;font-size:16px;font-weight:900;letter-spacing:3px;">KLIKLY</div>
-          <div style="color:#444;font-size:11px;margin-top:4px;">© 2024 Klikly. כל הזכויות שמורות.</div>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
-                    await base44.integrations.Core.SendEmail({
-                      to: email,
-                      from_name: 'KLIKLY',
-                      subject: isSelectionGallery ? `⭐ לבחירת תמונות לעריכה - ${project.client_name || ''}` : `📸 הגלריה שלך מוכנה - ${project.client_name || ''}`,
-                      body: galleryEmailHtml,
+                    const res = await base44.functions.invoke('notifyClientNewFiles', {
+                      project_id: project.id,
+                      gallery_url: link,
+                      message,
+                      notification_type: 'gallery_sent',
                     });
-                    toast.success(`מייל נשלח ל-${email}`);
+                    if (res.data?.success) {
+                      setActionStatus('מייל נשלח ללקוח ולך');
+                      toast.success('מייל נשלח ללקוח ולך');
+                    } else {
+                      setActionStatus('המייל נשלח חלקית — בדוק לוגים');
+                      toast.error(res.data?.failed?.[0]?.error || 'שגיאה בשליחת המייל');
+                    }
                   } catch (e) {
+                    setActionStatus('שגיאה בשליחת המייל');
                     toast.error('שגיאה בשליחת המייל');
                   } finally {
                     setSendingEmail(false);
@@ -196,8 +176,14 @@ export default function MagicLinkButton({ project, compact = false }) {
               </button>
             </div>
 
+            {actionStatus && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700">
+                ✓ {actionStatus}
+              </div>
+            )}
+
             <p className="text-xs text-slate-400 leading-relaxed border-t pt-3">
-              קישור ישיר לפי תיקיית Google Drive. הלקוח יוכל לצפות ולהוריד בלי התחברות ובלי בקשות הרשאה.
+              קישור ישיר לפי תיקיית Google Drive. כל פעולה נרשמת בלוג המערכת.
             </p>
           </div>
         </DialogContent>

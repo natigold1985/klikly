@@ -4,7 +4,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 const SHEET_ID = '1Acz_kFz4d2oGyJflAWyrY4yiAAlbvWVqR7UNgKHCdD4';
 const ALL_LEADS_TAB = '🎯 כל הלידים';
 const HEADERS = ['שם מלא', 'טלפון', 'מייל', 'מקור', 'שירות / עניין', 'סטטוס', 'התקדמות', 'הערות'];
-const WEBSITE_FORM_TAB = 'טופס מהאתר';
+const WEBSITE_FORM_TAB = 'לידים מהאתר';
 const WEBSITE_FORM_HEADERS = ['שם מלא', 'טלפון', 'מייל', 'מקור', 'שירות / עניין'];
 
 const SOURCE_TO_TAB = {

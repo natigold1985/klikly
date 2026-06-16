@@ -176,6 +176,7 @@ export default function DriveUploader({ projectId, subfolder = 'edited', onFileU
 
       setItem(item.id, { status: 'success', progress: 100 });
       setUploadStats((prev) => ({ ...prev, completed: prev.completed + 1 }));
+      toast.success(`הועלה בהצלחה: ${item.file.name}`);
       // Optimistic UI: notify parent immediately so the file appears in the grid
       onFileUploaded?.(res.data.file);
 

@@ -141,11 +141,20 @@ export default function ProjectDetails() {
       ? `היי ${project.client_name || ''}, לבחירת תמונות לעריכה:\n${url}\n\nסמן/י את התמונות ולחץ/י על שמירת בחירות.`
       : `היי ${project.client_name || ''}, הגלריה שלך מוכנה לצפייה והורדה:\n${url}\n\nאין צורך בקוד גישה או התחברות.`;
     await navigator.clipboard.writeText(message);
+    setQuickActionStatus('גלריה הועתקה לשליחה');
     toast.success('ההודעה עם קישור הגלריה הועתקה');
+    base44.entities.SystemLog.create({
+      action: 'project_gallery_link_copied',
+      details: `Gallery link copied from project details for ${project.id}: ${url}`,
+      status: 'success',
+      related_entity_type: 'Project',
+      related_entity_id: project.id,
+    }).catch(() => {});
   };
 
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [quickActionStatus, setQuickActionStatus] = useState('');
 
   const handleCreateDriveFolder = async () => {
     setCreatingFolder(true);
@@ -200,6 +209,14 @@ export default function ProjectDetails() {
     const phone = (project.client_phone || '').replace(/\D/g, '');
     const intlPhone = phone.startsWith('0') ? `972${phone.slice(1)}` : phone;
     window.open(intlPhone ? `https://wa.me/${intlPhone}?text=${msg}` : `https://wa.me/?text=${msg}`, '_blank');
+    setQuickActionStatus('WhatsApp נפתח ונרשם');
+    base44.entities.SystemLog.create({
+      action: 'project_gallery_whatsapp_opened',
+      details: `WhatsApp opened for ${project.id}. Phone: ${project.client_phone || ''}. Link: ${url}`,
+      status: 'success',
+      related_entity_type: 'Project',
+      related_entity_id: project.id,
+    }).catch(() => {});
   };
 
   const handleSendGalleryEmail = async () => {
@@ -210,42 +227,21 @@ export default function ProjectDetails() {
     const isSelectionGallery = project.workflow_type === 'selection';
     setSendingEmail(true);
     try {
-      await base44.integrations.Core.SendEmail({
-        to: emails[0],
-        from_name: 'KLIKLY',
-        subject: isSelectionGallery ? `⭐ לבחירת תמונות לעריכה - ${project.client_name || ''}` : `📸 הגלריה שלך מוכנה - ${project.client_name || ''}`,
-        body: `<!DOCTYPE html>
-<html dir="rtl" lang="he">
-<head><meta charset="UTF-8"></head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,Helvetica,sans-serif;direction:rtl;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
-    <tr><td align="center">
-      <table width="580" cellpadding="0" cellspacing="0" style="max-width:580px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-        <tr><td style="background:#0a0a0a;padding:24px 40px;text-align:center;">
-          <span style="color:#FFD700;font-size:26px;font-weight:900;letter-spacing:3px;">KLIKLY</span>
-        </td></tr>
-        <tr><td style="padding:36px 40px 28px;">
-          <h2 style="color:#0a0a0a;font-size:22px;margin:0 0 12px;">היי ${project.client_name || ''} 🎉</h2>
-          <p style="color:#444;font-size:16px;line-height:1.7;margin:0 0 24px;">
-            ${isSelectionGallery ? 'הגלריה שלך מוכנה לבחירת תמונות לעריכה. לחץ/י על הכפתור, סמן/י את התמונות שאהבת, ובסיום לחץ/י על שמירת בחירות.' : 'הגלריה שלך מוכנה לצפייה והורדה! ניתן לגשת אליה בלחיצה על הכפתור:'}
-          </p>
-          <div style="text-align:center;margin:24px 0;">
-            <a href="${galleryUrl}" style="display:inline-block;background:#FFD700;color:#000;font-size:16px;font-weight:700;padding:16px 48px;border-radius:12px;text-decoration:none;">
-              ${isSelectionGallery ? '⭐ כניסה לבחירת התמונות' : '📁 לצפייה בגלריה'}
-            </a>
-          </div>
-          <div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-top:18px;direction:ltr;text-align:left;color:#64748b;font-size:12px;word-break:break-all;">${galleryUrl}</div>
-          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px;">
-          <p style="color:#999;font-size:12px;margin:0;text-align:center;">KLIKLY · מערכת ניהול גלריות מקצועית</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`,
+      const res = await base44.functions.invoke('notifyClientNewFiles', {
+        project_id: project.id,
+        gallery_url: galleryUrl,
+        message: isSelectionGallery ? 'הגלריה שלך מוכנה לבחירת תמונות לעריכה.' : 'הגלריה שלך מוכנה לצפייה והורדה.',
+        notification_type: 'gallery_sent',
       });
-      toast.success(`מייל נשלח ל-${emails[0]}`);
+      if (res.data?.success) {
+        setQuickActionStatus('מייל נשלח ללקוח ולך');
+        toast.success('מייל נשלח ללקוח ולך');
+      } else {
+        setQuickActionStatus('המייל נשלח חלקית — בדוק לוגים');
+        toast.error(res.data?.failed?.[0]?.error || 'שגיאה בשליחת המייל');
+      }
     } catch (e) {
+      setQuickActionStatus('שגיאה בשליחת המייל');
       toast.error('שגיאה בשליחת המייל');
     } finally {
       setSendingEmail(false);
@@ -262,8 +258,13 @@ export default function ProjectDetails() {
             <Zap className="w-4 h-4 text-[#FFD700]" />
             <span className="text-sm font-bold text-slate-700">גישה מהירה</span>
           </div>
+          {quickActionStatus && (
+            <div className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700">
+              ✓ {quickActionStatus}
+            </div>
+          )}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <Link to={createPageUrl(`FileStorage?project_id=${project.id}`)} className="flex items-center justify-center gap-2 bg-black text-white rounded-xl px-3 py-3 text-sm font-semibold hover:bg-slate-800 transition-colors">
+            <Link to={createPageUrl(`FileStorage?project_id=${project.id}`)} onClick={() => setQuickActionStatus('פתחת ניהול העלאת קבצים')} className="flex items-center justify-center gap-2 bg-black text-white rounded-xl px-3 py-3 text-sm font-semibold hover:bg-slate-800 transition-colors">
               <Upload className="w-4 h-4 text-[#FFD700]" />
               העלאת קבצים
             </Link>
@@ -277,7 +278,7 @@ export default function ProjectDetails() {
             </button>
             <button onClick={handleSendGalleryEmail} disabled={sendingEmail} className="flex items-center justify-center gap-2 bg-blue-500 text-white rounded-xl px-3 py-3 text-sm font-semibold hover:bg-blue-600 transition-colors disabled:opacity-60">
               {sendingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              שלח מייל
+              {sendingEmail ? 'שולח...' : 'שלח מייל'}
             </button>
           </div>
         </div>

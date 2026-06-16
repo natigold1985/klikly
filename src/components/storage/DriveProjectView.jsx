@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ExternalLink, FolderOpen, RefreshCw, Cloud, Loader2, Link2, Upload, Trash2, UserPlus } from 'lucide-react';
+import { ExternalLink, FolderOpen, RefreshCw, Loader2, Upload, Trash2, UserPlus, Lock, Unlock, CheckCircle2 } from 'lucide-react';
 import DriveFilesGrid from './DriveFilesGrid';
 import MagicLinkButton from './MagicLinkButton';
 import DriveUploader from './DriveUploader';
@@ -32,6 +32,9 @@ export default function DriveProjectView({ project, onProjectDeleted }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showAddClient, setShowAddClient] = useState(false);
+  const [paymentGate, setPaymentGate] = useState(!!project.gallery_requires_payment);
+  const [paymentStatus, setPaymentStatus] = useState(project.payment_status || 'pending');
+  const [savingPaymentGate, setSavingPaymentGate] = useState(false);
   // Optimistic files appear immediately on upload (before refetch finishes)
   const [optimistic, setOptimistic] = useState([]);
 
@@ -50,6 +53,30 @@ export default function DriveProjectView({ project, onProjectDeleted }) {
     queryFn: () => base44.entities.Photo.filter({ project_id: project.id }, '-created_date', 1000),
     enabled: !!project.id,
   });
+
+  useEffect(() => {
+    setPaymentGate(!!project.gallery_requires_payment);
+    setPaymentStatus(project.payment_status || 'pending');
+  }, [project.id, project.gallery_requires_payment, project.payment_status]);
+
+  const updatePaymentAccess = async (patch) => {
+    setSavingPaymentGate(true);
+    const nextGate = patch.gallery_requires_payment ?? paymentGate;
+    const nextStatus = patch.payment_status ?? paymentStatus;
+    setPaymentGate(!!nextGate);
+    setPaymentStatus(nextStatus);
+    await base44.entities.Project.update(project.id, patch);
+    await base44.entities.SystemLog.create({
+      action: 'gallery_payment_access_updated',
+      details: `Payment access updated for project ${project.id}. requires_payment=${nextGate}, payment_status=${nextStatus}`,
+      status: 'success',
+      related_entity_type: 'Project',
+      related_entity_id: project.id,
+    }).catch(() => {});
+    queryClient.invalidateQueries({ queryKey: ['driveProjects'] });
+    toast.success('הגדרת הגישה לגלריה עודכנה');
+    setSavingPaymentGate(false);
+  };
 
   const serverFiles = data?.files || [];
   const savedFiles = savedPhotos.map((photo) => {
@@ -273,6 +300,43 @@ export default function DriveProjectView({ project, onProjectDeleted }) {
           queryClient.invalidateQueries({ queryKey: ['driveFiles', project.id] });
         }}
       />
+
+      <Card className={paymentGate && paymentStatus !== 'paid' ? 'border-amber-300 bg-amber-50' : 'border-emerald-200 bg-emerald-50/60'}>
+        <CardContent className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3" dir="rtl">
+          <div className="flex items-start gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${paymentGate && paymentStatus !== 'paid' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+              {paymentGate && paymentStatus !== 'paid' ? <Lock className="w-5 h-5" /> : <Unlock className="w-5 h-5" />}
+            </div>
+            <div>
+              <p className="font-black text-slate-900">גישה לגלריה לפי תשלום</p>
+              <p className="text-sm text-slate-600 leading-6">
+                {paymentGate ? (paymentStatus === 'paid' ? 'הגלריה פתוחה כי הפרויקט מסומן כשולם.' : 'הגלריה חסומה ללקוח עד שתסמן שהלקוח שילם.') : 'הגלריה פתוחה לכל מי שמקבל את הקישור.'}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={savingPaymentGate}
+              onClick={() => updatePaymentAccess({ gallery_requires_payment: !paymentGate })}
+              className="gap-2 text-slate-900 border-slate-300 bg-white hover:bg-slate-50"
+            >
+              {savingPaymentGate ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+              {paymentGate ? 'בטל חסימת תשלום' : 'חסום עד תשלום'}
+            </Button>
+            <Button
+              size="sm"
+              disabled={savingPaymentGate}
+              onClick={() => updatePaymentAccess({ payment_status: paymentStatus === 'paid' ? 'pending' : 'paid' })}
+              className="gap-2 bg-[#FFD700] text-black hover:bg-[#e6c200]"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              {paymentStatus === 'paid' ? 'סמן כלא שולם' : 'סמן כשולם'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* MASSIVE Send Gallery CTA */}
       <div className="flex items-center justify-center md:justify-start">

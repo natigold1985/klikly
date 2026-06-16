@@ -44,26 +44,29 @@ export default function FolderGallery() {
 
   const handleConfirmDownload = async () => {
     setBusy(true);
-    await base44.functions.invoke('trackFolderDelivery', {
-      folder_id: folderId,
-      action_type: 'download_confirmed',
-      file_count: data?.files?.length || 0,
-    });
-    const zip = await base44.functions.invoke('downloadFolderZip', { folder_id: folderId });
-    await base44.functions.invoke('trackFolderDelivery', {
-      folder_id: folderId,
-      action_type: 'download_started',
-      file_count: zip.data.file_count || data?.files?.length || 0,
-    });
-    saveBase64File(zip.data.base64, zip.data.name || 'studio-gold-gallery.zip', 'application/zip');
-    await base44.functions.invoke('trackFolderDelivery', {
-      folder_id: folderId,
-      action_type: 'download_completed',
-      file_count: zip.data.file_count || data?.files?.length || 0,
-    });
-    setDownloaded(true);
-    setBusy(false);
-    setConsentOpen(false);
+    try {
+      await base44.functions.invoke('trackFolderDelivery', {
+        folder_id: folderId,
+        action_type: 'download_confirmed',
+        file_count: data?.files?.length || 0,
+      });
+      const zip = await base44.functions.invoke('downloadFolderZip', { folder_id: folderId });
+      await base44.functions.invoke('trackFolderDelivery', {
+        folder_id: folderId,
+        action_type: 'download_started',
+        file_count: zip.data.file_count || data?.files?.length || 0,
+      });
+      saveBase64File(zip.data.base64, zip.data.name || 'studio-gold-gallery.zip', 'application/zip');
+      await base44.functions.invoke('trackFolderDelivery', {
+        folder_id: folderId,
+        action_type: 'download_completed',
+        file_count: zip.data.file_count || data?.files?.length || 0,
+      });
+      setDownloaded(true);
+      setConsentOpen(false);
+    } finally {
+      setBusy(false);
+    }
   };
 
   useEffect(() => {
@@ -90,12 +93,13 @@ export default function FolderGallery() {
   }
 
   if (error || !data?.project) {
+    const paymentRequired = error?.response?.status === 402 || error?.response?.data?.error === 'payment_required';
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4" dir="rtl">
         <div className="bg-[#0a0a0a] border border-red-500/30 rounded-3xl p-8 text-center max-w-md text-white">
           <ShieldOff className="w-14 h-14 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-black mb-2">הגלריה לא זמינה</h1>
-          <p className="text-white/60 text-sm">הקישור לא נמצא או שתוקפו פג.</p>
+          <h1 className="text-2xl font-black mb-2">{paymentRequired ? 'הגלריה ממתינה לתשלום' : 'הגלריה לא זמינה'}</h1>
+          <p className="text-white/60 text-sm">{paymentRequired ? 'הצלם פתח את הגלריה רק ללקוחות ששילמו. לאחר סימון התשלום הקישור ייפתח אוטומטית.' : 'הקישור לא נמצא או שתוקפו פג.'}</p>
         </div>
       </div>
     );

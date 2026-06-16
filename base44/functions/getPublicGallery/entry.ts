@@ -15,6 +15,18 @@ Deno.serve(async (req) => {
     ].filter(Boolean).map(e => e.toLowerCase());
     const isProjectClient = !!currentUser?.email && clientEmails.includes(currentUser.email.toLowerCase());
 
+    if (project?.gallery_requires_payment && project.payment_status !== 'paid' && !isAdmin) {
+      await base44.asServiceRole.entities.SystemLog.create({
+        action: 'selection_gallery_payment_blocked',
+        details: `[402 Payment Required] Gallery blocked until payment (Project ID: ${projectId}).`,
+        status: 'pending',
+        related_entity_type: 'Project',
+        related_entity_id: projectId,
+        owner_id: project.created_by || null
+      }).catch(() => {});
+      return Response.json({ error: 'הגלריה זמינה רק לאחר תשלום' }, { status: 402 });
+    }
+
     if (!project || (!isAdmin && !isProjectClient && project.gallery_pin !== pin)) {
       // BOLA Protection & Security Logging
       await base44.asServiceRole.entities.SystemLog.create({

@@ -4,7 +4,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const SHEET_ID = '1Acz_kFz4d2oGyJflAWyrY4yiAAlbvWVqR7UNgKHCdD4';
 const ALL_LEADS_TAB = '🎯 כל הלידים';
-const WEBSITE_FORM_TAB = 'טופס מהאתר';
+const WEBSITE_FORM_TAB = 'לידים מהאתר';
 const HEADERS = ['שם מלא', 'טלפון', 'מייל', 'מקור', 'שירות / עניין', 'סטטוס', 'התקדמות', 'הערות'];
 const WEBSITE_FORM_HEADERS = ['שם מלא', 'טלפון', 'מייל', 'מקור', 'שירות / עניין'];
 
@@ -73,6 +73,26 @@ function sortLeadsByStatus(leads) {
     const bOrder = STATUS_SORT_ORDER[sheetStatus(b)] ?? 5;
     if (aOrder !== bOrder) return aOrder - bOrder;
     return new Date(b.created_date || 0) - new Date(a.created_date || 0);
+  });
+}
+
+function contactKey(lead) {
+  const phone = String(lead.phone || '').replace(/[^0-9]/g, '');
+  const email = String(lead.email || '').trim().toLowerCase();
+  const name = String(lead.name || '').trim().toLowerCase();
+  if (phone.length >= 9) return `phone:${phone}`;
+  if (email) return `email:${email}`;
+  return name ? `name:${name}` : `id:${lead.id}`;
+}
+
+function dedupeLeads(leads) {
+  const sorted = [...leads].sort((a, b) => new Date(b.updated_date || b.created_date || 0) - new Date(a.updated_date || a.created_date || 0));
+  const seen = new Set();
+  return sorted.filter((lead) => {
+    const key = contactKey(lead);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 }
 
@@ -390,8 +410,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const allLeads = await base44.asServiceRole.entities.Lead.list('-created_date', 5000);
-    console.log(`fullSyncLeadsToSheets: ${allLeads.length} leads`);
+    const allLeadsRaw = await base44.asServiceRole.entities.Lead.list('-created_date', 5000);
+    const allLeads = dedupeLeads(allLeadsRaw);
+    console.log(`fullSyncLeadsToSheets: ${allLeads.length} unique leads (${allLeadsRaw.length} raw)`);
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
     const sheetsAuth = {
