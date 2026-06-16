@@ -164,8 +164,10 @@ async function appendSheetRow(authHeader, tabName, row) {
     if (sheet?.properties?.sheetId !== undefined) {
       const valuesResp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(`'${tabName}'!A1:H3000`)}`, { headers: authHeader });
       const rows = (await valuesResp.json()).values || [];
-      const firstBottomRow = rows.findIndex((r, i) => i > 0 && ['חדש מהאתר', 'ליד חדש'].includes(r[5] || ''));
-      const insertIndex = firstBottomRow > 0 ? firstBottomRow : Math.max(rows.length, 1);
+      const priorityOrder = { 'בטיפול מהאתר': 0, 'נשלח פולו-אפ': 1, 'נוצר קשר': 2, 'נענה': 3, 'נסגר בהצלחה': 6, 'נסגר מהאתר': 7, 'לא רלוונטי': 8, 'ליד חדש': 20, 'חדש מהאתר': 21 };
+      const currentOrder = priorityOrder[status] ?? 5;
+      const firstLowerPriorityRow = rows.findIndex((r, i) => i > 0 && ((priorityOrder[r[5] || ''] ?? 5) > currentOrder));
+      const insertIndex = firstLowerPriorityRow > 0 ? firstLowerPriorityRow : Math.max(rows.length, 1);
       await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}:batchUpdate`, {
         method: 'POST',
         headers: { ...authHeader, 'Content-Type': 'application/json' },

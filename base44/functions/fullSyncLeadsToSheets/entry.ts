@@ -55,8 +55,8 @@ function sheetStatus(lead) {
 // Sort order: active leads first; new leads stay at the bottom until their status changes
 const STATUS_SORT_ORDER = {
   'בטיפול מהאתר':   0,
-  'נוצר קשר':       1,
-  'נשלח פולו-אפ':   2,
+  'נשלח פולו-אפ':   1,
+  'נוצר קשר':       2,
   'נענה':           3,
   'נסגר בהצלחה':    6,
   'נסגר מהאתר':     7,
