@@ -19,10 +19,10 @@ Deno.serve(async (req) => {
     }
 
     const clientEmails = project
-      ? [...new Set([project.client_email, ...(Array.isArray(project.client_emails) ? project.client_emails : [])].filter(Boolean).map((email) => String(email).trim().toLowerCase()))]
-      : [client_email].filter(Boolean).map((email) => String(email).trim().toLowerCase());
+      ? [...new Set([project.client_email, ...(Array.isArray(project.client_emails) ? project.client_emails : [])].filter(Boolean).map((email) => String(email).trim().toLowerCase()).filter(isValidEmail))]
+      : [client_email].filter(Boolean).map((email) => String(email).trim().toLowerCase()).filter(isValidEmail);
 
-    if (!clientEmails.length) return Response.json({ error: 'Missing client_email' }, { status: 400 });
+    if (!clientEmails.length) return Response.json({ error: 'Missing valid client email' }, { status: 400 });
 
     const galleryUrl = gallery_url || buildGalleryUrl(req, project);
     const projectTitle = project?.project_name || project?.shooting_type || 'הגלריה שלך';
@@ -33,33 +33,39 @@ Deno.serve(async (req) => {
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
     const fromEmail = await getGmailAddress(accessToken);
-    const sent = [];
-    const failed = [];
+    const clientSent = [];
+    const clientFailed = [];
     for (const email of clientEmails) {
       try {
         await sendGmailEmail(accessToken, fromEmail, { to: email, subject, body: bodyHtml });
-        sent.push(email);
+        clientSent.push(email);
       } catch (error) {
-        failed.push({ email, error: error.message });
+        clientFailed.push({ email, error: error.message });
       }
     }
 
-    const adminRecipients = [...new Set([ADMIN_EMAIL, project?.created_by].filter(Boolean).map((email) => String(email).trim().toLowerCase()))];
-    for (const email of adminRecipients) {
-      try {
-        await sendGmailEmail(accessToken, fromEmail, {
-          to: email,
-          subject: `✅ נשלחה גלריה ללקוח - ${project?.client_name || clientEmails[0]}`,
-          body: buildAdminEmail({ project, clientEmails, galleryUrl, sent, failed, message }),
-        });
-        sent.push(email);
-      } catch (error) {
-        failed.push({ email, error: error.message });
+    const adminSent = [];
+    const adminFailed = [];
+    if (clientSent.length > 0) {
+      const adminRecipients = [...new Set([ADMIN_EMAIL, project?.created_by].filter(Boolean).map((email) => String(email).trim().toLowerCase()).filter(isValidEmail))];
+      for (const email of adminRecipients) {
+        try {
+          await sendGmailEmail(accessToken, fromEmail, {
+            to: email,
+            subject: `✅ נשלחה גלריה ללקוח - ${project?.client_name || clientSent[0]}`,
+            body: buildAdminEmail({ project, clientEmails, galleryUrl, sent: clientSent, failed: clientFailed, message }),
+          });
+          adminSent.push(email);
+        } catch (error) {
+          adminFailed.push({ email, error: error.message });
+        }
       }
     }
 
-    const status = failed.length ? (sent.length ? 'pending' : 'error') : 'success';
-    const details = `Gallery/files email action. Project: ${project?.id || 'none'}, clients: ${clientEmails.join(', ')}, sent: ${sent.join(', ')}, failed: ${failed.map((f) => `${f.email}: ${f.error}`).join(' | ')}, link: ${galleryUrl || ''}`;
+    const sent = [...clientSent, ...adminSent];
+    const failed = [...clientFailed, ...adminFailed];
+    const status = clientSent.length ? (adminFailed.length ? 'pending' : 'success') : 'error';
+    const details = `Gallery/files email action. Project: ${project?.id || 'none'}, clients: ${clientEmails.join(', ')}, client sent: ${clientSent.join(', ')}, admin sent: ${adminSent.join(', ')}, failed: ${failed.map((f) => `${f.email}: ${f.error}`).join(' | ')}, link: ${galleryUrl || ''}`;
     await base44.asServiceRole.entities.SystemLog.create({
       action: isGalleryShare ? 'gallery_email_sent' : 'client_files_email_sent',
       details,
@@ -76,11 +82,19 @@ Deno.serve(async (req) => {
         activity_type: 'email_sent',
         title: isGalleryShare ? 'נשלח מייל גלריה ללקוח' : 'נשלח מייל על קבצים חדשים',
         description: details,
-        metadata: { client_emails: clientEmails, sent, failed, gallery_url: galleryUrl || '' },
+        metadata: { client_emails: clientEmails, client_sent: clientSent, admin_sent: adminSent, failed, gallery_url: galleryUrl || '' },
       }).catch(() => {});
     }
 
-    return Response.json({ success: failed.length === 0, sent_to: sent, failed, gallery_url: galleryUrl });
+    return Response.json({
+      success: clientSent.length > 0,
+      client_sent: clientSent,
+      admin_sent: adminSent,
+      sent_to: sent,
+      failed,
+      gallery_url: galleryUrl,
+      admin_copy_sent: adminSent.includes(ADMIN_EMAIL),
+    });
   } catch (error) {
     console.error('notifyClientNewFiles error:', error);
     return Response.json({ error: error.message }, { status: 500 });
@@ -113,7 +127,7 @@ async function sendGmailEmail(accessToken, fromEmail, { to, subject, body }) {
     html: body,
   });
   const message = await composer.compile().build();
-  const raw = btoa(String.fromCharCode(...new Uint8Array(message))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const raw = base64UrlEncode(new Uint8Array(message));
   const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
@@ -123,6 +137,19 @@ async function sendGmailEmail(accessToken, fromEmail, { to, subject, body }) {
     const errorText = await res.text();
     throw new Error(errorText || `Gmail send failed ${res.status}`);
   }
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+}
+
+function base64UrlEncode(bytes) {
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 function escapeHtml(value) {

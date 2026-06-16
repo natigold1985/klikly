@@ -149,15 +149,18 @@ export default function MagicLinkButton({ project, compact = false }) {
                       notification_type: 'gallery_sent',
                     });
                     if (res.data?.success) {
-                      setActionStatus('מייל נשלח ללקוח ולך');
-                      toast.success('מייל נשלח ללקוח ולך');
+                      const adminCopyText = res.data?.admin_copy_sent ? ' וגם אליך' : '';
+                      setActionStatus(`מייל נשלח ללקוח${adminCopyText}`);
+                      toast.success(`מייל נשלח ללקוח${adminCopyText}`);
                     } else {
-                      setActionStatus('המייל נשלח חלקית — בדוק לוגים');
-                      toast.error(res.data?.failed?.[0]?.error || 'שגיאה בשליחת המייל');
+                      const errorMessage = res.data?.failed?.[0]?.error || res.data?.error || 'שגיאה בשליחת המייל';
+                      setActionStatus(errorMessage);
+                      toast.error(errorMessage);
                     }
                   } catch (e) {
-                    setActionStatus('שגיאה בשליחת המייל');
-                    toast.error('שגיאה בשליחת המייל');
+                    const errorMessage = e?.response?.data?.error || e?.message || 'שגיאה בשליחת המייל';
+                    setActionStatus(errorMessage);
+                    toast.error(errorMessage);
                   } finally {
                     setSendingEmail(false);
                   }
