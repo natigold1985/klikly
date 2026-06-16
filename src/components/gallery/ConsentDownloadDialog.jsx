@@ -3,7 +3,7 @@ import { ExternalLink, ShieldCheck, X } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 
-const CONSENT_TEXT = 'I confirm that I am downloading these files. I acknowledge that storage is provided for 90 days only. After this period, BASE 44 and the photographer are not responsible for file retention.';
+const CONSENT_TEXT = 'באישור זה אני מאשר/ת שקיבלתי גישה לקבצי הפרויקט ומתחיל/ה בהורדתם למכשיר האישי שלי. ידוע לי כי STUDIO GOLD והצלם שומרים גיבוי זמני של הקבצים למשך עד 90 ימים ממועד מסירת הקישור או תחילת ההורדה, ולאחר תקופה זו לא תהיה ל-STUDIO GOLD, לצלם או למי מטעמם כל אחריות לשמירה, שחזור, אובדן או מחיקה של הקבצים. באחריותי לוודא שהקבצים ירדו ונשמרו אצלי באופן תקין.';
 
 export default function ConsentDownloadDialog({ open, busy, progress = '', error = '', driveFolderUrl = '', onClose, onConfirm }) {
   const [checked, setChecked] = useState(false);
@@ -29,12 +29,12 @@ export default function ConsentDownloadDialog({ open, busy, progress = '', error
         </div>
 
         <div className="p-6 space-y-5">
-          <div className="rounded-2xl bg-white/5 border border-white/10 p-5 text-sm leading-7 text-white/80" dir="ltr">
+          <div className="rounded-2xl bg-white/5 border border-white/10 p-5 text-sm leading-7 text-white/80" dir="rtl">
             {CONSENT_TEXT}
           </div>
           <label className="flex items-start gap-3 rounded-2xl border border-[#FFD700]/20 bg-[#FFD700]/10 p-4 cursor-pointer">
             <Checkbox checked={checked} onCheckedChange={(value) => setChecked(Boolean(value))} className="mt-1 border-[#FFD700] data-[state=checked]:bg-[#FFD700] data-[state=checked]:text-black" />
-            <span className="text-sm leading-6 text-white/90">אני מאשר/ת את קבלת הקבצים ומבין/ה שהאחסון נשמר ל-90 יום בלבד.</span>
+            <span className="text-sm leading-6 text-white/90">אני מאשר/ת את קבלת הקבצים, את תחילת ההורדה, ואת תנאי שמירת הגיבוי הזמני עד 90 יום.</span>
           </label>
           <Button onClick={onConfirm} disabled={!checked || busy} className="w-full h-14 text-lg rounded-2xl">
             {busy ? 'מוריד קבצים...' : 'מאשר/ת ומתחיל/ה הורדה'}

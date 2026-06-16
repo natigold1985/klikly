@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ExternalLink, FolderOpen, RefreshCw, Loader2, Upload, Trash2, UserPlus, Lock, Unlock, CheckCircle2 } from 'lucide-react';
+import { ExternalLink, FolderOpen, RefreshCw, Loader2, Upload, Trash2, UserPlus, Lock, Unlock, CheckCircle2, Clock } from 'lucide-react';
 import DriveFilesGrid from './DriveFilesGrid';
 import MagicLinkButton from './MagicLinkButton';
 import DriveUploader from './DriveUploader';
@@ -51,6 +51,12 @@ export default function DriveProjectView({ project, onProjectDeleted }) {
   const { data: savedPhotos = [], isLoading: loadingSavedPhotos } = useQuery({
     queryKey: ['projectSavedPhotos', project.id],
     queryFn: () => base44.entities.Photo.filter({ project_id: project.id }, '-created_date', 1000),
+    enabled: !!project.id,
+  });
+
+  const { data: deliveryLogs = [] } = useQuery({
+    queryKey: ['projectDeliveryLogs', project.id],
+    queryFn: () => base44.entities.DeliveryAudit.filter({ project_id: project.id }, '-created_date', 8).catch(() => []),
     enabled: !!project.id,
   });
 
@@ -342,6 +348,25 @@ export default function DriveProjectView({ project, onProjectDeleted }) {
       <div className="flex items-center justify-center md:justify-start">
         <MagicLinkButton project={project} />
       </div>
+
+      {deliveryLogs.length > 0 && (
+        <Card className="border-slate-200 bg-white">
+          <CardContent className="p-4" dir="rtl">
+            <div className="flex items-center gap-2 mb-3">
+              <Clock className="w-5 h-5 text-[#D4AF37]" />
+              <h3 className="font-black text-slate-900">לוג מסירת קבצים</h3>
+            </div>
+            <div className="space-y-2 text-sm">
+              {deliveryLogs.map((log) => (
+                <div key={log.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                  <span className="font-bold text-slate-800">{log.action_type === 'download_completed' ? 'הלקוח אישר והתחיל הורדה' : log.action_type}</span>
+                  <span className="text-slate-500">{log.file_count || 0} קבצים · {log.created_date ? new Date(log.created_date).toLocaleString('he-IL') : ''}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Secondary toolbar */}
       <div className="flex items-center justify-between flex-wrap gap-2">

@@ -12,13 +12,19 @@ function saveBase64File(base64, fileName, mimeType = 'application/octet-stream')
   for (let i = 0; i < byteCharacters.length; i += 1) byteNumbers[i] = byteCharacters.charCodeAt(i);
   const blob = new Blob([new Uint8Array(byteNumbers)], { type: mimeType });
   const url = URL.createObjectURL(blob);
+  triggerDownload(url, fileName);
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+function triggerDownload(url, fileName = '') {
   const a = document.createElement('a');
   a.href = url;
-  a.download = fileName;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  if (fileName) a.download = fileName;
   document.body.appendChild(a);
   a.click();
   a.remove();
-  URL.revokeObjectURL(url);
 }
 
 export default function FolderGallery() {
@@ -44,9 +50,18 @@ export default function FolderGallery() {
 
   const handleConfirmDownload = async () => {
     const filesToDownload = data?.files || [];
+    if (!filesToDownload.length) return;
     setBusy(true);
     setDownloadError('');
-    setDownloadProgress('מתחיל הורדה...');
+    setDownloadProgress('פותח הורדה ישירה במכשיר...');
+
+    const directFiles = filesToDownload.filter((file) => file.download_url || file.view_url);
+    if (directFiles.length) {
+      directFiles.forEach((file) => {
+        triggerDownload(file.download_url || file.view_url, file.name || 'studio-gold-file');
+      });
+    }
+
     try {
       await base44.functions.invoke('trackFolderDelivery', {
         folder_id: folderId,
@@ -59,12 +74,13 @@ export default function FolderGallery() {
         file_count: filesToDownload.length,
       });
 
-      for (let i = 0; i < filesToDownload.length; i += 1) {
-        const file = filesToDownload[i];
-        setDownloadProgress(`מוריד ${i + 1} מתוך ${filesToDownload.length}: ${file.name || 'קובץ'}`);
-        const res = await base44.functions.invoke('downloadFolderFile', { folder_id: folderId, file_id: file.id });
-        saveBase64File(res.data.base64, res.data.name || file.name || `gallery-file-${i + 1}`, res.data.mime_type || file.mime_type || 'application/octet-stream');
-        await new Promise((resolve) => setTimeout(resolve, 450));
+      if (!directFiles.length) {
+        for (let i = 0; i < filesToDownload.length; i += 1) {
+          const file = filesToDownload[i];
+          setDownloadProgress(`מוריד ${i + 1} מתוך ${filesToDownload.length}: ${file.name || 'קובץ'}`);
+          const res = await base44.functions.invoke('downloadFolderFile', { folder_id: folderId, file_id: file.id });
+          saveBase64File(res.data.base64, res.data.name || file.name || `gallery-file-${i + 1}`, res.data.mime_type || file.mime_type || 'application/octet-stream');
+        }
       }
 
       await base44.functions.invoke('trackFolderDelivery', {
@@ -73,7 +89,7 @@ export default function FolderGallery() {
         file_count: filesToDownload.length,
       });
       setDownloaded(true);
-      setDownloadProgress('ההורדות התחילו בהצלחה');
+      setDownloadProgress('ההורדות נפתחו בהצלחה. אם הדפדפן מבקש אישור להורדת מספר קבצים — יש לאשר.');
       setConsentOpen(false);
     } catch (error) {
       setDownloadError(error?.response?.data?.error || error?.message || 'שגיאה בהורדה');

@@ -33,6 +33,7 @@ Deno.serve(async (req) => {
     }
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('googledrive');
+    await ensurePublicReader(accessToken, folder_id);
     const allFiles = [];
     await fetchFolderFiles(accessToken, folder_id, allFiles);
 
@@ -51,8 +52,8 @@ Deno.serve(async (req) => {
         mime_type: file.mimeType,
         size: Number(file.size || 0),
         thumbnail_url: file.thumbnailLink ? file.thumbnailLink.replace(/=s\d+/, '=s1600') : '',
-        view_url: '',
-        download_url: '',
+        view_url: file.webViewLink || `https://drive.google.com/file/d/${file.id}/view`,
+        download_url: file.webContentLink || `https://drive.google.com/uc?export=download&id=${file.id}`,
         is_video: String(file.mimeType || '').startsWith('video/'),
         is_image: String(file.mimeType || '').startsWith('image/'),
         is_audio: String(file.mimeType || '').startsWith('audio/'),
@@ -73,7 +74,7 @@ Deno.serve(async (req) => {
 function isDeliverable(file) {
   const name = String(file.name || '').toLowerCase();
   const size = Number(file.size || 0);
-  if (!size || size > MAX_SIZE) return false;
+  if (!size) return false;
   if (RAW_EXTENSIONS.some((ext) => name.endsWith(ext))) return false;
   return String(file.mimeType || '').startsWith('image/') || String(file.mimeType || '').startsWith('video/');
 }
@@ -82,16 +83,29 @@ async function fetchFolderFiles(accessToken, folderId, out, parentName = '') {
   let pageToken = '';
   do {
     const tokenParam = pageToken ? `&pageToken=${pageToken}` : '';
-    const url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+trashed=false&fields=nextPageToken,files(id,name,mimeType,size,thumbnailLink,modifiedTime)&pageSize=1000${tokenParam}`;
+    const url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+trashed=false&fields=nextPageToken,files(id,name,mimeType,size,thumbnailLink,modifiedTime,webContentLink,webViewLink)&pageSize=1000${tokenParam}`;
     const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (!res.ok) return;
     const data = await res.json();
     for (const file of data.files || []) {
-      if (file.mimeType === 'application/vnd.google-apps.folder') await fetchFolderFiles(accessToken, file.id, out, file.name);
-      else out.push({ ...file, parent_name: parentName });
+      if (file.mimeType === 'application/vnd.google-apps.folder') {
+        await ensurePublicReader(accessToken, file.id);
+        await fetchFolderFiles(accessToken, file.id, out, file.name);
+      } else {
+        await ensurePublicReader(accessToken, file.id);
+        out.push({ ...file, parent_name: parentName });
+      }
     }
     pageToken = data.nextPageToken || '';
   } while (pageToken);
+}
+
+async function ensurePublicReader(accessToken, fileId) {
+  await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions?supportsAllDrives=true`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role: 'reader', type: 'anyone', allowFileDiscovery: false }),
+  }).catch(() => {});
 }
 
 function serializeProject(project, folderId) {
