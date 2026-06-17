@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { CheckCircle2, Circle, Calendar, Flag, AlertTriangle, Clock } from 'lucide-react';
+import { CheckCircle2, Circle, Calendar, Flag, AlertTriangle, Clock, UserRound, Image, FolderOpen, ExternalLink } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,7 +30,20 @@ function daysUntilDue(dateStr) {
   return diff;
 }
 
-export default function TaskBoard({ tasks = [] }) {
+export default function TaskBoard({ tasks = [], projects = [] }) {
+  const projectById = new Map(projects.map((project) => [project.id, project]));
+
+  const formatSentAt = (dateStr) => {
+    if (!dateStr) return 'לא צוין זמן שליחה';
+    return new Date(dateStr).toLocaleString('he-IL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  };
+
+  const getEditingDetails = (task) => {
+    const details = task.description || '';
+    if (details.includes('קבצים:')) return details.split('קבצים:').pop().replace(/\.$/, '').trim();
+    return details || task.title;
+  };
+
   const pendingTasks = tasks
     .filter(t => t.status === 'pending')
     .sort((a, b) => {
@@ -87,33 +100,68 @@ export default function TaskBoard({ tasks = [] }) {
               const today = isDueToday(task.due_date);
               const days = daysUntilDue(task.due_date);
 
+              const project = task.related_to_type === 'project' ? projectById.get(task.related_to_id) : null;
+              const clientFromDescription = task.description?.match(/הלקוח\s+(.+?)\s+בחר/)?.[1];
+              const clientName = project?.client_name || clientFromDescription || task.title.split('—').pop()?.trim() || 'לקוח לא מזוהה';
+              const editingDetails = getEditingDetails(task);
+
               return (
                 <div
                   key={task.id}
-                  className={`flex items-center gap-3 p-3 rounded-xl border transition-all hover:shadow-sm ${
+                  className={`p-3 rounded-xl border transition-all hover:shadow-sm ${
                     overdue ? 'bg-red-50 border-red-200' : today ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-100 hover:border-slate-200'
                   }`}
                 >
-                  <Circle className={`w-4 h-4 flex-shrink-0 ${overdue ? 'text-red-400' : today ? 'text-amber-400' : 'text-slate-300'}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-semibold truncate ${overdue ? 'text-red-800' : 'text-slate-800'}`}>
-                      {task.title}
-                    </p>
-                    {task.due_date && (
-                      <p className={`text-[11px] flex items-center gap-1 mt-0.5 ${
-                        overdue ? 'text-red-500 font-bold' : today ? 'text-amber-600 font-bold' : 'text-slate-400'
-                      }`}>
-                        <Calendar className="w-3 h-3" />
-                        {overdue ? `באיחור!` : today ? 'היום' : days !== null && days <= 3 ? `עוד ${days} ימים` : ''}
-                        {' '}
-                        {new Date(task.due_date).toLocaleDateString('he-IL', { day: 'numeric', month: 'short' })}
-                      </p>
-                    )}
+                  <div className="flex flex-col md:flex-row md:items-start gap-3">
+                    <Circle className={`w-4 h-4 flex-shrink-0 mt-1 ${overdue ? 'text-red-400' : today ? 'text-amber-400' : 'text-slate-300'}`} />
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                        <p className={`text-sm font-extrabold ${overdue ? 'text-red-800' : 'text-slate-900'}`}>
+                          {task.title}
+                        </p>
+                        <Badge className={`${config.badgeColor} text-[10px] font-bold gap-1 shrink-0 w-fit`}>
+                          <PriorityIcon className="w-3 h-3" />
+                          {config.label}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-[12px]">
+                        <div className="flex items-center gap-1.5 text-slate-700">
+                          <UserRound className="w-3.5 h-3.5 text-[#C5A028]" />
+                          <span className="font-bold">לקוח:</span>
+                          <span className="truncate">{clientName}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-slate-700">
+                          <Image className="w-3.5 h-3.5 text-[#C5A028]" />
+                          <span className="font-bold">צריך לערוך:</span>
+                          <span className="truncate">{editingDetails}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-slate-700">
+                          <Clock className="w-3.5 h-3.5 text-[#C5A028]" />
+                          <span className="font-bold">נשלח:</span>
+                          <span>{formatSentAt(task.created_date)}</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                        {task.due_date && (
+                          <p className={`text-[11px] flex items-center gap-1 ${
+                            overdue ? 'text-red-500 font-bold' : today ? 'text-amber-600 font-bold' : 'text-slate-400'
+                          }`}>
+                            <Calendar className="w-3 h-3" />
+                            {overdue ? `באיחור!` : today ? 'היום' : days !== null && days <= 3 ? `עוד ${days} ימים` : ''}
+                            {' '}
+                            {new Date(task.due_date).toLocaleDateString('he-IL', { day: 'numeric', month: 'short' })}
+                          </p>
+                        )}
+                        {task.related_to_id && (
+                          <Link to={createPageUrl(`ProjectDetails?id=${task.related_to_id}`)} className="inline-flex items-center gap-1 text-[11px] font-black text-[#C5A028] hover:text-black transition-colors w-fit">
+                            <FolderOpen className="w-3.5 h-3.5" />
+                            פתח פרויקט
+                            <ExternalLink className="w-3 h-3" />
+                          </Link>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <Badge className={`${config.badgeColor} text-[10px] font-bold gap-1 shrink-0`}>
-                    <PriorityIcon className="w-3 h-3" />
-                    {config.label}
-                  </Badge>
                 </div>
               );
             })}

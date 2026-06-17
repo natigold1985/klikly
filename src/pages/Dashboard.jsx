@@ -308,7 +308,7 @@ export default function Dashboard() {
         <LeadQualityDashboard leads={leads} />
 
         {/* Task Board — front and center */}
-        <TaskBoard tasks={tasks} />
+        <TaskBoard tasks={tasks} projects={projects} />
 
         {/* AI Lead Radar */}
         <LeadRadarWidget />
