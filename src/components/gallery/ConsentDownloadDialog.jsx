@@ -3,7 +3,7 @@ import { ExternalLink, ShieldCheck, X } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 
-const CONSENT_TEXT = 'באישור זה אני מאשר/ת שקיבלתי גישה לקבצי הפרויקט ומתחיל/ה בהורדתם למכשיר האישי שלי. ידוע לי כי STUDIO GOLD והצלם שומרים גיבוי זמני של הקבצים למשך עד 90 ימים ממועד מסירת הקישור או תחילת ההורדה, ולאחר תקופה זו לא תהיה ל-STUDIO GOLD, לצלם או למי מטעמם כל אחריות לשמירה, שחזור, אובדן או מחיקה של הקבצים. באחריותי לוודא שהקבצים ירדו ונשמרו אצלי באופן תקין.';
+const CONSENT_TEXT = 'אני מאשר/ת בזאת את קבלת הקבצים ואת תחילת הורדתם למכשיר האישי שלי. ידוע לי כי מרגע ההורדה הקבצים נמצאים באחריותי הבלעדית, ועליי לוודא שהם נשמרו וגובו אצלי באופן תקין. אני מאשר/ת שלא אבוא בכל טענה, דרישה או תביעה כלפי נתי גולד / סטודיו גולד, הצלם או מי מטעמם בגין אובדן, מחיקה, תקלה, אי־שמירה או חוסר יכולת לשחזר את הקבצים לאחר מסירתם. ידוע לי כי האחסון נשמר עד 90 יום בלבד ולאחר מכן יימחק, ולנתי גולד / סטודיו גולד לא תהיה אחריות לשמירה או שחזור הקבצים לאחר תקופה זו.';
 
 export default function ConsentDownloadDialog({ open, busy, progress = '', error = '', driveFolderUrl = '', onClose, onConfirm }) {
   const [checked, setChecked] = useState(false);
@@ -34,10 +34,10 @@ export default function ConsentDownloadDialog({ open, busy, progress = '', error
           </div>
           <label className="flex items-start gap-3 rounded-2xl border border-[#FFD700]/20 bg-[#FFD700]/10 p-4 cursor-pointer">
             <Checkbox checked={checked} onCheckedChange={(value) => setChecked(Boolean(value))} className="mt-1 border-[#FFD700] data-[state=checked]:bg-[#FFD700] data-[state=checked]:text-black" />
-            <span className="text-sm leading-6 text-white/90">אני מאשר/ת את קבלת הקבצים, את תחילת ההורדה, ואת תנאי שמירת הגיבוי הזמני עד 90 יום.</span>
+            <span className="text-sm leading-6 text-white/90">אני מאשר/ת שקיבלתי את הקבצים, שהם באחריותי, ושידוע לי שהאחסון נשמר עד 90 יום בלבד ולאחר מכן יימחק.</span>
           </label>
           <Button onClick={onConfirm} disabled={!checked || busy} className="w-full h-14 text-lg rounded-2xl">
-            {busy ? 'מכין ZIP להורדה...' : 'מאשר/ת ומוריד/ה ZIP מלא'}
+            {busy ? 'מתחיל הורדה...' : 'מאשר/ת ומוריד/ה את כל הקבצים'}
           </Button>
           {progress && <p className="text-center text-sm font-bold text-[#FFD700] leading-6">{progress}</p>}
           {error && <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-center text-sm font-bold text-red-300">{error}</p>}
@@ -47,7 +47,7 @@ export default function ConsentDownloadDialog({ open, busy, progress = '', error
               פתיחת התיקייה ב-Google Drive
             </a>
           )}
-          <p className="text-center text-xs text-white/45 leading-5">ההורדה תיפתח כקובץ ZIP אחד. לאחר ההורדה יש לפתוח/לחלץ את הקובץ כדי לראות את כל התמונות.</p>
+          <p className="text-center text-xs text-white/45 leading-5">הקבצים ירדו ישירות למכשיר. אם הדפדפן מבקש אישור להורדת מספר קבצים — יש לאשר.</p>
         </div>
       </div>
     </div>

@@ -236,14 +236,14 @@ export default function ProjectDetails() {
         notification_type: 'gallery_sent',
       });
       if (res.data?.success) {
-        setQuickActionStatus('מייל נשלח ללקוח ולך');
-        toast.success('מייל נשלח ללקוח ולך');
+        setQuickActionStatus('מייל נשלח ללקוח ולך ונרשם בלוג מערכת');
+        toast.success('מייל נשלח ללקוח ולך ונרשם בלוג');
       } else {
-        setQuickActionStatus('המייל נשלח חלקית — בדוק לוגים');
+        setQuickActionStatus('המייל נשלח חלקית — נרשם לוג לבדיקה');
         toast.error(res.data?.failed?.[0]?.error || 'שגיאה בשליחת המייל');
       }
     } catch (e) {
-      setQuickActionStatus('שגיאה בשליחת המייל');
+      setQuickActionStatus('שגיאה בשליחת המייל — נרשמת בלוג אם הפונקציה הופעלה');
       toast.error('שגיאה בשליחת המייל');
     } finally {
       setSendingEmail(false);

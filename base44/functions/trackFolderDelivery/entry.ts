@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import webpush from 'npm:web-push@3.6.7';
 
 const ADMIN_EMAIL = 'natigold04@gmail.com';
-const CONSENT_TEXT = 'באישור זה אני מאשר/ת שקיבלתי גישה לקבצי הפרויקט ומתחיל/ה בהורדתם למכשיר האישי שלי. ידוע לי כי STUDIO GOLD והצלם שומרים גיבוי זמני של הקבצים למשך עד 90 ימים ממועד מסירת הקישור או תחילת ההורדה, ולאחר תקופה זו לא תהיה ל-STUDIO GOLD, לצלם או למי מטעמם כל אחריות לשמירה, שחזור, אובדן או מחיקה של הקבצים. באחריותי לוודא שהקבצים ירדו ונשמרו אצלי באופן תקין.';
+const CONSENT_TEXT = 'אני מאשר/ת בזאת את קבלת הקבצים ואת תחילת הורדתם למכשיר האישי שלי. ידוע לי כי מרגע ההורדה הקבצים נמצאים באחריותי הבלעדית, ועליי לוודא שהם נשמרו וגובו אצלי באופן תקין. אני מאשר/ת שלא אבוא בכל טענה, דרישה או תביעה כלפי נתי גולד / סטודיו גולד, הצלם או מי מטעמם בגין אובדן, מחיקה, תקלה, אי־שמירה או חוסר יכולת לשחזר את הקבצים לאחר מסירתם. ידוע לי כי האחסון נשמר עד 90 יום בלבד ולאחר מכן יימחק, ולנתי גולד / סטודיו גולד לא תהיה אחריות לשמירה או שחזור הקבצים לאחר תקופה זו.';
 
 Deno.serve(async (req) => {
   try {
@@ -89,13 +89,28 @@ Deno.serve(async (req) => {
 async function notifyClient(base44, project, fileCount) {
   const recipients = [...new Set([project.client_email, ...(Array.isArray(project.client_emails) ? project.client_emails : [])].filter(Boolean).map((email) => String(email).trim().toLowerCase()))];
   const projectTitle = project.project_name || project.shooting_type || 'Studio Gold';
+  const sent = [];
+  const failed = [];
   for (const email of recipients) {
-    await base44.asServiceRole.integrations.Core.SendEmail({
-      to: email,
-      subject: 'אישור קבלת הקבצים שלך מ-STUDIO GOLD',
-      body: `שלום ${project.client_name || ''},\n\nאישורך התקבל במערכת והורדת הקבצים עבור ${projectTitle} נפתחה במכשיר שלך.\n\nמספר קבצים: ${fileCount}\n\n${CONSENT_TEXT}\n\nSTUDIO GOLD`,
-    }).catch(() => {});
+    try {
+      await base44.asServiceRole.integrations.Core.SendEmail({
+        to: email,
+        subject: 'אישור קבלת הקבצים שלך מ-STUDIO GOLD',
+        body: `שלום ${project.client_name || ''},\n\nאישורך התקבל במערכת והורדת הקבצים עבור ${projectTitle} נפתחה במכשיר שלך.\n\nמספר קבצים: ${fileCount}\n\n${CONSENT_TEXT}\n\nSTUDIO GOLD`,
+      });
+      sent.push(email);
+    } catch (error) {
+      failed.push(`${email}: ${error.message}`);
+    }
   }
+  await base44.asServiceRole.entities.SystemLog.create({
+    action: 'download_confirmation_email_to_client',
+    details: `Download confirmation email to client. Sent: ${sent.join(', ') || 'none'}. Failed: ${failed.join(' | ') || 'none'}. Project: ${project.id}`,
+    status: sent.length ? (failed.length ? 'pending' : 'success') : 'error',
+    related_entity_type: 'Project',
+    related_entity_id: project.id,
+    owner_id: project.created_by_id || project.created_by || '',
+  }).catch(() => {});
 }
 
 async function notifyPhotographer(base44, project, fileCount) {
@@ -103,13 +118,28 @@ async function notifyPhotographer(base44, project, fileCount) {
   const photographerEmail = project.created_by || ADMIN_EMAIL;
   const projectTitle = project.project_name || project.shooting_type || 'Project';
   const message = `לקוח אישר קבלת קבצים והתחיל הורדה.\n\nלקוח: ${project.client_name || project.client_email || 'Client'}\nפרויקט: ${projectTitle}\nמספר קבצים: ${fileCount}\n\n${CONSENT_TEXT}`;
+  const sent = [];
+  const failed = [];
   for (const email of recipients) {
-    await base44.asServiceRole.integrations.Core.SendEmail({
-      to: email,
-      subject: 'STUDIO GOLD: לקוח אישר קבלת קבצים',
-      body: message,
-    }).catch(() => {});
+    try {
+      await base44.asServiceRole.integrations.Core.SendEmail({
+        to: email,
+        subject: 'STUDIO GOLD: לקוח אישר קבלת קבצים',
+        body: message,
+      });
+      sent.push(email);
+    } catch (error) {
+      failed.push(`${email}: ${error.message}`);
+    }
   }
+  await base44.asServiceRole.entities.SystemLog.create({
+    action: 'download_confirmation_email_to_photographer',
+    details: `Download confirmation email to photographer/admin. Sent: ${sent.join(', ') || 'none'}. Failed: ${failed.join(' | ') || 'none'}. Project: ${project.id}`,
+    status: sent.length ? (failed.length ? 'pending' : 'success') : 'error',
+    related_entity_type: 'Project',
+    related_entity_id: project.id,
+    owner_id: project.created_by_id || project.created_by || '',
+  }).catch(() => {});
 
   const vapidPublic = (Deno.env.get('VAPID_PUBLIC_KEY') || '').trim();
   const vapidPrivate = (Deno.env.get('VAPID_PRIVATE_KEY') || '').trim();

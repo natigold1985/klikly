@@ -152,8 +152,8 @@ export default function MagicLinkButton({ project, compact = false }) {
                     });
                     if (res.data?.success) {
                       const adminCopyText = res.data?.admin_copy_sent ? ' וגם אליך' : '';
-                      setActionStatus(`מייל נשלח ללקוח${adminCopyText}`);
-                      toast.success(`מייל נשלח ללקוח${adminCopyText}`);
+                      setActionStatus(`מייל נשלח ללקוח${adminCopyText} ונרשם בלוג המערכת`);
+                      toast.success(`מייל נשלח ללקוח${adminCopyText} ונרשם בלוג`);
                     } else {
                       const errorMessage = res.data?.failed?.[0]?.error || res.data?.error || 'שגיאה בשליחת המייל';
                       setActionStatus(errorMessage);

@@ -1,6 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-const MAX_SIZE = 15 * 1024 * 1024;
 const RAW_EXTENSIONS = ['.nef', '.cr2', '.cr3', '.arw', '.dng', '.raf', '.rw2', '.orf', '.raw'];
 
 Deno.serve(async (req) => {
@@ -21,20 +20,28 @@ Deno.serve(async (req) => {
 
     const size = Number(file.size || 0);
     const name = String(file.name || '').toLowerCase();
-    if (!size || size > MAX_SIZE || RAW_EXTENSIONS.some((ext) => name.endsWith(ext))) {
+    if (!size || RAW_EXTENSIONS.some((ext) => name.endsWith(ext))) {
       return Response.json({ error: 'File is not deliverable' }, { status: 403 });
     }
 
     const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${file_id}?alt=media`, { headers: authHeader });
-    if (!fileRes.ok) return Response.json({ error: 'Failed to fetch file' }, { status: 502 });
+    if (!fileRes.ok || !fileRes.body) return Response.json({ error: 'Failed to fetch file' }, { status: 502 });
 
-    const bytes = new Uint8Array(await fileRes.arrayBuffer());
-    let binary = '';
-    for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
-
-    return Response.json({ name: file.name, mime_type: file.mimeType || 'application/octet-stream', base64: btoa(binary) });
+    const fileName = safeFileName(file.name || 'studio-gold-file');
+    return new Response(fileRes.body, {
+      status: 200,
+      headers: {
+        'Content-Type': file.mimeType || 'application/octet-stream',
+        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`,
+        'X-File-Name': encodeURIComponent(fileName),
+      },
+    });
   } catch (error) {
     console.error('downloadFolderFile error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
+
+function safeFileName(name = 'studio-gold-file') {
+  return String(name).replace(/[\\/:*?"<>|]/g, '-').trim() || 'studio-gold-file';
+}

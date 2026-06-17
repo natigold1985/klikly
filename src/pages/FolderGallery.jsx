@@ -6,20 +6,9 @@ import ConsentDownloadDialog from '@/components/gallery/ConsentDownloadDialog';
 import StickyDownloadButton from '@/components/gallery/StickyDownloadButton';
 import { Loader2, ShieldOff } from 'lucide-react';
 
-function saveBase64File(base64, fileName, mimeType = 'application/octet-stream') {
-  const byteCharacters = atob(base64);
-  const byteNumbers = new Array(byteCharacters.length);
-  for (let i = 0; i < byteCharacters.length; i += 1) byteNumbers[i] = byteCharacters.charCodeAt(i);
-  const blob = new Blob([new Uint8Array(byteNumbers)], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  triggerDownload(url, fileName);
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
-}
-
 function triggerDownload(url, fileName = '') {
   const a = document.createElement('a');
   a.href = url;
-  a.target = '_blank';
   a.rel = 'noopener noreferrer';
   if (fileName) a.download = fileName;
   document.body.appendChild(a);
@@ -53,7 +42,7 @@ export default function FolderGallery() {
     if (!filesToDownload.length) return;
     setBusy(true);
     setDownloadError('');
-    setDownloadProgress('מכין קובץ ZIP אחד עם כל הקבצים...');
+    setDownloadProgress('מתחיל הורדה ישירה של כל הקבצים...');
 
     try {
       await base44.functions.invoke('trackFolderDelivery', {
@@ -67,27 +56,32 @@ export default function FolderGallery() {
         file_count: filesToDownload.length,
       });
 
-      const zipResponse = await base44.functions.fetch('/downloadFolderZip', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folder_id: folderId }),
-      });
-      if (!zipResponse.ok) throw new Error('שגיאה בהכנת קובץ ההורדה');
-      const zipBlob = await zipResponse.blob();
-      const zipName = decodeURIComponent(zipResponse.headers.get('X-File-Name') || '') || `${project?.client_name || 'studio-gold-gallery'}.zip`;
-      const zipFileCount = Number(zipResponse.headers.get('X-File-Count') || filesToDownload.length);
-      setDownloadProgress('פותח הורדת ZIP במכשיר...');
-      const zipUrl = URL.createObjectURL(zipBlob);
-      triggerDownload(zipUrl, zipName);
-      setTimeout(() => URL.revokeObjectURL(zipUrl), 60000);
+      let downloadedCount = 0;
+      for (let index = 0; index < filesToDownload.length; index += 1) {
+        const file = filesToDownload[index];
+        setDownloadProgress(`מוריד קובץ ${index + 1} מתוך ${filesToDownload.length}: ${file.name}`);
+        const fileResponse = await base44.functions.fetch('/downloadFolderFile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folder_id: folderId, file_id: file.id }),
+        });
+        if (!fileResponse.ok) throw new Error(`שגיאה בהורדת ${file.name || 'קובץ'}`);
+        const blob = await fileResponse.blob();
+        const responseFileName = decodeURIComponent(fileResponse.headers.get('X-File-Name') || '') || file.name || `studio-gold-${index + 1}`;
+        const fileUrl = URL.createObjectURL(blob);
+        triggerDownload(fileUrl, responseFileName);
+        downloadedCount += 1;
+        setTimeout(() => URL.revokeObjectURL(fileUrl), 60000);
+        await new Promise((resolve) => setTimeout(resolve, 450));
+      }
 
       await base44.functions.invoke('trackFolderDelivery', {
         folder_id: folderId,
         action_type: 'download_completed',
-        file_count: zipFileCount || filesToDownload.length,
+        file_count: downloadedCount || filesToDownload.length,
       });
       setDownloaded(true);
-      setDownloadProgress('הורדת ZIP נפתחה בהצלחה. אם הדפדפן מבקש אישור — יש לאשר שמירה למכשיר.');
+      setDownloadProgress('כל ההורדות נפתחו. אם הדפדפן מבקש אישור להורדת מספר קבצים — יש לאשר. אישור נשלח אליך וללקוח.');
       setConsentOpen(false);
     } catch (error) {
       setDownloadError(error?.response?.data?.error || error?.message || 'שגיאה בהכנת ההורדה');
@@ -136,13 +130,13 @@ export default function FolderGallery() {
         <div className="max-w-xl mx-auto rounded-[2rem] border border-[#FFD700]/25 bg-[#0a0a0a]/90 p-8 md:p-10 text-center shadow-[0_0_60px_rgba(255,215,0,0.12)]">
           <div className="w-16 h-16 rounded-full bg-[#FFD700]/10 border border-[#FFD700]/30 flex items-center justify-center mx-auto mb-5 text-3xl">📁</div>
           <h2 className="text-2xl md:text-3xl font-black text-[#FFD700] mb-3">התיקייה מוכנה להורדה</h2>
-          <p className="text-white/60 leading-7 mb-7">כל קבצי הפרויקט ירדו כקובץ ZIP אחד, כדי שההורדה תעבוד בצורה יציבה גם בנייד וגם במחשב.</p>
+          <p className="text-white/60 leading-7 mb-7">כל קבצי הפרויקט ירדו ישירות למכשיר, קובץ אחרי קובץ. אם הדפדפן מבקש אישור להורדת מספר קבצים — יש לאשר.</p>
           <button
             onClick={() => setConsentOpen(true)}
             disabled={busy || files.length === 0}
             className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#FFD700] to-[#D4AF37] text-black font-black shadow-[0_10px_30px_rgba(255,215,0,0.28)] hover:brightness-110 disabled:opacity-60"
           >
-            {busy ? 'מכין ZIP...' : `הורד ZIP מלא (${files.length} קבצים)`}
+            {busy ? 'מוריד קבצים...' : `הורד את כל הקבצים (${files.length})`}
           </button>
           {downloaded && <p className="mt-4 text-emerald-400 font-bold">✓ ההורדה החלה והאישור נשמר</p>}
         </div>

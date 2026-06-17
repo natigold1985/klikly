@@ -14,7 +14,7 @@ export default function StickyDownloadButton({ position = 'top', busy = false, f
         <div className="text-right leading-tight">
           <div className="text-xl md:text-3xl font-black">הורדת כל הקבצים</div>
           <div className="flex items-center gap-1 text-xs md:text-sm font-bold opacity-75">
-            <ShieldCheck className="w-4 h-4" /> אישור קבלת קבצים {fileCount ? `· ${fileCount} קבצים` : ''}
+            <ShieldCheck className="w-4 h-4" /> אישור משפטי והורדה ישירה {fileCount ? `· ${fileCount} קבצים` : ''}
           </div>
         </div>
       </button>
