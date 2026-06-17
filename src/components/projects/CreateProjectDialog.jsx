@@ -43,7 +43,13 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }) {
     xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
-        resolve(JSON.parse(xhr.responseText || '{}'));
+        try {
+          const parsed = JSON.parse(xhr.responseText || '{}');
+          if (!parsed.id) reject(new Error('Google Drive סיים העלאה אבל לא החזיר מזהה קובץ'));
+          else resolve(parsed);
+        } catch (error) {
+          reject(new Error('העלאה ל-Google Drive הצליחה אבל התשובה לא נקראה תקין'));
+        }
       } else {
         reject(new Error(`העלאה ל-Google Drive נכשלה (${xhr.status})`));
       }
@@ -102,11 +108,31 @@ export default function CreateProjectDialog({ open, onOpenChange, onCreated }) {
         throw new Error(folderRes.data?.error || 'יצירת תיקיית Drive נכשלה');
       }
 
+      const failedUploads = [];
       for (const file of files) {
-        await uploadInitialFile(project.id, file);
+        try {
+          await uploadInitialFile(project.id, file);
+        } catch (error) {
+          failedUploads.push(`${file.name}: ${error.message}`);
+        }
       }
 
-      toast.success(files.length ? 'הפרויקט נוצר והקבצים הועלו ל-Google Drive' : 'הפרויקט נוצר וסונכרן ל-Google Drive');
+      await queryClient.invalidateQueries({ queryKey: ['projects'] });
+      await queryClient.invalidateQueries({ queryKey: ['driveProjects'] });
+      await queryClient.invalidateQueries({ queryKey: ['project', project.id] });
+
+      if (failedUploads.length) {
+        await base44.entities.SystemLog.create({
+          action: 'project_drive_sync_partial_failure',
+          details: `Project created and Drive folder synced, but ${failedUploads.length} files failed: ${failedUploads.join(' | ')}`,
+          status: 'error',
+          related_entity_type: 'Project',
+          related_entity_id: project.id,
+        }).catch(() => {});
+        toast.warning(`הפרויקט ותיקיית הגלריה נוצרו, ${failedUploads.length} קבצים לא עלו`);
+      } else {
+        toast.success(files.length ? 'הפרויקט נוצר והקבצים הועלו ל-Google Drive' : 'הפרויקט נוצר וסונכרן ל-Google Drive');
+      }
       onCreated?.(project);
       resetForm();
       onOpenChange(false);

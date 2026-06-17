@@ -7,7 +7,7 @@ const CONSENT_TEXT = 'אני מאשר/ת בזאת את קבלת הקבצים ו�
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { folder_id, action_type, file_count } = await req.json().catch(() => ({}));
+    const { folder_id, action_type, file_count, download_mode, error_message } = await req.json().catch(() => ({}));
     if (!folder_id || !action_type) return Response.json({ error: 'folder_id and action_type required' }, { status: 400 });
 
     const projects = await base44.asServiceRole.entities.Project.list('-updated_date', 500);
@@ -15,8 +15,9 @@ Deno.serve(async (req) => {
     if (!project) return Response.json({ error: 'Gallery not found' }, { status: 404 });
 
     const now = new Date().toISOString();
-    const isDownload = ['download_confirmed', 'download_started', 'download_completed'].includes(action_type);
+    const isDownload = ['download_confirmed', 'download_started', 'download_completed', 'download_failed'].includes(action_type);
     const isDownloadCompleted = action_type === 'download_completed';
+    const isDownloadFailed = action_type === 'download_failed';
 
     await base44.asServiceRole.entities.DeliveryAudit.create({
       project_id: project.id,
@@ -29,6 +30,7 @@ Deno.serve(async (req) => {
       user_agent: req.headers.get('user-agent') || '',
       file_count: file_count || 0,
       consent_text: isDownload ? CONSENT_TEXT : '',
+      metadata: { download_mode: download_mode || 'direct', error_message: error_message || '' },
     });
 
     const token = `folder:${folder_id}`;
@@ -51,6 +53,18 @@ Deno.serve(async (req) => {
     };
     if (link) await base44.asServiceRole.entities.DeliveryLink.update(link.id, linkPayload).catch(() => {});
     else await base44.asServiceRole.entities.DeliveryLink.create(linkPayload).catch(() => {});
+
+    if (isDownloadFailed) {
+      await base44.asServiceRole.entities.SystemLog.create({
+        action: 'storage_client_download_failed',
+        details: `Client download failed. Mode: ${download_mode || 'direct'}. Error: ${error_message || 'unknown'}. Project: ${project.project_name || project.id}`,
+        status: 'error',
+        related_entity_type: 'Project',
+        related_entity_id: project.id,
+        owner_id: project.created_by_id || project.created_by || '',
+      }).catch(() => {});
+      return Response.json({ success: true, logged_failed_download: true });
+    }
 
     if (isDownloadCompleted) {
       if (!project.first_download_at) {

@@ -37,7 +37,7 @@ export default function ConsentDownloadDialog({ open, busy, progress = '', error
             <span className="text-sm leading-6 text-white/90">אני מאשר/ת שקיבלתי את הקבצים, שהם באחריותי, ושידוע לי שהאחסון נשמר עד 90 יום בלבד ולאחר מכן יימחק.</span>
           </label>
           <Button onClick={onConfirm} disabled={!checked || busy} className="w-full h-14 text-lg rounded-2xl">
-            {busy ? 'מתחיל הורדה...' : 'מאשר/ת ומוריד/ה את כל הקבצים'}
+            {busy ? 'מכין ZIP...' : 'מאשר/ת ומוריד/ה ZIP'}
           </Button>
           {progress && <p className="text-center text-sm font-bold text-[#FFD700] leading-6">{progress}</p>}
           {error && <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-center text-sm font-bold text-red-300">{error}</p>}
@@ -47,7 +47,7 @@ export default function ConsentDownloadDialog({ open, busy, progress = '', error
               פתיחת התיקייה ב-Google Drive
             </a>
           )}
-          <p className="text-center text-xs text-white/45 leading-5">הקבצים ירדו ישירות למכשיר. אם הדפדפן מבקש אישור להורדת מספר קבצים — יש לאשר.</p>
+          <p className="text-center text-xs text-white/45 leading-5">הקבצים ירדו למכשיר כקובץ ZIP אחד, והפעולה תירשם בלוג המערכת.</p>
         </div>
       </div>
     </div>

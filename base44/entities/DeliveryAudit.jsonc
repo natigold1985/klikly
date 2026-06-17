@@ -24,8 +24,10 @@
         "download_confirmed",
         "download_started",
         "download_completed",
+        "download_failed",
         "reminder_sent",
-        "expired_access_blocked"
+        "expired_access_blocked",
+        "payment_required_blocked"
       ]
     },
     "ip_address": {
