@@ -12,9 +12,9 @@ export default function StickyDownloadButton({ position = 'top', busy = false, f
       >
         {busy ? <Loader2 className="w-7 h-7 animate-spin" /> : <DownloadCloud className="w-8 h-8" />}
         <div className="text-right leading-tight">
-          <div className="text-xl md:text-3xl font-black">הורדת כל הקבצים</div>
+          <div className="text-xl md:text-3xl font-black">פתיחת כל הקבצים</div>
           <div className="flex items-center gap-1 text-xs md:text-sm font-bold opacity-75">
-            <ShieldCheck className="w-4 h-4" /> אישור משפטי והורדת ZIP {fileCount ? `· ${fileCount} קבצים` : ''}
+            <ShieldCheck className="w-4 h-4" /> אישור משפטי ופתיחת Drive {fileCount ? `· ${fileCount} קבצים` : ''}
           </div>
         </div>
       </button>

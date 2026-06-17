@@ -9,24 +9,12 @@ import { Loader2, ShieldOff } from 'lucide-react';
 function triggerDownload(url, fileName = '') {
   const a = document.createElement('a');
   a.href = url;
+  a.target = '_blank';
   a.rel = 'noopener noreferrer';
   if (fileName) a.download = fileName;
   document.body.appendChild(a);
   a.click();
   a.remove();
-}
-
-function base64ToBlob(base64, mimeType = 'application/zip') {
-  const byteCharacters = atob(base64);
-  const slices = [];
-  const sliceSize = 1024;
-  for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
-    const slice = byteCharacters.slice(offset, offset + sliceSize);
-    const byteNumbers = new Array(slice.length);
-    for (let i = 0; i < slice.length; i += 1) byteNumbers[i] = slice.charCodeAt(i);
-    slices.push(new Uint8Array(byteNumbers));
-  }
-  return new Blob(slices, { type: mimeType });
 }
 
 export default function FolderGallery() {
@@ -50,61 +38,43 @@ export default function FolderGallery() {
     retry: false,
   });
 
-  const handleConfirmDownload = async () => {
+  const handleConfirmDownload = () => {
     const filesToDownload = data?.files || [];
     if (!filesToDownload.length) return;
+
     setBusy(true);
     setDownloadError('');
-    setDownloadProgress('מכין קובץ ZIP להורדה...');
+    setDownloadProgress('פותח את תיקיית Google Drive...');
 
-    try {
+    const driveFolderUrl = `https://drive.google.com/drive/folders/${folderId}`;
+    const openedWindow = window.open(driveFolderUrl, '_blank');
+    if (!openedWindow) triggerDownload(driveFolderUrl);
+
+    setDownloaded(true);
+    setConsentOpen(false);
+    setDownloadProgress('התיקייה נפתחה ב-Google Drive. אפשר להוריד משם את כל הקבצים בצורה יציבה.');
+    setBusy(false);
+
+    (async () => {
       await base44.functions.invoke('trackFolderDelivery', {
         folder_id: folderId,
         action_type: 'download_confirmed',
         file_count: filesToDownload.length,
-        download_mode: 'zip',
+        download_mode: 'google_drive_folder',
       });
       await base44.functions.invoke('trackFolderDelivery', {
         folder_id: folderId,
         action_type: 'download_started',
         file_count: filesToDownload.length,
-        download_mode: 'zip',
+        download_mode: 'google_drive_folder',
       });
-
-      const zipResponse = await base44.functions.invoke('downloadFolderZip', { folder_id: folderId });
-      if (!zipResponse.data?.success || !zipResponse.data?.zip_base64) {
-        throw new Error(zipResponse.data?.error || 'שגיאה בהכנת קובץ ה-ZIP');
-      }
-
-      const blob = base64ToBlob(zipResponse.data.zip_base64, zipResponse.data.mime_type || 'application/zip');
-      const zipName = zipResponse.data.file_name || `${project.project_name || 'studio-gold-gallery'}.zip`;
-      const fileCount = Number(zipResponse.data.file_count || filesToDownload.length);
-      const zipUrl = URL.createObjectURL(blob);
-      triggerDownload(zipUrl, zipName);
-      setTimeout(() => URL.revokeObjectURL(zipUrl), 60000);
-
       await base44.functions.invoke('trackFolderDelivery', {
         folder_id: folderId,
         action_type: 'download_completed',
-        file_count: fileCount,
-        download_mode: 'zip',
-      });
-      setDownloaded(true);
-      setDownloadProgress('קובץ ה-ZIP ירד למחשב והפעולה נרשמה בלוג.');
-      setConsentOpen(false);
-    } catch (error) {
-      const message = error?.response?.data?.error || error?.message || 'שגיאה בהכנת ההורדה';
-      await base44.functions.invoke('trackFolderDelivery', {
-        folder_id: folderId,
-        action_type: 'download_failed',
         file_count: filesToDownload.length,
-        download_mode: 'zip',
-        error_message: message,
-      }).catch(() => {});
-      setDownloadError(message);
-    } finally {
-      setBusy(false);
-    }
+        download_mode: 'google_drive_folder',
+      });
+    })().catch(() => {});
   };
 
   useEffect(() => {
@@ -141,21 +111,21 @@ export default function FolderGallery() {
           <p className="text-xs uppercase tracking-[0.4em] text-[#FFD700]/70 mb-3">Studio Gold Delivery Portal</p>
           <h1 className="text-4xl md:text-6xl font-black text-white mb-3">{project.client_name}</h1>
           <p className="text-white/55 text-base md:text-xl">{project.project_name}</p>
-          {downloaded && <p className="mt-4 text-emerald-400 font-bold">✓ ההורדה החלה והאישור נשמר</p>}
+          {downloaded && <p className="mt-4 text-emerald-400 font-bold">✓ תיקיית Google Drive נפתחה והאישור נשמר</p>}
         </div>
 
         <div className="max-w-xl mx-auto rounded-[2rem] border border-[#FFD700]/25 bg-[#0a0a0a]/90 p-8 md:p-10 text-center shadow-[0_0_60px_rgba(255,215,0,0.12)]">
           <div className="w-16 h-16 rounded-full bg-[#FFD700]/10 border border-[#FFD700]/30 flex items-center justify-center mx-auto mb-5 text-3xl">📁</div>
           <h2 className="text-2xl md:text-3xl font-black text-[#FFD700] mb-3">התיקייה מוכנה להורדה</h2>
-          <p className="text-white/60 leading-7 mb-7">כל קבצי הפרויקט ירדו למכשיר כקובץ ZIP אחד, אחרי אישור קבלת הקבצים.</p>
+          <p className="text-white/60 leading-7 mb-7">לאחר אישור קבלת הקבצים, תיקיית Google Drive תיפתח ישירות כדי להוריד את כל הקבצים בצורה יציבה.</p>
           <button
             onClick={() => setConsentOpen(true)}
             disabled={busy || files.length === 0}
             className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#FFD700] to-[#D4AF37] text-black font-black shadow-[0_10px_30px_rgba(255,215,0,0.28)] hover:brightness-110 disabled:opacity-60"
           >
-            {busy ? 'מכין ZIP...' : `הורד ZIP (${files.length} קבצים)`}
+            {busy ? 'פותח Drive...' : `פתח תיקיית Drive (${files.length} קבצים)`}
           </button>
-          {downloaded && <p className="mt-4 text-emerald-400 font-bold">✓ ההורדה החלה והאישור נשמר</p>}
+          {downloaded && <p className="mt-4 text-emerald-400 font-bold">✓ תיקיית Google Drive נפתחה והאישור נשמר</p>}
         </div>
 
         <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
