@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { CheckCircle2, Circle, Calendar, Flag, AlertTriangle, Clock, UserRound, Image, FolderOpen, ExternalLink } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
+import { useQueryClient } from '@tanstack/react-query';
+import { CheckCircle2, Circle, Calendar, Flag, AlertTriangle, Clock, UserRound, Image, FolderOpen, ExternalLink, Trash2, Mail, MessageCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,11 +33,22 @@ function daysUntilDue(dateStr) {
 }
 
 export default function TaskBoard({ tasks = [], projects = [] }) {
+  const [visibleCount, setVisibleCount] = useState(5);
+  const [deletingId, setDeletingId] = useState(null);
+  const queryClient = useQueryClient();
   const projectById = new Map(projects.map((project) => [project.id, project]));
 
   const formatSentAt = (dateStr) => {
     if (!dateStr) return 'לא צוין זמן שליחה';
-    return new Date(dateStr).toLocaleString('he-IL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    return new Date(dateStr).toLocaleString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+
+  const deleteTask = async (taskId) => {
+    if (!window.confirm('למחוק את המשימה הזו?')) return;
+    setDeletingId(taskId);
+    await base44.entities.Task.delete(taskId);
+    await queryClient.invalidateQueries({ queryKey: ['dashboard_tasks'] });
+    setDeletingId(null);
   };
 
   const getEditingDetails = (task) => {
@@ -56,9 +69,9 @@ export default function TaskBoard({ tasks = [], projects = [] }) {
       const bPri = priorityOrder[b.priority] ?? 1;
       if (aPri !== bPri) return aPri - bPri;
       return new Date(a.due_date || 0) - new Date(b.due_date || 0);
-    })
-    .slice(0, 8);
+    });
 
+  const visibleTasks = pendingTasks.slice(0, visibleCount);
   const overdueTasks = pendingTasks.filter(t => isOverdue(t.due_date));
   const todayTasks = pendingTasks.filter(t => isDueToday(t.due_date) && !isOverdue(t.due_date));
 
@@ -70,7 +83,18 @@ export default function TaskBoard({ tasks = [], projects = [] }) {
             <CheckCircle2 className="w-5 h-5 text-[#C5A028]" />
             משימות פתוחות
           </CardTitle>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <select
+              value={visibleCount}
+              onChange={(event) => setVisibleCount(Number(event.target.value))}
+              className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-[11px] font-bold text-slate-700"
+              aria-label="כמות משימות להצגה"
+            >
+              <option value={3}>3 משימות</option>
+              <option value={5}>5 משימות</option>
+              <option value={8}>8 משימות</option>
+              <option value={20}>20 משימות</option>
+            </select>
             {overdueTasks.length > 0 && (
               <Badge className="bg-red-100 text-red-700 text-[10px] font-bold gap-1">
                 <AlertTriangle className="w-3 h-3" />
@@ -93,7 +117,7 @@ export default function TaskBoard({ tasks = [], projects = [] }) {
           </div>
         ) : (
           <div className="space-y-2">
-            {pendingTasks.map(task => {
+            {visibleTasks.map(task => {
               const config = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium;
               const PriorityIcon = config.icon;
               const overdue = isOverdue(task.due_date);
@@ -103,6 +127,8 @@ export default function TaskBoard({ tasks = [], projects = [] }) {
               const project = task.related_to_type === 'project' ? projectById.get(task.related_to_id) : null;
               const clientFromDescription = task.description?.match(/הלקוח\s+(.+?)\s+בחר/)?.[1];
               const clientName = project?.client_name || clientFromDescription || task.title.split('—').pop()?.trim() || 'לקוח לא מזוהה';
+              const clientPhone = project?.client_phone?.replace(/[^0-9]/g, '');
+              const clientEmail = project?.client_email;
               const editingDetails = getEditingDetails(task);
 
               return (
@@ -149,16 +175,39 @@ export default function TaskBoard({ tasks = [], projects = [] }) {
                             <Calendar className="w-3 h-3" />
                             {overdue ? `באיחור!` : today ? 'היום' : days !== null && days <= 3 ? `עוד ${days} ימים` : ''}
                             {' '}
-                            {new Date(task.due_date).toLocaleDateString('he-IL', { day: 'numeric', month: 'short' })}
+                            {new Date(task.due_date).toLocaleString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </p>
                         )}
-                        {task.related_to_id && (
-                          <Link to={createPageUrl(`ProjectDetails?id=${task.related_to_id}`)} className="inline-flex items-center gap-1 text-[11px] font-black text-[#C5A028] hover:text-black transition-colors w-fit">
-                            <FolderOpen className="w-3.5 h-3.5" />
-                            פתח פרויקט
-                            <ExternalLink className="w-3 h-3" />
-                          </Link>
-                        )}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {clientPhone && (
+                            <a href={`https://wa.me/${clientPhone}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] font-black text-green-600 hover:text-green-800 transition-colors">
+                              <MessageCircle className="w-3.5 h-3.5" />
+                              וואטסאפ ללקוח
+                            </a>
+                          )}
+                          {clientEmail && (
+                            <a href={`mailto:${clientEmail}`} className="inline-flex items-center gap-1 text-[11px] font-black text-blue-600 hover:text-blue-800 transition-colors">
+                              <Mail className="w-3.5 h-3.5" />
+                              מייל ללקוח
+                            </a>
+                          )}
+                          {task.related_to_id && (
+                            <Link to={createPageUrl(`ProjectDetails?id=${task.related_to_id}`)} className="inline-flex items-center gap-1 text-[11px] font-black text-[#C5A028] hover:text-black transition-colors">
+                              <FolderOpen className="w-3.5 h-3.5" />
+                              פתח פרויקט
+                              <ExternalLink className="w-3 h-3" />
+                            </Link>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => deleteTask(task.id)}
+                            disabled={deletingId === task.id}
+                            className="inline-flex items-center gap-1 text-[11px] font-black text-red-600 hover:text-red-800 disabled:opacity-50 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            {deletingId === task.id ? 'מוחק...' : 'מחק'}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
