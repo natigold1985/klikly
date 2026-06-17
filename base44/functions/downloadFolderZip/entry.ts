@@ -58,14 +58,12 @@ Deno.serve(async (req) => {
     const zipName = `${safeFileName(project.project_name || project.client_name || 'studio-gold-gallery')}.zip`;
     await logZip(base44, project, 'zip_download_ready', `ZIP generated successfully. Files in ZIP: ${addedCount}`, 'success', addedCount);
 
-    return new Response(zipBytes, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/zip',
-        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(zipName)}`,
-        'X-File-Count': String(addedCount),
-        'X-File-Name': encodeURIComponent(zipName),
-      },
+    return Response.json({
+      success: true,
+      file_name: zipName,
+      file_count: addedCount,
+      mime_type: 'application/zip',
+      zip_base64: uint8ToBase64(zipBytes),
     });
   } catch (error) {
     console.error('downloadFolderZip error:', error);
@@ -102,6 +100,16 @@ async function fetchFolderFiles(accessToken, folderId, out, parentName = '') {
 
 function safeFileName(name = 'gallery') {
   return String(name).replace(/[\\/:*?"<>|]/g, '-').trim() || 'gallery';
+}
+
+function uint8ToBase64(bytes) {
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
 }
 
 async function logZip(base44, project, action, details, status, fileCount) {

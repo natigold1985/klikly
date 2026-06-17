@@ -16,6 +16,19 @@ function triggerDownload(url, fileName = '') {
   a.remove();
 }
 
+function base64ToBlob(base64, mimeType = 'application/zip') {
+  const byteCharacters = atob(base64);
+  const slices = [];
+  const sliceSize = 1024;
+  for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+    const slice = byteCharacters.slice(offset, offset + sliceSize);
+    const byteNumbers = new Array(slice.length);
+    for (let i = 0; i < slice.length; i += 1) byteNumbers[i] = slice.charCodeAt(i);
+    slices.push(new Uint8Array(byteNumbers));
+  }
+  return new Blob(slices, { type: mimeType });
+}
+
 export default function FolderGallery() {
   const { folderId } = useParams();
   const [consentOpen, setConsentOpen] = useState(false);
@@ -58,19 +71,14 @@ export default function FolderGallery() {
         download_mode: 'zip',
       });
 
-      const zipResponse = await base44.functions.fetch('/downloadFolderZip', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folder_id: folderId }),
-      });
-      if (!zipResponse.ok) {
-        const errorData = await zipResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || 'שגיאה בהכנת קובץ ה-ZIP');
+      const zipResponse = await base44.functions.invoke('downloadFolderZip', { folder_id: folderId });
+      if (!zipResponse.data?.success || !zipResponse.data?.zip_base64) {
+        throw new Error(zipResponse.data?.error || 'שגיאה בהכנת קובץ ה-ZIP');
       }
 
-      const blob = await zipResponse.blob();
-      const zipName = decodeURIComponent(zipResponse.headers.get('X-File-Name') || '') || `${project.project_name || 'studio-gold-gallery'}.zip`;
-      const fileCount = Number(zipResponse.headers.get('X-File-Count') || filesToDownload.length);
+      const blob = base64ToBlob(zipResponse.data.zip_base64, zipResponse.data.mime_type || 'application/zip');
+      const zipName = zipResponse.data.file_name || `${project.project_name || 'studio-gold-gallery'}.zip`;
+      const fileCount = Number(zipResponse.data.file_count || filesToDownload.length);
       const zipUrl = URL.createObjectURL(blob);
       triggerDownload(zipUrl, zipName);
       setTimeout(() => URL.revokeObjectURL(zipUrl), 60000);
