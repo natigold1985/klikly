@@ -34,6 +34,10 @@ Deno.serve(async (req) => {
     const existingPhotos = await base44.asServiceRole.entities.Photo.filter({ project_id: projectId }).catch(() => []);
     const existingByDriveId = new Map(existingPhotos.filter((photo) => photo.drive_file_id).map((photo) => [photo.drive_file_id, photo]));
     const existingById = new Map(existingPhotos.map((photo) => [photo.id, photo]));
+    const nowIso = new Date().toISOString();
+
+    // Batch all DB writes so they fire in parallel instead of one-by-one (avoids timeouts).
+    const photoWrites = [];
 
     for (const photo of existingPhotos) {
       const selected = selectedIdSet.has(photo.drive_file_id || photo.id);
@@ -41,10 +45,13 @@ Deno.serve(async (req) => {
       const updateData = {};
       if (photo.is_selected !== selected) updateData.is_selected = selected;
       if ((photo.client_comment || '') !== comment) updateData.client_comment = comment;
-      if (selected && !photo.selected_at) updateData.selected_at = new Date().toISOString();
-      if (Object.keys(updateData).length > 0) await base44.asServiceRole.entities.Photo.update(photo.id, updateData);
+      if (selected && !photo.selected_at) updateData.selected_at = nowIso;
+      if (Object.keys(updateData).length > 0) {
+        photoWrites.push(base44.asServiceRole.entities.Photo.update(photo.id, updateData));
+      }
     }
 
+    const newPhotos = [];
     for (const item of selectedPhotoDetails) {
       const driveId = item.drive_file_id || item.id;
       const existing = existingByDriveId.get(driveId) || existingById.get(item.id);
@@ -59,12 +66,15 @@ Deno.serve(async (req) => {
         is_selected: true,
         client_comment: photoComments?.[driveId] || item.comment || '',
         editing_status: 'pending',
-        selected_at: new Date().toISOString(),
+        selected_at: nowIso,
         order_index: Number(item.order_index || 0)
       };
-      if (existing) await base44.asServiceRole.entities.Photo.update(existing.id, payload);
-      else if (payload.file_url) await base44.asServiceRole.entities.Photo.create(payload);
+      if (existing) photoWrites.push(base44.asServiceRole.entities.Photo.update(existing.id, payload));
+      else if (payload.file_url) newPhotos.push(payload);
     }
+
+    await Promise.all(photoWrites);
+    if (newPhotos.length > 0) await base44.asServiceRole.entities.Photo.bulkCreate(newPhotos);
 
     await base44.asServiceRole.entities.Project.update(projectId, {
       selected_photos_count: selectedPhotoIds.length,
@@ -79,67 +89,82 @@ Deno.serve(async (req) => {
     const notificationEmails = [...new Set([adminEmail, photographerEmail].filter(Boolean).map((email) => String(email).toLowerCase()))];
     const selectedItems = buildSelectedItems(selectedPhotoIds, selectedPhotoDetails, photoComments, existingPhotos);
 
-    let photographerEmailSent = false;
-    let clientEmailSent = false;
+    // Run notifications, logs and task creation AFTER the response is sent.
+    // Gmail latency must never block or fail the client's selection save.
     if (notifyPhotographer && selectedCount > 0) {
-      const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
-      const fromEmail = await getGmailAddress(accessToken);
-      const sourceFolderUrl = project.drive_folder_url || '';
-      const emailHtml = buildPhotographerEmail({ clientName, projectTitle, selectedItems, selectedCount, sourceFolderUrl });
-      for (const email of notificationEmails) {
-        await sendGmailEmail(accessToken, fromEmail, {
-          to: email,
-          subject: `⭐ ${clientName} שלח ${selectedCount} בחירות לעריכה`,
-          body: emailHtml,
-        });
-      }
-      photographerEmailSent = true;
+      const afterResponse = async () => {
+        try {
+          const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
+          const fromEmail = await getGmailAddress(accessToken);
+          const sourceFolderUrl = project.drive_folder_url || '';
+          const emailHtml = buildPhotographerEmail({ clientName, projectTitle, selectedItems, selectedCount, sourceFolderUrl });
 
-      if (project.client_email) {
-        await sendGmailEmail(accessToken, fromEmail, {
-          to: project.client_email,
-          subject: `✅ הבחירות שלך התקבלו - ${projectTitle}`,
-          body: buildClientConfirmationEmail({ clientName, projectTitle, selectedCount }),
-        });
-        clientEmailSent = true;
-      }
+          let photographerEmailSent = false;
+          let clientEmailSent = false;
 
-      await base44.asServiceRole.entities.SystemLog.create({
-        action: 'client_selection_submitted',
-        details: `${clientName} submitted ${selectedCount} selected photos for project ${projectTitle}. Source folder: ${project.drive_folder_url || 'none'}. Selected files: ${selectedItems.map((item) => item.name).join(', ')}. Admin email sent: ${photographerEmailSent}. Client confirmation sent: ${clientEmailSent}.`,
-        status: 'success',
-        related_entity_type: 'Project',
-        related_entity_id: projectId,
-        owner_id: project.created_by_id || project.user_id || project.created_by || adminEmail,
-      }).catch(() => {});
+          for (const email of notificationEmails) {
+            await sendGmailEmail(accessToken, fromEmail, {
+              to: email,
+              subject: `⭐ ${clientName} שלח ${selectedCount} בחירות לעריכה`,
+              body: emailHtml,
+            }).catch((e) => console.error('photographer email failed:', e.message));
+          }
+          photographerEmailSent = true;
 
-      await base44.asServiceRole.entities.Activity.create({
-        related_to_type: 'project',
-        related_to_id: projectId,
-        activity_type: 'selection_made',
-        title: `הלקוח שלח ${selectedCount} תמונות לעריכה`,
-        description: `נשלחו מיילים: מנהל ${photographerEmailSent ? 'כן' : 'לא'}, לקוח ${clientEmailSent ? 'כן' : 'לא'}.`,
-        metadata: {
-          selected_count: selectedCount,
-          client_email: project.client_email || '',
-          admin_email: adminEmail,
-          source_folder_url: project.drive_folder_url || '',
-          selected_items: selectedItems.map((item) => ({ name: item.name, rawNumber: item.rawNumber, comment: item.comment, url: item.url }))
+          if (project.client_email) {
+            await sendGmailEmail(accessToken, fromEmail, {
+              to: project.client_email,
+              subject: `✅ הבחירות שלך התקבלו - ${projectTitle}`,
+              body: buildClientConfirmationEmail({ clientName, projectTitle, selectedCount }),
+            }).then(() => { clientEmailSent = true; }).catch((e) => console.error('client email failed:', e.message));
+          }
+
+          await base44.asServiceRole.entities.SystemLog.create({
+            action: 'client_selection_submitted',
+            details: `${clientName} submitted ${selectedCount} selected photos for project ${projectTitle}. Source folder: ${project.drive_folder_url || 'none'}. Selected files: ${selectedItems.map((item) => item.name).join(', ')}. Admin email sent: ${photographerEmailSent}. Client confirmation sent: ${clientEmailSent}.`,
+            status: 'success',
+            related_entity_type: 'Project',
+            related_entity_id: projectId,
+            owner_id: project.created_by_id || project.user_id || project.created_by || adminEmail,
+          }).catch(() => {});
+
+          await base44.asServiceRole.entities.Activity.create({
+            related_to_type: 'project',
+            related_to_id: projectId,
+            activity_type: 'selection_made',
+            title: `הלקוח שלח ${selectedCount} תמונות לעריכה`,
+            description: `נשלחו מיילים: מנהל ${photographerEmailSent ? 'כן' : 'לא'}, לקוח ${clientEmailSent ? 'כן' : 'לא'}.`,
+            metadata: {
+              selected_count: selectedCount,
+              client_email: project.client_email || '',
+              admin_email: adminEmail,
+              source_folder_url: project.drive_folder_url || '',
+              selected_items: selectedItems.map((item) => ({ name: item.name, rawNumber: item.rawNumber, comment: item.comment, url: item.url }))
+            }
+          }).catch(() => {});
+
+          await base44.asServiceRole.entities.Task.create({
+            title: `עריכת ${selectedCount} תמונות — ${projectTitle}`,
+            description: `הלקוח ${clientName} בחר ${selectedCount} תמונות לעריכה. תיקיית מקור: ${project.drive_folder_url || 'לא הוגדרה'}. קבצים: ${selectedItems.map((item) => item.name).join(', ')}.`,
+            related_to_type: 'project',
+            related_to_id: projectId,
+            status: 'pending',
+            priority: 'high',
+            stage: 'editing',
+          }).catch(() => {});
+        } catch (e) {
+          console.error('submitFavorites post-response tasks error:', e.message);
         }
-      }).catch(() => {});
+      };
 
-      await base44.asServiceRole.entities.Task.create({
-        title: `עריכת ${selectedCount} תמונות — ${projectTitle}`,
-        description: `הלקוח ${clientName} בחר ${selectedCount} תמונות לעריכה. תיקיית מקור: ${project.drive_folder_url || 'לא הוגדרה'}. קבצים: ${selectedItems.map((item) => item.name).join(', ')}.`,
-        related_to_type: 'project',
-        related_to_id: projectId,
-        status: 'pending',
-        priority: 'high',
-        stage: 'editing',
-      }).catch(() => {});
+      if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+        EdgeRuntime.waitUntil(afterResponse());
+      } else {
+        afterResponse();
+      }
     }
 
-    return Response.json({ success: true, photographerEmailSent, clientEmailSent, selectedCount });
+    return Response.json({ success: true, selectedCount });
   } catch (error) {
     console.error('submitFavorites error:', error);
     return Response.json({ error: error.message }, { status: 500 });
