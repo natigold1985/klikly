@@ -82,25 +82,27 @@ export default function MagicGallery() {
     });
   };
 
+  const extractFolderId = (url = '') => {
+    const match = String(url).match(/drive\.google\.com\/drive\/(?:u\/\d+\/)?folders\/([a-zA-Z0-9_-]+)/);
+    return match?.[1] || '';
+  };
+
   const handleDownloadAll = async () => {
     const filesToDownload = data?.files || [];
-    if (!filesToDownload.length) return;
-    setBusy(true);
+    const folderId = extractFolderId(data?.project?.drive_folder_url);
+    if (!folderId) return;
 
-    const zip = await base44.functions.invoke('downloadGalleryZip', { token });
-    saveBase64File(zip.data.base64, zip.data.name || 'studio-gold-gallery.zip', 'application/zip');
-
-    await base44.functions
+    base44.functions
       .invoke('trackDownload', {
         token,
-        file_name: 'ALL_ZIP',
+        file_name: 'ALL_DRIVE_FOLDER',
         download_type: 'download_all',
         event_type: 'download_completed',
-        file_count: zip.data.file_count || filesToDownload.length,
+        file_count: filesToDownload.length,
       })
       .catch(() => {});
 
-    setBusy(false);
+    window.open(`https://drive.google.com/drive/folders/${folderId}`, '_blank');
     setDownloaded(true);
   };
 
